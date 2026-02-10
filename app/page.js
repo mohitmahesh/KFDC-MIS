@@ -66,7 +66,7 @@ const CHART_COLORS = ['#166534', '#ca8a04', '#2563eb', '#dc2626', '#7c3aed']
 
 const formatCurrency = (n) => {
   if (n == null) return '₹0'
-  return '₹' + Number(n).toLocaleString('en-IN')
+  return '₹' + Math.round(Number(n)).toLocaleString('en-IN')
 }
 
 // ===================== LOGIN PAGE =====================
