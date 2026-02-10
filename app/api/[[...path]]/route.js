@@ -485,6 +485,9 @@ async function handleRoute(request, { params }) {
         species: body.species,
         year_of_planting: parseInt(body.year_of_planting),
         total_area_ha: parseFloat(body.total_area_ha),
+        village: body.village || null,
+        taluk: body.taluk || null,
+        district: body.district || null,
         created_at: new Date(),
       }
       await db.collection('plantations').insertOne(plantation)
