@@ -424,7 +424,7 @@ class KFDCTester:
         }
         
         response = self.test_endpoint("POST", "/work-logs", excessive_log_data, headers=ro_headers, expected_status=400)
-        if response and response.status_code == 400:
+        if response is not None and response.status_code == 400:
             try:
                 error_data = response.json()
                 error_msg = error_data.get('error', '')
@@ -437,7 +437,7 @@ class KFDCTester:
             except:
                 self.log("  Budget enforcement test - could not parse response", "WARNING")
                 work_results.append("Budget Enforcement: FAIL - Parse error")
-        elif response and response.status_code == 201:
+        elif response is not None and response.status_code == 201:
             # This means budget enforcement is not working
             self.log("  ERROR: Budget enforcement failed - overbudget request was accepted!", "ERROR")
             work_results.append("Budget Enforcement: FAIL - Overbudget accepted")
