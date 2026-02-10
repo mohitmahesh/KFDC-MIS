@@ -348,6 +348,8 @@ class KFDCTester:
                     self.log(f"  APO approved successfully: {new_status}")
                     workflow_results.append("Approve APO: PASS")
                     
+        # Step 5: Verify immutability - try to change status again
+        self.log("Testing APO immutability...")
         response = self.test_endpoint("PATCH", f"/apo/{apo_id}/status", {"status": "REJECTED"}, headers=dm_headers, expected_status=400)
         if response and response.status_code == 400:
             error_data = response.json() if response.text else {}
