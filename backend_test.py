@@ -577,6 +577,7 @@ class KFDCTester:
                 self.log("  RO correctly blocked from creating norms")
                 ro_result = "RO Create Norms Block: PASS"
             else:
+                self.log(f"  RO create norms should fail but got {response.status_code if response else 'None'}", "WARNING")
                 ro_result = "RO Create Norms Block: FAIL"
                 
             rbac_results.extend([admin_result, ro_result])
