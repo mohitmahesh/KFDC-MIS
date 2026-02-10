@@ -38,73 +38,199 @@ async function getUser(request, db) {
   return user
 }
 
-// ===================== SEED DATA =====================
+// ===================== SEED DATA (Real KFDC Data from Excel Masters) =====================
 const SEED_DATA = {
   divisions: [
-    { id: 'div-shimoga', name: 'Shimoga', code: 'SHM' },
-    { id: 'div-mysore', name: 'Mysore', code: 'MYS' },
+    { id: 'div-bangalore', name: 'Bangalore', code: 'BLR' },
+    { id: 'div-dharwad', name: 'Dharwad', code: 'DWD' },
+    { id: 'div-shimoga', name: 'Shivamogga', code: 'SHM' },
+    { id: 'div-chikmagalur', name: 'Chikkamagaluru', code: 'CKM' },
   ],
   ranges: [
-    { id: 'rng-sagara', division_id: 'div-shimoga', name: 'Sagara Range' },
-    { id: 'rng-soraba', division_id: 'div-shimoga', name: 'Soraba Range' },
-    { id: 'rng-hunsur', division_id: 'div-mysore', name: 'Hunsur Range' },
-    { id: 'rng-hdkote', division_id: 'div-mysore', name: 'H.D. Kote Range' },
+    // Bangalore Division
+    { id: 'rng-svpura', division_id: 'div-bangalore', name: 'S.V. Pura' },
+    { id: 'rng-mulbagilu', division_id: 'div-bangalore', name: 'Mulabagilu' },
+    { id: 'rng-dvhalli', division_id: 'div-bangalore', name: 'D.V. Halli' },
+    { id: 'rng-malur', division_id: 'div-bangalore', name: 'Malur' },
+    { id: 'rng-bangarpet', division_id: 'div-bangalore', name: 'Bangarpet' },
+    { id: 'rng-bidadi', division_id: 'div-bangalore', name: 'Bidadi' },
+    // Dharwad Division
+    { id: 'rng-dharwad', division_id: 'div-dharwad', name: 'Dharwad' },
+    { id: 'rng-alloli', division_id: 'div-dharwad', name: 'Alloli-Kanasolli' },
+    { id: 'rng-akrali', division_id: 'div-dharwad', name: 'Akrali' },
+    { id: 'rng-gunji', division_id: 'div-dharwad', name: 'Gunji' },
+    { id: 'rng-dhundashi', division_id: 'div-dharwad', name: 'Dhundashi' },
+    { id: 'rng-khanapur', division_id: 'div-dharwad', name: 'Khanapur' },
+    // Shivamogga Division
+    { id: 'rng-sagara', division_id: 'div-shimoga', name: 'Sagara' },
+    { id: 'rng-soraba', division_id: 'div-shimoga', name: 'Soraba' },
+    { id: 'rng-siddapur', division_id: 'div-shimoga', name: 'Siddapur' },
+    { id: 'rng-hosanagar', division_id: 'div-shimoga', name: 'Hosanagar' },
+    // Chikkamagaluru Division
+    { id: 'rng-koppa', division_id: 'div-chikmagalur', name: 'Koppa' },
+    { id: 'rng-narasimharajapura', division_id: 'div-chikmagalur', name: 'Narasimharajapura' },
+    { id: 'rng-sringeri', division_id: 'div-chikmagalur', name: 'Sringeri' },
   ],
   users: [
-    { id: 'usr-ro1', email: 'ro.sagara@kfdc.in', password: 'pass123', name: 'Ramesh Kumar', role: 'RO', division_id: 'div-shimoga', range_id: 'rng-sagara' },
-    { id: 'usr-ro2', email: 'ro.hunsur@kfdc.in', password: 'pass123', name: 'Suresh Gowda', role: 'RO', division_id: 'div-mysore', range_id: 'rng-hunsur' },
-    { id: 'usr-dm1', email: 'dm.shimoga@kfdc.in', password: 'pass123', name: 'Anjali Sharma', role: 'DM', division_id: 'div-shimoga', range_id: null },
-    { id: 'usr-dm2', email: 'dm.mysore@kfdc.in', password: 'pass123', name: 'Priya Hegde', role: 'DM', division_id: 'div-mysore', range_id: null },
+    { id: 'usr-ro1', email: 'ro.dharwad@kfdc.in', password: 'pass123', name: 'Ramesh Kumar', role: 'RO', division_id: 'div-dharwad', range_id: 'rng-dharwad' },
+    { id: 'usr-ro2', email: 'ro.svpura@kfdc.in', password: 'pass123', name: 'Suresh Gowda', role: 'RO', division_id: 'div-bangalore', range_id: 'rng-svpura' },
+    { id: 'usr-ro3', email: 'ro.sagara@kfdc.in', password: 'pass123', name: 'Manjunath Hegde', role: 'RO', division_id: 'div-shimoga', range_id: 'rng-sagara' },
+    { id: 'usr-ro4', email: 'ro.alloli@kfdc.in', password: 'pass123', name: 'Basavaraj Patil', role: 'RO', division_id: 'div-dharwad', range_id: 'rng-alloli' },
+    { id: 'usr-dm1', email: 'dm.dharwad@kfdc.in', password: 'pass123', name: 'Anjali Sharma', role: 'DM', division_id: 'div-dharwad', range_id: null },
+    { id: 'usr-dm2', email: 'dm.bangalore@kfdc.in', password: 'pass123', name: 'Priya Hegde', role: 'DM', division_id: 'div-bangalore', range_id: null },
+    { id: 'usr-dm3', email: 'dm.shimoga@kfdc.in', password: 'pass123', name: 'Nagaraj Rao', role: 'DM', division_id: 'div-shimoga', range_id: null },
     { id: 'usr-admin1', email: 'admin@kfdc.in', password: 'pass123', name: 'Dr. Venkatesh Rao', role: 'ADMIN', division_id: null, range_id: null },
   ],
+  // Real KFDC Activities with SSR Numbers from Masters Excel
   activities: [
-    { id: 'act-weeding', name: 'Weeding', category: 'Maintenance', unit: 'Per Hectare' },
-    { id: 'act-soilwork', name: 'Soil Working', category: 'Maintenance', unit: 'Per Hectare' },
-    { id: 'act-fireline', name: 'Fire Line Tracing', category: 'Maintenance', unit: 'Per Km' },
-    { id: 'act-firewatch', name: 'Fire Watching', category: 'Maintenance', unit: 'Per Hectare' },
-    { id: 'act-casualty', name: 'Casualty Replacement', category: 'Maintenance', unit: 'Per Hectare' },
-    { id: 'act-pruning', name: 'Pruning', category: 'Maintenance', unit: 'Per Hectare' },
-    { id: 'act-thinning', name: 'Thinning', category: 'Harvesting', unit: 'Per Hectare' },
-    { id: 'act-nursery', name: 'Nursery Raising', category: 'Nursery', unit: 'Per 1000 Seedlings' },
-    { id: 'act-fencing', name: 'Fencing Repair', category: 'Maintenance', unit: 'Per Km' },
-    { id: 'act-manuring', name: 'Manuring', category: 'Maintenance', unit: 'Per Hectare' },
+    { id: 'act-survey', name: 'Survey & Demarcation', category: 'Advance Works', unit: 'Per Km', ssr_no: '71' },
+    { id: 'act-dozing', name: 'Dozing & Ripping (Fuel cost)', category: 'Advance Works', unit: 'Per Hectare', ssr_no: '-' },
+    { id: 'act-jungle', name: 'Jungle Clearance', category: 'Advance Works', unit: 'Per Hectare', ssr_no: '72(C)' },
+    { id: 'act-debris', name: 'Lifting & Heaping of Debris', category: 'Advance Works', unit: 'Per Hectare', ssr_no: '73(a)' },
+    { id: 'act-preweeding', name: 'Pre-weeding before Planting', category: 'Planting Works', unit: 'Per Hectare', ssr_no: '88(i)' },
+    { id: 'act-loading', name: 'Loading & Unloading of RTS/PBS', category: 'Planting Works', unit: 'Per 1000 Sdls', ssr_no: '81(i)' },
+    { id: 'act-transport', name: 'Transportation of Seedlings', category: 'Planting Works', unit: 'Per 1000 Sdls', ssr_no: '81(ii)' },
+    { id: 'act-antitermite', name: 'Anti-termite Pesticide Treatment', category: 'Planting Works', unit: 'Per Hectare', ssr_no: '82' },
+    { id: 'act-dipping', name: 'Dipping of RT/Pbs in Solution', category: 'Planting Works', unit: 'Per 1000 Sdls', ssr_no: '95(i)' },
+    { id: 'act-conveyance', name: 'Conveyance of RT to Planting Spot', category: 'Planting Works', unit: 'Per 1000 Sdls', ssr_no: '96(i)' },
+    { id: 'act-planting', name: 'Planting of Seedlings', category: 'Planting Works', unit: 'Per 1000 Sdls', ssr_no: '97(ii)' },
+    { id: 'act-fertilizer', name: 'Application of Fertilizer (NPK/DAP)', category: 'Maintenance', unit: 'Per Hectare', ssr_no: '86' },
+    { id: 'act-fertcost', name: 'Cost of Fertilizer', category: 'Maintenance', unit: 'Per 1000 Sdls', ssr_no: '87' },
+    { id: 'act-ferttrans', name: 'Transportation of Fertilizers', category: 'Maintenance', unit: 'Per 1000 Sdls', ssr_no: '103a' },
+    { id: 'act-weeding1', name: '1st Clear Weeding (100% area)', category: 'Maintenance', unit: 'Per Hectare', ssr_no: '88(ii)' },
+    { id: 'act-weeding2', name: '2nd Clear Weeding', category: 'Maintenance', unit: 'Per Hectare', ssr_no: '88(ii)' },
+    { id: 'act-fireline', name: 'Clearing 5m Wide Fire Lines', category: 'Maintenance', unit: 'Per Hectare', ssr_no: '99(a)' },
+    { id: 'act-firewatch', name: 'Engaging Fire Watchers', category: 'Protection', unit: 'Per Month', ssr_no: '76(1)' },
+    { id: 'act-watchward', name: 'Watch & Ward (270 days)', category: 'Protection', unit: 'Per 20 Ha', ssr_no: '76' },
+    { id: 'act-fencing', name: 'Brush Wood Fencing', category: 'Maintenance', unit: 'Per Hectare', ssr_no: '86' },
+    { id: 'act-cpt', name: 'CPT Excavation (Cattle Proof Trench)', category: 'Maintenance', unit: 'Per Rmtr', ssr_no: '-' },
+    { id: 'act-interplough', name: 'Interploughing (Bulldozer Fuel)', category: 'Maintenance', unit: 'Per Hectare', ssr_no: '72(C)' },
+    { id: 'act-nursery', name: 'Nursery Raising (Clonal/Seedling)', category: 'Nursery', unit: 'Per 1000 Sdls', ssr_no: '-' },
+    { id: 'act-nameboard', name: 'Cement/Stone Plantation Name Board', category: 'Planting Works', unit: 'Per Unit', ssr_no: '-' },
+    { id: 'act-misc', name: 'Miscellaneous (Implements, Spray pump etc)', category: 'Maintenance', unit: 'Lump Sum', ssr_no: '-' },
   ],
+  // Real Norms/Rates from KFDC Masters Excel for FY 2026-27
   norms: [
-    // Year 1 norms
-    { id: 'norm-1', activity_id: 'act-weeding', applicable_age: 1, species_id: null, standard_rate: 5500, financial_year: '2025-26' },
-    { id: 'norm-2', activity_id: 'act-soilwork', applicable_age: 1, species_id: null, standard_rate: 4200, financial_year: '2025-26' },
-    { id: 'norm-3', activity_id: 'act-casualty', applicable_age: 1, species_id: null, standard_rate: 3800, financial_year: '2025-26' },
-    { id: 'norm-4', activity_id: 'act-fencing', applicable_age: 1, species_id: null, standard_rate: 12000, financial_year: '2025-26' },
-    { id: 'norm-5', activity_id: 'act-manuring', applicable_age: 1, species_id: null, standard_rate: 3500, financial_year: '2025-26' },
-    // Year 2 norms
-    { id: 'norm-6', activity_id: 'act-weeding', applicable_age: 2, species_id: null, standard_rate: 5000, financial_year: '2025-26' },
-    { id: 'norm-7', activity_id: 'act-soilwork', applicable_age: 2, species_id: null, standard_rate: 4000, financial_year: '2025-26' },
-    { id: 'norm-8', activity_id: 'act-fireline', applicable_age: 2, species_id: null, standard_rate: 8500, financial_year: '2025-26' },
-    { id: 'norm-9', activity_id: 'act-firewatch', applicable_age: 2, species_id: null, standard_rate: 3000, financial_year: '2025-26' },
-    { id: 'norm-10', activity_id: 'act-casualty', applicable_age: 2, species_id: null, standard_rate: 2500, financial_year: '2025-26' },
-    // Year 3 norms
-    { id: 'norm-11', activity_id: 'act-weeding', applicable_age: 3, species_id: null, standard_rate: 4500, financial_year: '2025-26' },
-    { id: 'norm-12', activity_id: 'act-fireline', applicable_age: 3, species_id: null, standard_rate: 8500, financial_year: '2025-26' },
-    { id: 'norm-13', activity_id: 'act-firewatch', applicable_age: 3, species_id: null, standard_rate: 3000, financial_year: '2025-26' },
-    { id: 'norm-14', activity_id: 'act-pruning', applicable_age: 3, species_id: null, standard_rate: 6000, financial_year: '2025-26' },
-    // Year 4+ norms
-    { id: 'norm-15', activity_id: 'act-fireline', applicable_age: 4, species_id: null, standard_rate: 8500, financial_year: '2025-26' },
-    { id: 'norm-16', activity_id: 'act-firewatch', applicable_age: 4, species_id: null, standard_rate: 3000, financial_year: '2025-26' },
-    { id: 'norm-17', activity_id: 'act-pruning', applicable_age: 4, species_id: null, standard_rate: 6500, financial_year: '2025-26' },
-    { id: 'norm-18', activity_id: 'act-thinning', applicable_age: 4, species_id: null, standard_rate: 15000, financial_year: '2025-26' },
-    // Year 5
-    { id: 'norm-19', activity_id: 'act-fireline', applicable_age: 5, species_id: null, standard_rate: 9000, financial_year: '2025-26' },
-    { id: 'norm-20', activity_id: 'act-thinning', applicable_age: 5, species_id: null, standard_rate: 16000, financial_year: '2025-26' },
+    // === ADVANCE WORKS (Year 0 / Pre-planting) ===
+    { id: 'norm-a1', activity_id: 'act-survey', applicable_age: 0, species_id: null, standard_rate: 1534.16, financial_year: '2026-27' },
+    { id: 'norm-a2', activity_id: 'act-dozing', applicable_age: 0, species_id: null, standard_rate: 12600, financial_year: '2026-27' },
+    { id: 'norm-a3', activity_id: 'act-jungle', applicable_age: 0, species_id: null, standard_rate: 12600, financial_year: '2026-27' },
+    { id: 'norm-a4', activity_id: 'act-debris', applicable_age: 0, species_id: null, standard_rate: 2854.48, financial_year: '2026-27' },
+    // === PLANTING WORKS (Year 1) ===
+    { id: 'norm-p1', activity_id: 'act-preweeding', applicable_age: 1, species_id: null, standard_rate: 1199.94, financial_year: '2026-27' },
+    { id: 'norm-p2', activity_id: 'act-loading', applicable_age: 1, species_id: null, standard_rate: 259.89, financial_year: '2026-27' },
+    { id: 'norm-p3', activity_id: 'act-transport', applicable_age: 1, species_id: null, standard_rate: 595.97, financial_year: '2026-27' },
+    { id: 'norm-p4', activity_id: 'act-antitermite', applicable_age: 1, species_id: null, standard_rate: 300, financial_year: '2026-27' },
+    { id: 'norm-p5', activity_id: 'act-dipping', applicable_age: 1, species_id: null, standard_rate: 400.16, financial_year: '2026-27' },
+    { id: 'norm-p6', activity_id: 'act-conveyance', applicable_age: 1, species_id: null, standard_rate: 918.66, financial_year: '2026-27' },
+    { id: 'norm-p7', activity_id: 'act-planting', applicable_age: 1, species_id: null, standard_rate: 1521.71, financial_year: '2026-27' },
+    { id: 'norm-p8', activity_id: 'act-fertilizer', applicable_age: 1, species_id: null, standard_rate: 1555, financial_year: '2026-27' },
+    { id: 'norm-p9', activity_id: 'act-fertcost', applicable_age: 1, species_id: null, standard_rate: 570.86, financial_year: '2026-27' },
+    { id: 'norm-p10', activity_id: 'act-weeding1', applicable_age: 1, species_id: null, standard_rate: 3586.11, financial_year: '2026-27' },
+    { id: 'norm-p11', activity_id: 'act-weeding2', applicable_age: 1, species_id: null, standard_rate: 3211.18, financial_year: '2026-27' },
+    { id: 'norm-p12', activity_id: 'act-watchward', applicable_age: 1, species_id: null, standard_rate: 4994, financial_year: '2026-27' },
+    { id: 'norm-p13', activity_id: 'act-fencing', applicable_age: 1, species_id: null, standard_rate: 2997.22, financial_year: '2026-27' },
+    { id: 'norm-p14', activity_id: 'act-nameboard', applicable_age: 1, species_id: null, standard_rate: 5000, financial_year: '2026-27' },
+    // === 2ND YEAR MAINTENANCE ===
+    { id: 'norm-m2a', activity_id: 'act-weeding1', applicable_age: 2, species_id: null, standard_rate: 3586.11, financial_year: '2026-27' },
+    { id: 'norm-m2b', activity_id: 'act-weeding2', applicable_age: 2, species_id: null, standard_rate: 3211.18, financial_year: '2026-27' },
+    { id: 'norm-m2c', activity_id: 'act-fertilizer', applicable_age: 2, species_id: null, standard_rate: 1555, financial_year: '2026-27' },
+    { id: 'norm-m2d', activity_id: 'act-fertcost', applicable_age: 2, species_id: null, standard_rate: 570.86, financial_year: '2026-27' },
+    { id: 'norm-m2e', activity_id: 'act-fireline', applicable_age: 2, species_id: null, standard_rate: 5455.86, financial_year: '2026-27' },
+    { id: 'norm-m2f', activity_id: 'act-firewatch', applicable_age: 2, species_id: null, standard_rate: 1784.01, financial_year: '2026-27' },
+    { id: 'norm-m2g', activity_id: 'act-watchward', applicable_age: 2, species_id: null, standard_rate: 4994, financial_year: '2026-27' },
+    // === 3RD YEAR MAINTENANCE ===
+    { id: 'norm-m3a', activity_id: 'act-weeding1', applicable_age: 3, species_id: null, standard_rate: 3586.11, financial_year: '2026-27' },
+    { id: 'norm-m3b', activity_id: 'act-fertilizer', applicable_age: 3, species_id: null, standard_rate: 1555, financial_year: '2026-27' },
+    { id: 'norm-m3c', activity_id: 'act-fertcost', applicable_age: 3, species_id: null, standard_rate: 570.86, financial_year: '2026-27' },
+    { id: 'norm-m3d', activity_id: 'act-interplough', applicable_age: 3, species_id: null, standard_rate: 12600, financial_year: '2026-27' },
+    { id: 'norm-m3e', activity_id: 'act-fireline', applicable_age: 3, species_id: null, standard_rate: 5455.86, financial_year: '2026-27' },
+    { id: 'norm-m3f', activity_id: 'act-firewatch', applicable_age: 3, species_id: null, standard_rate: 1784.01, financial_year: '2026-27' },
+    // === 4TH YEAR MAINTENANCE ===
+    { id: 'norm-m4a', activity_id: 'act-fireline', applicable_age: 4, species_id: null, standard_rate: 5455.86, financial_year: '2026-27' },
+    { id: 'norm-m4b', activity_id: 'act-firewatch', applicable_age: 4, species_id: null, standard_rate: 1784.01, financial_year: '2026-27' },
+    // === 5TH YEAR MAINTENANCE ===
+    { id: 'norm-m5a', activity_id: 'act-fireline', applicable_age: 5, species_id: null, standard_rate: 5455.86, financial_year: '2026-27' },
+    { id: 'norm-m5b', activity_id: 'act-firewatch', applicable_age: 5, species_id: null, standard_rate: 1784.01, financial_year: '2026-27' },
+    // === 6TH-8TH YEAR (Fire maintenance only) ===
+    { id: 'norm-m6a', activity_id: 'act-fireline', applicable_age: 6, species_id: null, standard_rate: 5455.86, financial_year: '2026-27' },
+    { id: 'norm-m6b', activity_id: 'act-firewatch', applicable_age: 6, species_id: null, standard_rate: 1784.01, financial_year: '2026-27' },
+    { id: 'norm-m7a', activity_id: 'act-fireline', applicable_age: 7, species_id: null, standard_rate: 5455.86, financial_year: '2026-27' },
+    { id: 'norm-m7b', activity_id: 'act-firewatch', applicable_age: 7, species_id: null, standard_rate: 1784.01, financial_year: '2026-27' },
+    // === 9TH YEAR (After 1st Cut Eucalyptus) ===
+    { id: 'norm-m9a', activity_id: 'act-fireline', applicable_age: 9, species_id: null, standard_rate: 5455.86, financial_year: '2026-27' },
+    { id: 'norm-m9b', activity_id: 'act-firewatch', applicable_age: 9, species_id: null, standard_rate: 1784.01, financial_year: '2026-27' },
+    // === 10TH-15TH YEAR ===
+    { id: 'norm-m10a', activity_id: 'act-firewatch', applicable_age: 10, species_id: null, standard_rate: 1784.01, financial_year: '2026-27' },
+    { id: 'norm-m12a', activity_id: 'act-fireline', applicable_age: 12, species_id: null, standard_rate: 5455.86, financial_year: '2026-27' },
+    { id: 'norm-m12b', activity_id: 'act-firewatch', applicable_age: 12, species_id: null, standard_rate: 1784.01, financial_year: '2026-27' },
+    // === 16TH YEAR (After 2nd Cut Eucalyptus) ===
+    { id: 'norm-m16a', activity_id: 'act-fireline', applicable_age: 16, species_id: null, standard_rate: 5455.86, financial_year: '2026-27' },
+    { id: 'norm-m16b', activity_id: 'act-firewatch', applicable_age: 16, species_id: null, standard_rate: 1784.01, financial_year: '2026-27' },
+    // === NURSERY ===
+    { id: 'norm-n1', activity_id: 'act-nursery', applicable_age: 0, species_id: null, standard_rate: 47762, financial_year: '2026-27' },
+    // === FIRE WATCHERS (all ages) ===
+    { id: 'norm-fw1', activity_id: 'act-firewatch', applicable_age: 0, species_id: null, standard_rate: 18117, financial_year: '2026-27' },
   ],
+  // Real Plantations from KFDC Dharwad & Bangalore Division Excel Data
   plantations: [
-    { id: 'plt-001', range_id: 'rng-sagara', name: 'Sagara Teak Block A', species: 'Teak', year_of_planting: 2024, total_area_ha: 25.5 },
-    { id: 'plt-002', range_id: 'rng-sagara', name: 'Sagara Eucalyptus Block B', species: 'Eucalyptus', year_of_planting: 2023, total_area_ha: 40.0 },
-    { id: 'plt-003', range_id: 'rng-soraba', name: 'Soraba Silver Oak Block C', species: 'Silver Oak', year_of_planting: 2022, total_area_ha: 18.0 },
-    { id: 'plt-004', range_id: 'rng-soraba', name: 'Soraba Teak Block D', species: 'Teak', year_of_planting: 2021, total_area_ha: 30.0 },
-    { id: 'plt-005', range_id: 'rng-hunsur', name: 'Hunsur Sandalwood Block E', species: 'Sandalwood', year_of_planting: 2023, total_area_ha: 12.0 },
-    { id: 'plt-006', range_id: 'rng-hunsur', name: 'Hunsur Bamboo Block F', species: 'Bamboo', year_of_planting: 2020, total_area_ha: 55.0 },
-    { id: 'plt-007', range_id: 'rng-hdkote', name: 'H.D. Kote Rosewood Block G', species: 'Rosewood', year_of_planting: 2022, total_area_ha: 22.0 },
-    { id: 'plt-008', range_id: 'rng-hdkote', name: 'H.D. Kote Teak Block H', species: 'Teak', year_of_planting: 2024, total_area_ha: 35.0 },
+    // Dharwad Division - Dharwad Range
+    { id: 'plt-d01', range_id: 'rng-dharwad', name: 'Varavanagalavi', species: 'Acacia Auriculiformis', year_of_planting: 2014, total_area_ha: 25, village: 'Varavanagalavi', taluk: 'Dharwad', district: 'Dharwad' },
+    { id: 'plt-d02', range_id: 'rng-dharwad', name: 'Varavanagalavi (Casuarina)', species: 'Casuarina', year_of_planting: 2017, total_area_ha: 10, village: 'Varavanagalavi', taluk: 'Dharwad', district: 'Dharwad' },
+    { id: 'plt-d03', range_id: 'rng-dharwad', name: 'Varavanagalavi (2011)', species: 'Acacia Auriculiformis', year_of_planting: 2011, total_area_ha: 22, village: 'Varavanagalavi', taluk: 'Dharwad', district: 'Dharwad' },
+    { id: 'plt-d04', range_id: 'rng-dharwad', name: 'Ninganakoppa-Kanvihalkatti', species: 'Acacia Auriculiformis', year_of_planting: 2004, total_area_ha: 15.5, village: 'Ninganakoppa', taluk: 'Dharwad', district: 'Dharwad' },
+    { id: 'plt-d05', range_id: 'rng-dharwad', name: 'Degaon', species: 'Acacia Auriculiformis', year_of_planting: 2018, total_area_ha: 14.6, village: 'Degaon', taluk: 'Dharwad', district: 'Dharwad' },
+    // Dharwad Division - Alloli-Kanasolli Range
+    { id: 'plt-d06', range_id: 'rng-alloli', name: 'Alloli-Kanasolli XXV 11,13', species: 'Eucalyptus Pellita', year_of_planting: 2004, total_area_ha: 15.5, village: 'Alloli-Kanasolli', taluk: 'Khanapur', district: 'Belagavi' },
+    { id: 'plt-d07', range_id: 'rng-alloli', name: 'Alloli-Kanasolli XXV 15,16', species: 'Eucalyptus Pellita', year_of_planting: 1999, total_area_ha: 10, village: 'Alloli-Kanasolli', taluk: 'Khanapur', district: 'Belagavi' },
+    { id: 'plt-d08', range_id: 'rng-alloli', name: 'Katagali-XXV-28,29p', species: 'Eucalyptus Pellita', year_of_planting: 2005, total_area_ha: 13.1, village: 'Kategali', taluk: 'Khanapur', district: 'Belagavi' },
+    { id: 'plt-d09', range_id: 'rng-alloli', name: 'Mohishet Nursery', species: 'Eucalyptus Pellita', year_of_planting: 2014, total_area_ha: 1.65, village: 'Mohishet', taluk: 'Khanapur', district: 'Belagavi' },
+    { id: 'plt-d10', range_id: 'rng-alloli', name: 'Akrali-VII 13p', species: 'Eucalyptus Pellita', year_of_planting: 2006, total_area_ha: 81.1, village: 'Akrali', taluk: 'Khanapur', district: 'Belagavi' },
+    // Dharwad Division - Akrali Range
+    { id: 'plt-d11', range_id: 'rng-akrali', name: 'Bacholli XXV-7', species: 'Acacia Auriculiformis', year_of_planting: 1998, total_area_ha: 16.14, village: 'Bacholli', taluk: 'Khanapur', district: 'Uttara Kannada' },
+    { id: 'plt-d12', range_id: 'rng-akrali', name: 'Balekoppa', species: 'Acacia Auriculiformis', year_of_planting: 2014, total_area_ha: 60, village: 'Balekoppa', taluk: 'Khanapur', district: 'Uttara Kannada' },
+    { id: 'plt-d13', range_id: 'rng-akrali', name: 'Santalli-Hebbatti-Kiravatti', species: 'Acacia Auriculiformis', year_of_planting: 2015, total_area_ha: 39, village: 'Santalli', taluk: 'Khanapur', district: 'Uttara Kannada' },
+    { id: 'plt-d14', range_id: 'rng-akrali', name: 'Nidgod', species: 'Acacia Auriculiformis', year_of_planting: 2015, total_area_ha: 28.4, village: 'Nidgod', taluk: 'Khanapur', district: 'Uttara Kannada' },
+    { id: 'plt-d15', range_id: 'rng-akrali', name: 'Hattarwada-Mendegali XVII-10p', species: 'Eucalyptus Pellita', year_of_planting: 2016, total_area_ha: 12.4, village: 'Hattarwada', taluk: 'Khanapur', district: 'Uttara Kannada' },
+    // Dharwad Division - Gunji Range
+    { id: 'plt-d16', range_id: 'rng-gunji', name: 'Salakinakoppa', species: 'Acacia Auriculiformis', year_of_planting: 2004, total_area_ha: 29.63, village: 'Salakinakoppa', taluk: 'Khanapur', district: 'Uttara Kannada' },
+    { id: 'plt-d17', range_id: 'rng-gunji', name: 'Hattargunji-Ganebail', species: 'Acacia Auriculiformis', year_of_planting: 2001, total_area_ha: 20, village: 'Hattargunji', taluk: 'Mundgod', district: 'Uttara Kannada' },
+    { id: 'plt-d18', range_id: 'rng-gunji', name: 'Karkikoppa VII-11p', species: 'Acacia Auriculiformis', year_of_planting: 2007, total_area_ha: 26.5, village: 'Karkikoppa', taluk: 'Yellapur', district: 'Uttara Kannada' },
+    { id: 'plt-d19', range_id: 'rng-gunji', name: 'Unchalli-Bidralli', species: 'Acacia Auriculiformis', year_of_planting: 2023, total_area_ha: 15, village: 'Unchalli', taluk: 'Yellapur', district: 'Uttara Kannada' },
+    // Dharwad Division - Dhundashi Range
+    { id: 'plt-d20', range_id: 'rng-dhundashi', name: 'Watra VII 12,14', species: 'Acacia Auriculiformis', year_of_planting: 2001, total_area_ha: 15, village: 'Watra', taluk: 'Yellapur', district: 'Uttara Kannada' },
+    { id: 'plt-d21', range_id: 'rng-dhundashi', name: 'Kamataga', species: 'Acacia Auriculiformis', year_of_planting: 2019, total_area_ha: 31.2, village: 'Kamataga', taluk: 'Yellapur', district: 'Uttara Kannada' },
+    // Dharwad Division - Khanapur Range
+    { id: 'plt-d22', range_id: 'rng-khanapur', name: 'Kinaye R.F 166', species: 'Acacia Auriculiformis', year_of_planting: 2025, total_area_ha: 41.5, village: 'Kinaye', taluk: 'Khanapur', district: 'Belagavi' },
+    { id: 'plt-d23', range_id: 'rng-khanapur', name: 'Watra RF 83,86', species: 'Acacia Auriculiformis', year_of_planting: 2025, total_area_ha: 30, village: 'Watra', taluk: 'Khanapur', district: 'Belagavi' },
+    // Bangalore Division - S.V. Pura Range
+    { id: 'plt-b01', range_id: 'rng-svpura', name: 'Agara', species: 'Eucalyptus Seed', year_of_planting: 2001, total_area_ha: 65, village: 'Vadigepalli', taluk: 'S.V. Pura', district: 'Kolar' },
+    { id: 'plt-b02', range_id: 'rng-svpura', name: 'Ganganatta', species: 'Eucalyptus Clonal', year_of_planting: 2004, total_area_ha: 20, village: 'Ganganatta', taluk: 'S.V. Pura', district: 'Kolar' },
+    { id: 'plt-b03', range_id: 'rng-svpura', name: 'Karangi', species: 'Acacia Auriculiformis', year_of_planting: 2021, total_area_ha: 5, village: 'Karangi', taluk: 'S.V. Pura', district: 'Kolar' },
+    { id: 'plt-b04', range_id: 'rng-svpura', name: 'A.M. Palli', species: 'Eucalyptus Clonal', year_of_planting: 2011, total_area_ha: 37.24, village: 'Erathimmanapalli', taluk: 'S.V. Pura', district: 'Kolar' },
+    { id: 'plt-b05', range_id: 'rng-svpura', name: 'Yamanuru', species: 'Eucalyptus Seed', year_of_planting: 2011, total_area_ha: 36.02, village: 'Yamanuru', taluk: 'S.V. Pura', district: 'Kolar' },
+    { id: 'plt-b06', range_id: 'rng-svpura', name: 'Narayanapura', species: 'Eucalyptus Clonal', year_of_planting: 2011, total_area_ha: 48, village: 'Narayanapura', taluk: 'S.V. Pura', district: 'Kolar' },
+    // Bangalore Division - D.V. Halli Range
+    { id: 'plt-b07', range_id: 'rng-dvhalli', name: 'Koramangala', species: 'Eucalyptus Seed', year_of_planting: 1995, total_area_ha: 50, village: 'Chikkatatnangara', taluk: 'D.V. Halli', district: 'Doddaballapura' },
+    { id: 'plt-b08', range_id: 'rng-dvhalli', name: 'Guduvamahalli', species: 'Eucalyptus Clonal', year_of_planting: 2004, total_area_ha: 77.5, village: 'Koramangala', taluk: 'D.V. Halli', district: 'Doddaballapura' },
+    { id: 'plt-b09', range_id: 'rng-dvhalli', name: 'Kamashettihalli', species: 'Eucalyptus Clonal', year_of_planting: 1986, total_area_ha: 85.7, village: 'Adavi Gollavari Halli', taluk: 'Chikkaballapura', district: 'Chikkaballapura' },
+    { id: 'plt-b10', range_id: 'rng-dvhalli', name: 'Doddaharadi', species: 'Eucalyptus Seed', year_of_planting: 2003, total_area_ha: 5, village: 'Doddaharadi', taluk: 'Shidlaghatta', district: 'Chikkaballapura' },
+    // Bangalore Division - Bidadi Range
+    { id: 'plt-b11', range_id: 'rng-bidadi', name: 'Hejjala', species: 'Corymbia', year_of_planting: 2025, total_area_ha: 81.91, village: 'Hejjala', taluk: 'Kanakapura', district: 'Ramanagara' },
+    { id: 'plt-b12', range_id: 'rng-bidadi', name: 'Nelamangala', species: 'Corymbia', year_of_planting: 2025, total_area_ha: 14, village: 'Harlakunte', taluk: 'Magadi', district: 'Ramanagara' },
+    // Bangalore Division - Malur Range
+    { id: 'plt-b13', range_id: 'rng-malur', name: 'Hale Kurandahalli', species: 'Corymbia', year_of_planting: 1995, total_area_ha: 60.6, village: 'Hale Kurandahalli', taluk: 'Malur', district: 'Kolar' },
+    { id: 'plt-b14', range_id: 'rng-malur', name: 'Mallapanahalli', species: 'Corymbia', year_of_planting: 1999, total_area_ha: 160, village: 'Mallapanahalli', taluk: 'Malur', district: 'Kolar' },
+    // Bangalore Division - Bangarpet Range
+    { id: 'plt-b15', range_id: 'rng-bangarpet', name: 'Bangarpet Block', species: 'Eucalyptus Clonal', year_of_planting: 2001, total_area_ha: 74.91, village: 'Bangarpet', taluk: 'Bangarpet', district: 'Kolar' },
+    // Shivamogga Division
+    { id: 'plt-s01', range_id: 'rng-sagara', name: 'Sagara Acacia Block', species: 'Acacia Auriculiformis', year_of_planting: 2020, total_area_ha: 45, village: 'Sagara', taluk: 'Sagara', district: 'Shivamogga' },
+    { id: 'plt-s02', range_id: 'rng-sagara', name: 'Sagara Eucalyptus Block', species: 'Eucalyptus Pellita', year_of_planting: 2023, total_area_ha: 27, village: 'Sagara', taluk: 'Sagara', district: 'Shivamogga' },
+    { id: 'plt-s03', range_id: 'rng-soraba', name: 'Soraba Plantation', species: 'Acacia Auriculiformis', year_of_planting: 2019, total_area_ha: 52.1, village: 'Soraba', taluk: 'Soraba', district: 'Shivamogga' },
+    { id: 'plt-s04', range_id: 'rng-siddapur', name: 'Siddapur Block', species: 'Eucalyptus Pellita', year_of_planting: 2017, total_area_ha: 33.7, village: 'Siddapur', taluk: 'Siddapur', district: 'Uttara Kannada' },
+    // Chikkamagaluru Division
+    { id: 'plt-c01', range_id: 'rng-koppa', name: 'Koppa Plantation', species: 'Acacia Auriculiformis', year_of_planting: 2018, total_area_ha: 29, village: 'Koppa', taluk: 'Koppa', district: 'Chikkamagaluru' },
+    { id: 'plt-c02', range_id: 'rng-narasimharajapura', name: 'NR Pura Block', species: 'Eucalyptus Pellita', year_of_planting: 2022, total_area_ha: 18.6, village: 'NR Pura', taluk: 'NR Pura', district: 'Chikkamagaluru' },
   ],
 }
 
