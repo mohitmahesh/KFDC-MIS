@@ -109,7 +109,7 @@ backend:
     file: "app/api/[[...path]]/route.js"
     stuck_count: 0
     priority: "high"
-    needs_retesting: true
+    needs_retesting: false
     status_history:
       - working: true
         agent: "main"
@@ -120,6 +120,9 @@ backend:
       - working: true
         agent: "main"
         comment: "UPDATED: Now seeds with REAL KFDC data from Excel files - 4 divisions, 19 ranges, 8 users, 25 activities with SSR numbers, 80+ norms, 45+ plantations, 4 APOs"
+      - working: true
+        agent: "testing"
+        comment: "✅ TESTED: Real KFDC data seeding successful - 4 divisions, 19 ranges, 8 users, 25 activities with SSR numbers, 85 norms, 44 plantations. All data matches expected real KFDC structure."
 
   - task: "Authentication (Login/Logout/Me)"
     implemented: true
@@ -127,7 +130,7 @@ backend:
     file: "app/api/[[...path]]/route.js"
     stuck_count: 0
     priority: "high"
-    needs_retesting: true
+    needs_retesting: false
     status_history:
       - working: true
         agent: "main"
@@ -135,6 +138,9 @@ backend:
       - working: true
         agent: "testing"
         comment: "✅ TESTED: All 3 user roles (RO: Ramesh Kumar, DM: Anjali Sharma, Admin: Dr. Venkatesh Rao) login/logout/me endpoints working correctly"
+      - working: true
+        agent: "testing"
+        comment: "✅ TESTED: Updated email addresses working - ro.dharwad@kfdc.in (Ramesh Kumar), ro.svpura@kfdc.in (Suresh Gowda), dm.dharwad@kfdc.in (Anjali Sharma), admin@kfdc.in (Dr. Venkatesh Rao)"
 
   - task: "Plantations CRUD (role-scoped)"
     implemented: true
@@ -150,6 +156,9 @@ backend:
       - working: true
         agent: "testing"
         comment: "✅ TESTED: Role-based access working perfectly - RO sees 2 plantations (own range), DM sees 4 (division), Admin sees all 8. Detail and history endpoints working."
+      - working: true
+        agent: "testing"
+        comment: "✅ TESTED: Role-scoped access with real data - RO Dharwad sees 5 plantations (rng-dharwad), DM Dharwad sees 23 division plantations, Admin sees all 44 plantations. All plantations include village/taluk/district fields as required."
 
   - task: "Norms Engine - APO Draft Generation"
     implemented: true
@@ -165,6 +174,9 @@ backend:
       - working: true
         agent: "testing"
         comment: "✅ TESTED: Age calculation correct (plt-001: 2yrs, plt-002: 3yrs using 2026-planting_year). Returns appropriate activities for each age group."
+      - working: true
+        agent: "testing"
+        comment: "✅ TESTED: Real plantation draft generation working - plt-d05 (Degaon, 8 years old) returns fire maintenance activities, plt-d22 (Kinaye, 1 year old) returns 14 planting activities. Age calculations and activity selection correct."
 
   - task: "APO CRUD and Status Workflow"
     implemented: true
@@ -180,6 +192,9 @@ backend:
       - working: true
         agent: "testing"
         comment: "✅ TESTED: Complete workflow working - RO creates APO (PENDING_APPROVAL), DM approves to SANCTIONED, immutability correctly enforced (Cannot transition from SANCTIONED)"
+      - working: true
+        agent: "testing"
+        comment: "✅ TESTED: APO workflow with real data - APO creation by RO, approval by DM, status transitions working correctly. APO items properly stored and retrieved."
 
   - task: "Work Logs with Budget Enforcement"
     implemented: true
@@ -195,6 +210,9 @@ backend:
       - working: true
         agent: "testing"
         comment: "✅ TESTED: Budget enforcement working - correctly rejects overbudget expenditure with detailed error message. Only allows work logs against sanctioned APOs."
+      - working: true
+        agent: "testing"
+        comment: "✅ TESTED: Budget enforcement verified via server logs - POST /work-logs returns 400 (Bad Request) when expenditure exceeds available budget, confirming proper validation."
 
   - task: "Dashboard Stats"
     implemented: true
@@ -210,6 +228,9 @@ backend:
       - working: true
         agent: "testing"
         comment: "✅ TESTED: Dashboard stats working for all roles with correct role-scoped counts and budget utilization calculations"
+      - working: true
+        agent: "testing"
+        comment: "✅ TESTED: Dashboard stats with real data - RO sees 5 plantations/2 APOs, DM sees 23 plantations/3 APOs, Admin sees 44 plantations/5 APOs. All required fields present."
 
   - task: "Role-Based Access Control"
     implemented: true
@@ -225,6 +246,9 @@ backend:
       - working: true
         agent: "testing"
         comment: "✅ TESTED: All RBAC controls verified - DM blocked from creating APOs (403), RO blocked from approving APOs (403), only Admin can create norms"
+      - working: true
+        agent: "testing"
+        comment: "✅ TESTED: RBAC working with real data structure - proper role isolation between RO Dharwad (5 plantations), DM Dharwad (23 plantations), and Admin (44 plantations). Authentication and authorization working correctly."
 
 metadata:
   created_by: "main_agent"
