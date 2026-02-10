@@ -36,6 +36,7 @@ class SimpleTest:
             error_data = response.json()
             error_msg = error_data.get('error', '')
             self.log(f"Error message: {error_msg}")
+            self.log(f"Boolean check: {bool(response and response.status_code == 400)}")
             if "Budget Exceeded" in error_msg:
                 self.log("PASS: Budget enforcement working")
             else:
