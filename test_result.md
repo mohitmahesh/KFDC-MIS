@@ -99,5 +99,127 @@
 
 
 #====================================================================================================
+
+user_problem_statement: "KFDC Integrated Forestry Management System (iFMS) - A norms-driven platform managing plantation lifecycle from Stump to Sale with strict APO (Annual Plan of Operations) financial discipline."
+
+backend:
+  - task: "Seed demo data"
+    implemented: true
+    working: true
+    file: "app/api/[[...path]]/route.js"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: true
+    status_history:
+      - working: true
+        agent: "main"
+        comment: "POST /api/seed seeds divisions, ranges, users, activities, norms, plantations, APOs, and work logs"
+
+  - task: "Authentication (Login/Logout/Me)"
+    implemented: true
+    working: true
+    file: "app/api/[[...path]]/route.js"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: true
+    status_history:
+      - working: true
+        agent: "main"
+        comment: "POST /api/auth/login, GET /api/auth/me, POST /api/auth/logout with token-based sessions"
+
+  - task: "Plantations CRUD (role-scoped)"
+    implemented: true
+    working: true
+    file: "app/api/[[...path]]/route.js"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: true
+    status_history:
+      - working: true
+        agent: "main"
+        comment: "GET /api/plantations (role-scoped), POST /api/plantations, GET /api/plantations/:id, GET /api/plantations/:id/history"
+
+  - task: "Norms Engine - APO Draft Generation"
+    implemented: true
+    working: true
+    file: "app/api/[[...path]]/route.js"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: true
+    status_history:
+      - working: true
+        agent: "main"
+        comment: "POST /api/apo/generate-draft calculates plantation age and returns norms-based activities with locked rates"
+
+  - task: "APO CRUD and Status Workflow"
+    implemented: true
+    working: true
+    file: "app/api/[[...path]]/route.js"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: true
+    status_history:
+      - working: true
+        agent: "main"
+        comment: "POST /api/apo (create), GET /api/apo (list, role-scoped), GET /api/apo/:id (detail), PATCH /api/apo/:id/status (DRAFT->PENDING->SANCTIONED/REJECTED)"
+
+  - task: "Work Logs with Budget Enforcement"
+    implemented: true
+    working: true
+    file: "app/api/[[...path]]/route.js"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: true
+    status_history:
+      - working: true
+        agent: "main"
+        comment: "POST /api/work-logs validates budget not exceeded, GET /api/work-logs returns logs"
+
+  - task: "Dashboard Stats"
+    implemented: true
+    working: true
+    file: "app/api/[[...path]]/route.js"
+    stuck_count: 0
+    priority: "medium"
+    needs_retesting: true
+    status_history:
+      - working: true
+        agent: "main"
+        comment: "GET /api/dashboard/stats returns plantations, APOs, budget utilization, and chart data"
+
+  - task: "Role-Based Access Control"
+    implemented: true
+    working: true
+    file: "app/api/[[...path]]/route.js"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: true
+    status_history:
+      - working: true
+        agent: "main"
+        comment: "RO can only see own range plantations, DM sees division, Admin sees all. RO creates APOs, DM/Admin approves."
+
+metadata:
+  created_by: "main_agent"
+  version: "1.0"
+  test_sequence: 1
+  run_ui: false
+
+test_plan:
+  current_focus:
+    - "Seed demo data"
+    - "Authentication (Login/Logout/Me)"
+    - "Norms Engine - APO Draft Generation"
+    - "APO CRUD and Status Workflow"
+    - "Work Logs with Budget Enforcement"
+    - "Role-Based Access Control"
+  stuck_tasks: []
+  test_all: true
+  test_priority: "high_first"
+
+agent_communication:
+  - agent: "main"
+    message: "Full KFDC iFMS backend built. Key test scenarios: 1) Seed data first via POST /api/seed. 2) Login as RO (ro.sagara@kfdc.in/pass123) and DM (dm.shimoga@kfdc.in/pass123) and Admin (admin@kfdc.in/pass123). 3) Test APO generate-draft with plantation_id 'plt-001' (1yr old Teak) and 'plt-002' (2yr old Eucalyptus) for FY 2025-26. 4) Create APO as RO, submit for approval, then approve as DM. 5) Log work against sanctioned APO, verify budget enforcement rejects overbudget. 6) Verify role scoping - RO only sees own range, DM sees division. All auth uses Bearer token from login response."
+
 # Testing Data - Main Agent and testing sub agent both should log testing data below this section
 #====================================================================================================
