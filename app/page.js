@@ -104,8 +104,11 @@ function LoginPage({ onLogin }) {
   }
 
   const demoAccounts = [
-    { email: 'ro.sagara@kfdc.in', role: 'Range Officer', division: 'Shimoga' },
-    { email: 'dm.shimoga@kfdc.in', role: 'Division Manager', division: 'Shimoga' },
+    { email: 'ro.dharwad@kfdc.in', role: 'Range Officer', division: 'Dharwad' },
+    { email: 'ro.svpura@kfdc.in', role: 'Range Officer', division: 'Bangalore' },
+    { email: 'ro.sagara@kfdc.in', role: 'Range Officer', division: 'Shivamogga' },
+    { email: 'dm.dharwad@kfdc.in', role: 'Division Manager', division: 'Dharwad' },
+    { email: 'dm.bangalore@kfdc.in', role: 'Division Manager', division: 'Bangalore' },
     { email: 'admin@kfdc.in', role: 'Admin (HO)', division: 'All' },
   ]
 
