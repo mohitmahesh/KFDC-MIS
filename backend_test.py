@@ -456,15 +456,21 @@ class KFDCTester:
         
         response = self.test_endpoint("POST", "/work-logs", pending_log_data, headers=ro_headers, expected_status=400)
         if response and response.status_code == 400:
-            error_data = response.json()
-            if "sanctioned" in error_data.get('error', '').lower():
-                self.log("  Correctly rejected work log against non-sanctioned APO")
-                work_results.append("Sanctioned APO Only: PASS")
-            else:
-                self.log(f"  Unexpected pending APO error: {error_data.get('error')}", "WARNING")
-                work_results.append("Sanctioned APO Only: FAIL - Wrong error message")
+            try:
+                error_data = response.json()
+                error_msg = error_data.get('error', '').lower()
+                if "sanctioned" in error_msg:
+                    self.log("  Correctly rejected work log against non-sanctioned APO")
+                    work_results.append("Sanctioned APO Only: PASS")
+                else:
+                    self.log(f"  Unexpected pending APO error: {error_data.get('error')}", "WARNING")
+                    work_results.append("Sanctioned APO Only: FAIL - Wrong error message")
+            except:
+                self.log("  Sanctioned APO test - could not parse response", "WARNING") 
+                work_results.append("Sanctioned APO Only: FAIL - Parse error")
         else:
-            work_results.append("Sanctioned APO Only: FAIL - Should reject non-sanctioned")
+            self.log(f"  Sanctioned APO test - unexpected status {response.status_code if response else 'None'}", "WARNING")
+            work_results.append("Sanctioned APO Only: FAIL - Unexpected status")
             
         self.test_results['work_logs'] = {
             'status': 'PASS' if all('PASS' in r for r in work_results) else 'FAIL',
