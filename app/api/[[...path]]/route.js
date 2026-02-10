@@ -416,6 +416,7 @@ async function handleRoute(request, { params }) {
         activity_name: actMap[n.activity_id]?.name || 'Unknown',
         category: actMap[n.activity_id]?.category || 'Unknown',
         unit: actMap[n.activity_id]?.unit || 'Unknown',
+        ssr_no: actMap[n.activity_id]?.ssr_no || '-',
       }))
       return handleCORS(NextResponse.json(enriched))
     }
