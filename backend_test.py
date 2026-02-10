@@ -146,6 +146,10 @@ def test_step_3_role_scoped_plantations(tokens):
         response = make_request("GET", "/plantations", headers={"Authorization": f"Bearer {tokens['RO']}"})
         if response and response.status_code == 200:
             plantations = response.json()
+            print(f"DEBUG: RO sees {len(plantations)} plantations:")
+            for p in plantations[:3]:  # Show first 3
+                print(f"  DEBUG: {p.get('id')}: range_id={p.get('range_id')}")
+            
             dharwad_plantations = [p for p in plantations if p.get("range_id") == "rng-dharwad"]
             
             if len(dharwad_plantations) == 5:  # Expected plt-d01 to plt-d05
