@@ -438,7 +438,7 @@ def test_step_7_dashboard(tokens):
     all_passed = True
     
     # Test for each role
-    for role in ["RO", "DM", "ADMIN"]:
+    for role in ["RO_DHARWAD", "DM", "ADMIN"]:
         if role in tokens:
             response = make_request("GET", "/dashboard/stats", headers={"Authorization": f"Bearer {tokens[role]}"})
             
