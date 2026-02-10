@@ -383,6 +383,9 @@ def test_step_6_apo_workflow(tokens):
                                 item_id = apo_items[0].get("id")
                                 item_cost = apo_items[0].get("total_cost", 0)
                                 
+                                print(f"DEBUG: APO Item ID: {item_id}")
+                                print(f"DEBUG: Item Cost: {item_cost}")
+                                
                                 if item_cost and item_cost > 0:
                                     # Try to log work that exceeds budget
                                     overbudget_response = make_request("POST", "/work-logs",
