@@ -382,15 +382,18 @@ def test_step_6_apo_workflow(tokens):
                                                                          "work_date": "2026-05-25"
                                                                      })
                                 
-                                if overbudget_response and overbudget_response.status_code == 400:
-                                    error_data = overbudget_response.json()
-                                    if "Budget Exceeded" in error_data.get("error", ""):
-                                        log_test("BUDGET_ENFORCEMENT", "PASS", "Budget enforcement working - rejected overbudget")
+                                    if overbudget_response and overbudget_response.status_code == 400:
+                                        error_data = overbudget_response.json()
+                                        if "Budget Exceeded" in error_data.get("error", ""):
+                                            log_test("BUDGET_ENFORCEMENT", "PASS", "Budget enforcement working - rejected overbudget")
+                                        else:
+                                            log_test("BUDGET_ENFORCEMENT", "FAIL", "Wrong error message for overbudget")
+                                            all_passed = False
                                     else:
-                                        log_test("BUDGET_ENFORCEMENT", "FAIL", "Wrong error message for overbudget")
+                                        log_test("BUDGET_ENFORCEMENT", "FAIL", "Should have rejected overbudget work log")
                                         all_passed = False
                                 else:
-                                    log_test("BUDGET_ENFORCEMENT", "FAIL", "Should have rejected overbudget work log")
+                                    log_test("BUDGET_ENFORCEMENT", "FAIL", f"Invalid item cost: {item_cost}")
                                     all_passed = False
                             else:
                                 log_test("BUDGET_ENFORCEMENT", "FAIL", "No APO items found for testing")
