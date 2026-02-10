@@ -298,7 +298,7 @@ function Dashboard({ user }) {
       <div>
         <h2 className="text-2xl font-bold">Dashboard</h2>
         <p className="text-muted-foreground">
-          Welcome back, {user.name} | FY 2025-26
+          Welcome back, {user.name} | FY 2026-27
         </p>
       </div>
 
