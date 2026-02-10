@@ -23,10 +23,6 @@ def make_request(method, endpoint, headers=None, data=None):
     """Make HTTP request with error handling"""
     try:
         url = f"{BASE_URL}{endpoint}"
-        print(f"DEBUG: Making {method} request to {url}")
-        if data:
-            print(f"DEBUG: Request data: {data}")
-        
         if method == "GET":
             response = requests.get(url, headers=headers)
         elif method == "POST":
@@ -36,7 +32,6 @@ def make_request(method, endpoint, headers=None, data=None):
         else:
             raise ValueError(f"Unsupported method: {method}")
         
-        print(f"DEBUG: Response status: {response.status_code}")
         return response
     except Exception as e:
         log_test("REQUEST_ERROR", "FAIL", f"Failed to make {method} request to {endpoint}: {str(e)}")
