@@ -136,16 +136,16 @@ function LoginPage({ onLogin }) {
           </p>
           <div className="grid grid-cols-3 gap-4 pt-4">
             <div className="text-center p-3 bg-white/5 rounded-lg border border-white/10">
-              <div className="text-2xl font-bold text-emerald-300">8</div>
+              <div className="text-2xl font-bold text-emerald-300">45+</div>
               <div className="text-xs text-emerald-200/70">Plantations</div>
             </div>
             <div className="text-center p-3 bg-white/5 rounded-lg border border-white/10">
-              <div className="text-2xl font-bold text-emerald-300">4</div>
+              <div className="text-2xl font-bold text-emerald-300">19</div>
               <div className="text-xs text-emerald-200/70">Ranges</div>
             </div>
             <div className="text-center p-3 bg-white/5 rounded-lg border border-white/10">
-              <div className="text-2xl font-bold text-emerald-300">20</div>
-              <div className="text-xs text-emerald-200/70">Active Norms</div>
+              <div className="text-2xl font-bold text-emerald-300">4</div>
+              <div className="text-xs text-emerald-200/70">Divisions</div>
             </div>
           </div>
         </div>
