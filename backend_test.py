@@ -355,7 +355,7 @@ class KFDCTester:
         # Step 5: Verify immutability - try to change status again
         self.log("Testing APO immutability...")
         response = self.test_endpoint("PATCH", f"/apo/{apo_id}/status", {"status": "REJECTED"}, headers=dm_headers, expected_status=400)
-        if response and response.status_code == 400:
+        if response is not None and response.status_code == 400:
             try:
                 error_data = response.json()
                 error_msg = error_data.get('error', '')
@@ -464,7 +464,7 @@ class KFDCTester:
         }
         
         response = self.test_endpoint("POST", "/work-logs", pending_log_data, headers=ro_headers, expected_status=400)
-        if response and response.status_code == 400:
+        if response is not None and response.status_code == 400:
             try:
                 error_data = response.json()
                 error_msg = error_data.get('error', '').lower()
