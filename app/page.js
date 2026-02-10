@@ -461,11 +461,16 @@ function PlantationsView({ user, setView, setSelectedPlantation }) {
                 <DialogDescription>Add a new plantation to your range</DialogDescription>
               </DialogHeader>
               <div className="space-y-4">
-                <div><Label>Plantation Name</Label><Input value={form.name} onChange={e => setForm(f => ({ ...f, name: e.target.value }))} placeholder="e.g., Sagara Teak Block Z" /></div>
-                <div><Label>Species</Label><Input value={form.species} onChange={e => setForm(f => ({ ...f, species: e.target.value }))} placeholder="e.g., Teak, Eucalyptus" /></div>
+                <div><Label>Plantation Name</Label><Input value={form.name} onChange={e => setForm(f => ({ ...f, name: e.target.value }))} placeholder="e.g., Varavanagalavi" /></div>
+                <div><Label>Species</Label><Input value={form.species} onChange={e => setForm(f => ({ ...f, species: e.target.value }))} placeholder="e.g., Acacia Auriculiformis, Eucalyptus Pellita" /></div>
                 <div className="grid grid-cols-2 gap-4">
                   <div><Label>Year of Planting</Label><Input type="number" value={form.year_of_planting} onChange={e => setForm(f => ({ ...f, year_of_planting: e.target.value }))} /></div>
                   <div><Label>Area (Hectares)</Label><Input type="number" step="0.1" value={form.total_area_ha} onChange={e => setForm(f => ({ ...f, total_area_ha: e.target.value }))} /></div>
+                </div>
+                <div><Label>Village Name</Label><Input value={form.village} onChange={e => setForm(f => ({ ...f, village: e.target.value }))} placeholder="e.g., Varavanagalavi" /></div>
+                <div className="grid grid-cols-2 gap-4">
+                  <div><Label>Taluk</Label><Input value={form.taluk} onChange={e => setForm(f => ({ ...f, taluk: e.target.value }))} placeholder="e.g., Dharwad, Khanapur" /></div>
+                  <div><Label>District</Label><Input value={form.district} onChange={e => setForm(f => ({ ...f, district: e.target.value }))} placeholder="e.g., Dharwad, Belagavi" /></div>
                 </div>
               </div>
               <DialogFooter>
