@@ -144,7 +144,7 @@ async function handleRoute(request, { params }) {
           plantation_id: 'plt-002',
           financial_year: '2025-26',
           status: 'SANCTIONED',
-          total_sanctioned_amount: 92000,
+          total_sanctioned_amount: 402500,
           created_by: 'usr-ro1',
           approved_by: 'usr-dm1',
           created_at: new Date('2025-04-01'),
