@@ -196,8 +196,8 @@ class KFDCTester:
         headers = {'Authorization': f'Bearer {self.tokens["ro"]}'}
         norms_results = []
         
-        # Test plt-001 (1 year old Teak) - should return Year 1 norms
-        self.log("Testing plt-001 (1 year old Teak)...")
+        # Test plt-001 (2 years old Teak in FY 2025-26) - should return Year 2 norms
+        self.log("Testing plt-001 (2 years old Teak in FY 2025-26)...")
         draft_data = {"plantation_id": "plt-001", "financial_year": "2025-26"}
         response = self.test_endpoint("POST", "/apo/generate-draft", draft_data, headers=headers)
         
@@ -206,27 +206,27 @@ class KFDCTester:
             age = data.get('age')
             items = data.get('items', [])
             
-            if age == 1:
+            if age == 2:
                 self.log(f"  plt-001: Age correctly calculated as {age}")
                 
-                # Check for Year 1 activities (Weeding, Soil Working, Casualty, Fencing, Manuring)
-                year1_activities = ['Weeding', 'Soil Working', 'Casualty Replacement', 'Fencing Repair', 'Manuring']
+                # Check for Year 2 activities (Weeding, Soil Working, Fire Line, Fire Watching, Casualty)
+                year2_activities = ['Weeding', 'Soil Working', 'Fire Line Tracing', 'Fire Watching', 'Casualty Replacement']
                 found_activities = [item['activity_name'] for item in items]
                 
-                if any(act in found_activities for act in year1_activities):
-                    self.log(f"  plt-001: Found expected Year 1 activities: {found_activities}")
+                if any(act in found_activities for act in year2_activities):
+                    self.log(f"  plt-001: Found expected Year 2 activities: {found_activities}")
                     norms_results.append("plt-001: PASS")
                 else:
-                    self.log(f"  plt-001: Missing expected Year 1 activities. Found: {found_activities}", "WARNING")
+                    self.log(f"  plt-001: Missing expected Year 2 activities. Found: {found_activities}", "WARNING")
                     norms_results.append("plt-001: FAIL - Wrong activities")
             else:
-                self.log(f"  plt-001: Wrong age calculation. Expected 1, got {age}", "WARNING")
+                self.log(f"  plt-001: Wrong age calculation. Expected 2, got {age}", "WARNING")
                 norms_results.append("plt-001: FAIL - Wrong age")
         else:
             norms_results.append("plt-001: FAIL - API call failed")
             
-        # Test plt-002 (2 year old Eucalyptus) - should return Year 2 norms  
-        self.log("Testing plt-002 (2 year old Eucalyptus)...")
+        # Test plt-002 (3 years old Eucalyptus in FY 2025-26) - should return Year 3 norms  
+        self.log("Testing plt-002 (3 years old Eucalyptus in FY 2025-26)...")
         draft_data = {"plantation_id": "plt-002", "financial_year": "2025-26"}
         response = self.test_endpoint("POST", "/apo/generate-draft", draft_data, headers=headers)
         
@@ -235,21 +235,21 @@ class KFDCTester:
             age = data.get('age')
             items = data.get('items', [])
             
-            if age == 2:
+            if age == 3:
                 self.log(f"  plt-002: Age correctly calculated as {age}")
                 
-                # Check for Year 2 activities (Weeding, Soil Working, Fire Line, Fire Watching, Casualty)
-                year2_activities = ['Weeding', 'Soil Working', 'Fire Line Tracing', 'Fire Watching', 'Casualty']
+                # Check for Year 3 activities (Weeding, Fire Line, Fire Watching, Pruning)
+                year3_activities = ['Weeding', 'Fire Line Tracing', 'Fire Watching', 'Pruning']
                 found_activities = [item['activity_name'] for item in items]
                 
-                if any(act in found_activities for act in year2_activities):
-                    self.log(f"  plt-002: Found expected Year 2 activities: {found_activities}")
+                if any(act in found_activities for act in year3_activities):
+                    self.log(f"  plt-002: Found expected Year 3 activities: {found_activities}")
                     norms_results.append("plt-002: PASS")
                 else:
-                    self.log(f"  plt-002: Missing expected Year 2 activities. Found: {found_activities}", "WARNING")
+                    self.log(f"  plt-002: Missing expected Year 3 activities. Found: {found_activities}", "WARNING")
                     norms_results.append("plt-002: FAIL - Wrong activities")
             else:
-                self.log(f"  plt-002: Wrong age calculation. Expected 2, got {age}", "WARNING")
+                self.log(f"  plt-002: Wrong age calculation. Expected 3, got {age}", "WARNING")
                 norms_results.append("plt-002: FAIL - Wrong age")
         else:
             norms_results.append("plt-002: FAIL - API call failed")
