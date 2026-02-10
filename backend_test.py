@@ -260,10 +260,10 @@ def test_step_5_apo_generate_draft(tokens):
     
     all_passed = True
     
-    if "RO" in tokens:
+    if "RO_DHARWAD" in tokens:
         # Test plt-d05 (Degaon, planted 2018, age ~8 years)
         response = make_request("POST", "/apo/generate-draft", 
-                               headers={"Authorization": f"Bearer {tokens['RO']}"}, 
+                               headers={"Authorization": f"Bearer {tokens['RO_DHARWAD']}"}, 
                                data={"plantation_id": "plt-d05", "financial_year": "2026-27"})
         
         if response and response.status_code == 200:
