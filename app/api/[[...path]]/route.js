@@ -577,12 +577,26 @@ async function handleRoute(request, { params }) {
 
       const age = new Date().getFullYear() - plantation.year_of_planting
       
-      // Get norms for this age
-      const norms = await db.collection('norms_config').find({
+      // Get norms for this age - first try exact match, then fallback to nearest lower age
+      let norms = await db.collection('norms_config').find({
         applicable_age: age,
         financial_year: financial_year,
         $or: [{ species_id: null }, { species_id: plantation.species }]
       }).toArray()
+
+      // If no exact match, find the highest applicable_age <= plantation age
+      if (norms.length === 0 && age > 0) {
+        const allNorms = await db.collection('norms_config').find({
+          financial_year: financial_year,
+          applicable_age: { $lte: age, $gt: 0 },
+          $or: [{ species_id: null }, { species_id: plantation.species }]
+        }).sort({ applicable_age: -1 }).toArray()
+        
+        if (allNorms.length > 0) {
+          const nearestAge = allNorms[0].applicable_age
+          norms = allNorms.filter(n => n.applicable_age === nearestAge)
+        }
+      }
 
       // Enrich with activity details
       const activities = await db.collection('activity_master').find({}).toArray()
