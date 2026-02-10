@@ -455,6 +455,7 @@ class KFDCTester:
                 self.log("  Correctly rejected work log against non-sanctioned APO")
                 work_results.append("Sanctioned APO Only: PASS")
             else:
+                self.log(f"  Unexpected pending APO error: {error_data.get('error')}", "WARNING")
                 work_results.append("Sanctioned APO Only: FAIL - Wrong error message")
         else:
             work_results.append("Sanctioned APO Only: FAIL - Should reject non-sanctioned")
