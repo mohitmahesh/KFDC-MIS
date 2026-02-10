@@ -423,7 +423,7 @@ function PlantationsView({ user, setView, setSelectedPlantation }) {
   const [plantations, setPlantations] = useState([])
   const [loading, setLoading] = useState(true)
   const [showCreate, setShowCreate] = useState(false)
-  const [form, setForm] = useState({ name: '', species: '', year_of_planting: 2024, total_area_ha: '' })
+  const [form, setForm] = useState({ name: '', species: '', year_of_planting: 2024, total_area_ha: '', village: '', taluk: '', district: '' })
 
   const load = useCallback(() => {
     setLoading(true)
