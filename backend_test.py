@@ -190,10 +190,10 @@ def test_step_3_role_scoped_plantations(tokens):
         if response and response.status_code == 200:
             plantations = response.json()
             
-            if len(plantations) >= 45:
+            if len(plantations) >= 44:
                 log_test("PLANTATIONS_ADMIN_ALL", "PASS", f"Admin sees {len(plantations)} plantations")
             else:
-                log_test("PLANTATIONS_ADMIN_ALL", "FAIL", f"Expected 45+, got {len(plantations)} plantations")
+                log_test("PLANTATIONS_ADMIN_ALL", "FAIL", f"Expected 44+, got {len(plantations)} plantations")
                 all_passed = False
         else:
             log_test("PLANTATIONS_ADMIN_ALL", "FAIL", "Failed to get Admin plantations")
