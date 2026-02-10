@@ -533,7 +533,7 @@ class KFDCTester:
             }
             
             response = self.test_endpoint("POST", "/apo", apo_data, headers=dm_headers, expected_status=403)
-            if response and response.status_code == 403:
+            if response is not None and response.status_code == 403:
                 self.log("  DM correctly blocked from creating APO")
                 rbac_results.append("DM Create APO Block: PASS")
             else:
@@ -550,7 +550,7 @@ class KFDCTester:
             # Try to approve an existing pending APO
             approval_data = {"status": "SANCTIONED"}
             response = self.test_endpoint("PATCH", "/apo/apo-002/status", approval_data, headers=ro_headers, expected_status=403)
-            if response and response.status_code == 403:
+            if response is not None and response.status_code == 403:
                 self.log("  RO correctly blocked from approving APO")
                 rbac_results.append("RO Approve APO Block: PASS")
             else:
@@ -582,7 +582,7 @@ class KFDCTester:
             # Test RO cannot create
             ro_headers = {'Authorization': f'Bearer {self.tokens["ro"]}'}
             response = self.test_endpoint("POST", "/norms", norm_data, headers=ro_headers, expected_status=403)
-            if response and response.status_code == 403:
+            if response is not None and response.status_code == 403:
                 self.log("  RO correctly blocked from creating norms")
                 ro_result = "RO Create Norms Block: PASS"
             else:
