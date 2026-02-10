@@ -394,6 +394,10 @@ def test_step_6_apo_workflow(tokens):
                                                                          "work_date": "2026-05-25"
                                                                      })
                                 
+                                    print(f"DEBUG: Overbudget response status: {overbudget_response.status_code if overbudget_response else 'None'}")
+                                    if overbudget_response:
+                                        print(f"DEBUG: Response body: {overbudget_response.text}")
+                                    
                                     if overbudget_response and overbudget_response.status_code == 400:
                                         error_data = overbudget_response.json()
                                         if "Budget Exceeded" in error_data.get("error", ""):
