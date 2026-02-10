@@ -112,7 +112,7 @@ def test_step_2_auth():
             token = data.get("token")
             user_data = data.get("user", {})
             
-            if token and user_data.get("role") == user["role"]:
+            if token and user_data.get("role") == user["role"].split("_")[0]:  # Extract base role (RO, DM, ADMIN)
                 log_test(f"AUTH_{user['role']}", "PASS", f"Login successful for {user['email']}")
                 tokens[user["role"]] = token
                 
