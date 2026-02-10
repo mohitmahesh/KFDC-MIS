@@ -436,7 +436,7 @@ function PlantationsView({ user, setView, setSelectedPlantation }) {
     try {
       await api.post('/plantations', form)
       setShowCreate(false)
-      setForm({ name: '', species: '', year_of_planting: 2024, total_area_ha: '' })
+      setForm({ name: '', species: '', year_of_planting: 2024, total_area_ha: '', village: '', taluk: '', district: '' })
       load()
     } catch (e) {
       alert(e.message)
