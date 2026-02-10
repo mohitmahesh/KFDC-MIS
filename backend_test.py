@@ -373,7 +373,7 @@ def test_step_6_apo_workflow(tokens):
                     if items:
                         first_item = items[0]
                         apo_items_response = make_request("GET", f"/apo/{apo_id}", 
-                                                        headers={"Authorization": f"Bearer {tokens['RO']}"})
+                                                        headers={"Authorization": f"Bearer {tokens['RO_DHARWAD']}"})
                         
                         if apo_items_response and apo_items_response.status_code == 200:
                             apo_detail = apo_items_response.json()
@@ -386,7 +386,7 @@ def test_step_6_apo_workflow(tokens):
                                 if item_cost and item_cost > 0:
                                     # Try to log work that exceeds budget
                                     overbudget_response = make_request("POST", "/work-logs",
-                                                                     headers={"Authorization": f"Bearer {tokens['RO']}"}, 
+                                                                     headers={"Authorization": f"Bearer {tokens['RO_DHARWAD']}"}, 
                                                                      data={
                                                                          "apo_item_id": item_id,
                                                                          "actual_qty": 1,
