@@ -545,6 +545,7 @@ class KFDCTester:
                 self.log("  RO correctly blocked from approving APO")
                 rbac_results.append("RO Approve APO Block: PASS")
             else:
+                self.log(f"  RO approve APO should fail but got {response.status_code if response else 'None'}", "WARNING")
                 rbac_results.append("RO Approve APO Block: FAIL")
         else:
             rbac_results.append("RO Approve APO Block: SKIP - No RO token")
