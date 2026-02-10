@@ -291,7 +291,7 @@ def test_step_5_apo_generate_draft(tokens):
         
         # Test plt-d22 (Kinaye, planted 2025, age ~1 year)
         response = make_request("POST", "/apo/generate-draft", 
-                               headers={"Authorization": f"Bearer {tokens['RO']}"}, 
+                               headers={"Authorization": f"Bearer {tokens['RO_DHARWAD']}"}, 
                                data={"plantation_id": "plt-d22", "financial_year": "2026-27"})
         
         if response and response.status_code == 200:
