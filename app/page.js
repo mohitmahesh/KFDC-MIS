@@ -491,7 +491,8 @@ function PlantationsView({ user, setView, setSelectedPlantation }) {
                   <Badge variant="outline" className="text-xs">{p.species}</Badge>
                 </div>
                 <h3 className="font-semibold text-sm mb-1 group-hover:text-emerald-700 transition-colors">{p.name}</h3>
-                <p className="text-xs text-muted-foreground mb-3">{p.range_name} | {p.division_name}</p>
+                <p className="text-xs text-muted-foreground mb-1">{p.range_name} | {p.division_name}</p>
+                {p.village && <p className="text-xs text-muted-foreground mb-3">{p.village}{p.taluk ? `, ${p.taluk}` : ''}{p.district ? ` (${p.district})` : ''}</p>}
                 <div className="grid grid-cols-3 gap-2">
                   <div className="text-center p-2 bg-muted rounded">
                     <p className="text-xs text-muted-foreground">Age</p>
