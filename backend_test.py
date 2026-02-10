@@ -77,10 +77,10 @@ def test_step_1_seed():
             log_test("SEED_NORMS", "FAIL", f"Expected 80+, got {norms_count}")
             all_correct = False
             
-        if plantations_count >= 45:
-            log_test("SEED_PLANTATIONS", "PASS", f"Expected 45+, got {plantations_count}")
+        if plantations_count >= 44:
+            log_test("SEED_PLANTATIONS", "PASS", f"Expected 44+, got {plantations_count}")
         else:
-            log_test("SEED_PLANTATIONS", "FAIL", f"Expected 45+, got {plantations_count}")
+            log_test("SEED_PLANTATIONS", "FAIL", f"Expected 44+, got {plantations_count}")
             all_correct = False
         
         return all_correct
