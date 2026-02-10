@@ -416,19 +416,25 @@ class KFDCTester:
         
         response = self.test_endpoint("POST", "/work-logs", excessive_log_data, headers=ro_headers, expected_status=400)
         if response and response.status_code == 400:
-            error_data = response.json()
-            if "Budget Exceeded" in error_data.get('error', ''):
-                self.log("  Budget enforcement working correctly")
-                work_results.append("Budget Enforcement: PASS")
-            else:
-                self.log(f"  Unexpected error message: {error_data.get('error')}", "WARNING")
-                work_results.append("Budget Enforcement: FAIL - Wrong error message")
+            try:
+                error_data = response.json()
+                error_msg = error_data.get('error', '')
+                if "Budget Exceeded" in error_msg:
+                    self.log("  Budget enforcement working correctly")
+                    work_results.append("Budget Enforcement: PASS")
+                else:
+                    self.log(f"  Unexpected budget error message: {error_msg}", "WARNING")
+                    work_results.append("Budget Enforcement: FAIL - Wrong error message")
+            except:
+                self.log("  Budget enforcement test - could not parse response", "WARNING")
+                work_results.append("Budget Enforcement: FAIL - Parse error")
         elif response and response.status_code == 201:
             # This means budget enforcement is not working
             self.log("  ERROR: Budget enforcement failed - overbudget request was accepted!", "ERROR")
             work_results.append("Budget Enforcement: FAIL - Overbudget accepted")
         else:
-            work_results.append("Budget Enforcement: FAIL - Should have rejected overbudget")
+            self.log(f"  Budget enforcement - unexpected status {response.status_code if response else 'None'}", "WARNING")
+            work_results.append("Budget Enforcement: FAIL - Unexpected status")
             
         # Step 3: Get work logs
         self.log("Fetching work logs...")
