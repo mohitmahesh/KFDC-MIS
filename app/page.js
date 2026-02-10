@@ -1316,6 +1316,7 @@ function NormsView({ user }) {
                 <TableHeader>
                   <TableRow className="bg-muted/50">
                     <TableHead>Activity</TableHead>
+                    <TableHead>SSR No.</TableHead>
                     <TableHead>Category</TableHead>
                     <TableHead>Unit</TableHead>
                     <TableHead className="text-center">Applicable Age (Yr)</TableHead>
@@ -1327,6 +1328,7 @@ function NormsView({ user }) {
                   {filteredNorms.map(n => (
                     <TableRow key={n.id}>
                       <TableCell className="font-medium">{n.activity_name}</TableCell>
+                      <TableCell className="text-sm text-muted-foreground font-mono">{n.ssr_no || '-'}</TableCell>
                       <TableCell><Badge variant="outline" className="text-xs">{n.category}</Badge></TableCell>
                       <TableCell className="text-sm text-muted-foreground">{n.unit}</TableCell>
                       <TableCell className="text-center">
