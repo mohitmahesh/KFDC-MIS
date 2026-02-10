@@ -38,7 +38,11 @@ class KFDCTester:
             if response.status_code != expected_status:
                 self.log(f"  Expected {expected_status}, got {response.status_code}", "WARNING")
                 if response.text:
-                    self.log(f"  Response: {response.text[:200]}", "WARNING")
+                    try:
+                        error_data = response.json()
+                        self.log(f"  Error: {error_data.get('error', 'No error message')}", "WARNING")
+                    except:
+                        self.log(f"  Response: {response.text[:200]}", "WARNING")
                     
             return response
         except Exception as e:
