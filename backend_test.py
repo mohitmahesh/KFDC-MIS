@@ -417,6 +417,10 @@ class KFDCTester:
             else:
                 self.log(f"  Unexpected error message: {error_data.get('error')}", "WARNING")
                 work_results.append("Budget Enforcement: FAIL - Wrong error message")
+        elif response and response.status_code == 201:
+            # This means budget enforcement is not working
+            self.log("  ERROR: Budget enforcement failed - overbudget request was accepted!", "ERROR")
+            work_results.append("Budget Enforcement: FAIL - Overbudget accepted")
         else:
             work_results.append("Budget Enforcement: FAIL - Should have rejected overbudget")
             
