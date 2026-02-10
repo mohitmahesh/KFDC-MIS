@@ -528,6 +528,7 @@ class KFDCTester:
                 self.log("  DM correctly blocked from creating APO")
                 rbac_results.append("DM Create APO Block: PASS")
             else:
+                self.log(f"  DM create APO should fail but got {response.status_code if response else 'None'}", "WARNING")
                 rbac_results.append("DM Create APO Block: FAIL")
         else:
             rbac_results.append("DM Create APO Block: SKIP - No DM token")
