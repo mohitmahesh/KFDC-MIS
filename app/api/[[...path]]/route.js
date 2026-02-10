@@ -171,6 +171,13 @@ const SEED_DATA = {
     { id: 'norm-m11b', activity_id: 'act-firewatch', applicable_age: 11, species_id: null, standard_rate: 1784.01, financial_year: '2026-27' },
     { id: 'norm-m12a', activity_id: 'act-fireline', applicable_age: 12, species_id: null, standard_rate: 5455.86, financial_year: '2026-27' },
     { id: 'norm-m12b', activity_id: 'act-firewatch', applicable_age: 12, species_id: null, standard_rate: 1784.01, financial_year: '2026-27' },
+    // === 13TH-15TH YEAR ===
+    { id: 'norm-m13a', activity_id: 'act-fireline', applicable_age: 13, species_id: null, standard_rate: 5455.86, financial_year: '2026-27' },
+    { id: 'norm-m13b', activity_id: 'act-firewatch', applicable_age: 13, species_id: null, standard_rate: 1784.01, financial_year: '2026-27' },
+    { id: 'norm-m14a', activity_id: 'act-fireline', applicable_age: 14, species_id: null, standard_rate: 5455.86, financial_year: '2026-27' },
+    { id: 'norm-m14b', activity_id: 'act-firewatch', applicable_age: 14, species_id: null, standard_rate: 1784.01, financial_year: '2026-27' },
+    { id: 'norm-m15a', activity_id: 'act-fireline', applicable_age: 15, species_id: null, standard_rate: 5455.86, financial_year: '2026-27' },
+    { id: 'norm-m15b', activity_id: 'act-firewatch', applicable_age: 15, species_id: null, standard_rate: 1784.01, financial_year: '2026-27' },
     // === 16TH YEAR (After 2nd Cut Eucalyptus) ===
     { id: 'norm-m16a', activity_id: 'act-fireline', applicable_age: 16, species_id: null, standard_rate: 5455.86, financial_year: '2026-27' },
     { id: 'norm-m16b', activity_id: 'act-firewatch', applicable_age: 16, species_id: null, standard_rate: 1784.01, financial_year: '2026-27' },
