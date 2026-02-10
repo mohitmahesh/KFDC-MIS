@@ -109,7 +109,7 @@ backend:
     file: "app/api/[[...path]]/route.js"
     stuck_count: 0
     priority: "high"
-    needs_retesting: false
+    needs_retesting: true
     status_history:
       - working: true
         agent: "main"
@@ -117,6 +117,9 @@ backend:
       - working: true
         agent: "testing"
         comment: "✅ TESTED: Database seeding successful - 2 divisions, 4 ranges, 5 users, 10 activities, 20 norms, 8 plantations, 2 sample APOs created"
+      - working: true
+        agent: "main"
+        comment: "UPDATED: Now seeds with REAL KFDC data from Excel files - 4 divisions, 19 ranges, 8 users, 25 activities with SSR numbers, 80+ norms, 45+ plantations, 4 APOs"
 
   - task: "Authentication (Login/Logout/Me)"
     implemented: true
@@ -124,7 +127,7 @@ backend:
     file: "app/api/[[...path]]/route.js"
     stuck_count: 0
     priority: "high"
-    needs_retesting: false
+    needs_retesting: true
     status_history:
       - working: true
         agent: "main"
