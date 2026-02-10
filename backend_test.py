@@ -326,10 +326,10 @@ def test_step_6_apo_workflow(tokens):
     
     all_passed = True
     
-    if "RO" in tokens and "DM" in tokens:
+    if "RO_DHARWAD" in tokens and "DM" in tokens:
         # First get a draft
         draft_response = make_request("POST", "/apo/generate-draft", 
-                                     headers={"Authorization": f"Bearer {tokens['RO']}"}, 
+                                     headers={"Authorization": f"Bearer {tokens['RO_DHARWAD']}"}, 
                                      data={"plantation_id": "plt-d05", "financial_year": "2026-27"})
         
         if draft_response and draft_response.status_code == 200:
