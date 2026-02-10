@@ -353,7 +353,7 @@ def test_step_6_apo_workflow(tokens):
             }
             
             create_response = make_request("POST", "/apo", 
-                                         headers={"Authorization": f"Bearer {tokens['RO']}"}, 
+                                         headers={"Authorization": f"Bearer {tokens['RO_DHARWAD']}"}, 
                                          data=apo_data)
             
             if create_response and create_response.status_code == 201:
