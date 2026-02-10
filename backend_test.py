@@ -337,7 +337,15 @@ def test_step_6_apo_workflow(tokens):
                 "plantation_id": "plt-d05",
                 "financial_year": "2026-27",
                 "status": "PENDING_APPROVAL",
-                "items": items
+                "items": [
+                    {
+                        "activity_id": item["activity_id"],
+                        "activity_name": item["activity_name"],
+                        "sanctioned_qty": item["suggested_qty"],
+                        "sanctioned_rate": item["sanctioned_rate"],
+                        "unit": item["unit"]
+                    } for item in items
+                ]
             }
             
             create_response = make_request("POST", "/apo", 
