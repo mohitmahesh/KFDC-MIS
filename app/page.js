@@ -720,8 +720,8 @@ function ApoWizard({ user, setView }) {
               <Select value={financialYear} onValueChange={setFinancialYear}>
                 <SelectTrigger><SelectValue /></SelectTrigger>
                 <SelectContent>
+                  <SelectItem value="2026-27">2026-27</SelectItem>
                   <SelectItem value="2025-26">2025-26</SelectItem>
-                  <SelectItem value="2024-25">2024-25</SelectItem>
                 </SelectContent>
               </Select>
             </div>
