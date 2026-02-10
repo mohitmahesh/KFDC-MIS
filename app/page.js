@@ -614,7 +614,7 @@ function ApoWizard({ user, setView }) {
   const [step, setStep] = useState(1)
   const [plantations, setPlantations] = useState([])
   const [selectedPlantation, setSelectedPlt] = useState(null)
-  const [financialYear, setFinancialYear] = useState('2025-26')
+  const [financialYear, setFinancialYear] = useState('2026-27')
   const [draft, setDraft] = useState(null)
   const [items, setItems] = useState([])
   const [loading, setLoading] = useState(false)
