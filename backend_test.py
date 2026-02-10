@@ -146,9 +146,9 @@ def test_step_3_role_scoped_plantations(tokens):
         response = make_request("GET", "/plantations", headers={"Authorization": f"Bearer {tokens['RO']}"})
         if response and response.status_code == 200:
             plantations = response.json()
-            dharwad_plantations = [p for p in plantations if p.get("id", "").startswith("plt-d0")]
+            dharwad_plantations = [p for p in plantations if p.get("range_id") == "rng-dharwad"]
             
-            if len(dharwad_plantations) == 5:  # plt-d01 to plt-d05
+            if len(dharwad_plantations) == 5:  # Expected plt-d01 to plt-d05
                 log_test("PLANTATIONS_RO_DHARWAD", "PASS", f"RO sees {len(dharwad_plantations)} Dharwad range plantations")
                 
                 # Verify village/taluk/district fields
