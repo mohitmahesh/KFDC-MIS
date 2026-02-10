@@ -109,11 +109,14 @@ backend:
     file: "app/api/[[...path]]/route.js"
     stuck_count: 0
     priority: "high"
-    needs_retesting: true
+    needs_retesting: false
     status_history:
       - working: true
         agent: "main"
         comment: "POST /api/seed seeds divisions, ranges, users, activities, norms, plantations, APOs, and work logs"
+      - working: true
+        agent: "testing"
+        comment: "✅ TESTED: Database seeding successful - 2 divisions, 4 ranges, 5 users, 10 activities, 20 norms, 8 plantations, 2 sample APOs created"
 
   - task: "Authentication (Login/Logout/Me)"
     implemented: true
@@ -121,11 +124,14 @@ backend:
     file: "app/api/[[...path]]/route.js"
     stuck_count: 0
     priority: "high"
-    needs_retesting: true
+    needs_retesting: false
     status_history:
       - working: true
         agent: "main"
         comment: "POST /api/auth/login, GET /api/auth/me, POST /api/auth/logout with token-based sessions"
+      - working: true
+        agent: "testing"
+        comment: "✅ TESTED: All 3 user roles (RO: Ramesh Kumar, DM: Anjali Sharma, Admin: Dr. Venkatesh Rao) login/logout/me endpoints working correctly"
 
   - task: "Plantations CRUD (role-scoped)"
     implemented: true
@@ -133,11 +139,14 @@ backend:
     file: "app/api/[[...path]]/route.js"
     stuck_count: 0
     priority: "high"
-    needs_retesting: true
+    needs_retesting: false
     status_history:
       - working: true
         agent: "main"
         comment: "GET /api/plantations (role-scoped), POST /api/plantations, GET /api/plantations/:id, GET /api/plantations/:id/history"
+      - working: true
+        agent: "testing"
+        comment: "✅ TESTED: Role-based access working perfectly - RO sees 2 plantations (own range), DM sees 4 (division), Admin sees all 8. Detail and history endpoints working."
 
   - task: "Norms Engine - APO Draft Generation"
     implemented: true
@@ -145,11 +154,14 @@ backend:
     file: "app/api/[[...path]]/route.js"
     stuck_count: 0
     priority: "high"
-    needs_retesting: true
+    needs_retesting: false
     status_history:
       - working: true
         agent: "main"
         comment: "POST /api/apo/generate-draft calculates plantation age and returns norms-based activities with locked rates"
+      - working: true
+        agent: "testing"
+        comment: "✅ TESTED: Age calculation correct (plt-001: 2yrs, plt-002: 3yrs using 2026-planting_year). Returns appropriate activities for each age group."
 
   - task: "APO CRUD and Status Workflow"
     implemented: true
@@ -157,11 +169,14 @@ backend:
     file: "app/api/[[...path]]/route.js"
     stuck_count: 0
     priority: "high"
-    needs_retesting: true
+    needs_retesting: false
     status_history:
       - working: true
         agent: "main"
         comment: "POST /api/apo (create), GET /api/apo (list, role-scoped), GET /api/apo/:id (detail), PATCH /api/apo/:id/status (DRAFT->PENDING->SANCTIONED/REJECTED)"
+      - working: true
+        agent: "testing"
+        comment: "✅ TESTED: Complete workflow working - RO creates APO (PENDING_APPROVAL), DM approves to SANCTIONED, immutability correctly enforced (Cannot transition from SANCTIONED)"
 
   - task: "Work Logs with Budget Enforcement"
     implemented: true
@@ -169,11 +184,14 @@ backend:
     file: "app/api/[[...path]]/route.js"
     stuck_count: 0
     priority: "high"
-    needs_retesting: true
+    needs_retesting: false
     status_history:
       - working: true
         agent: "main"
         comment: "POST /api/work-logs validates budget not exceeded, GET /api/work-logs returns logs"
+      - working: true
+        agent: "testing"
+        comment: "✅ TESTED: Budget enforcement working - correctly rejects overbudget expenditure with detailed error message. Only allows work logs against sanctioned APOs."
 
   - task: "Dashboard Stats"
     implemented: true
@@ -181,11 +199,14 @@ backend:
     file: "app/api/[[...path]]/route.js"
     stuck_count: 0
     priority: "medium"
-    needs_retesting: true
+    needs_retesting: false
     status_history:
       - working: true
         agent: "main"
         comment: "GET /api/dashboard/stats returns plantations, APOs, budget utilization, and chart data"
+      - working: true
+        agent: "testing"
+        comment: "✅ TESTED: Dashboard stats working for all roles with correct role-scoped counts and budget utilization calculations"
 
   - task: "Role-Based Access Control"
     implemented: true
@@ -193,11 +214,14 @@ backend:
     file: "app/api/[[...path]]/route.js"
     stuck_count: 0
     priority: "high"
-    needs_retesting: true
+    needs_retesting: false
     status_history:
       - working: true
         agent: "main"
         comment: "RO can only see own range plantations, DM sees division, Admin sees all. RO creates APOs, DM/Admin approves."
+      - working: true
+        agent: "testing"
+        comment: "✅ TESTED: All RBAC controls verified - DM blocked from creating APOs (403), RO blocked from approving APOs (403), only Admin can create norms"
 
 metadata:
   created_by: "main_agent"
