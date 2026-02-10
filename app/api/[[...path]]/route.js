@@ -263,50 +263,81 @@ async function handleRoute(request, { params }) {
       await db.collection('norms_config').insertMany(SEED_DATA.norms)
       await db.collection('plantations').insertMany(SEED_DATA.plantations.map(p => ({ ...p, created_at: new Date() })))
 
-      // Create sample APOs
+      // Create sample APOs with real plantation refs
       const sampleApos = [
         {
           id: 'apo-001',
-          plantation_id: 'plt-002',
-          financial_year: '2025-26',
+          plantation_id: 'plt-d01',
+          financial_year: '2026-27',
           status: 'SANCTIONED',
-          total_sanctioned_amount: 402500,
+          total_sanctioned_amount: 327450,
           created_by: 'usr-ro1',
           approved_by: 'usr-dm1',
-          created_at: new Date('2025-04-01'),
-          updated_at: new Date('2025-04-05'),
+          created_at: new Date('2026-04-01'),
+          updated_at: new Date('2026-04-05'),
         },
         {
           id: 'apo-002',
-          plantation_id: 'plt-004',
-          financial_year: '2025-26',
+          plantation_id: 'plt-d06',
+          financial_year: '2026-27',
           status: 'PENDING_APPROVAL',
-          total_sanctioned_amount: 263000,
-          created_by: 'usr-ro1',
+          total_sanctioned_amount: 112050,
+          created_by: 'usr-ro4',
           approved_by: null,
-          created_at: new Date('2025-05-10'),
-          updated_at: new Date('2025-05-10'),
+          created_at: new Date('2026-05-10'),
+          updated_at: new Date('2026-05-10'),
+        },
+        {
+          id: 'apo-003',
+          plantation_id: 'plt-b01',
+          financial_year: '2026-27',
+          status: 'SANCTIONED',
+          total_sanctioned_amount: 436800,
+          created_by: 'usr-ro2',
+          approved_by: 'usr-dm2',
+          created_at: new Date('2026-04-15'),
+          updated_at: new Date('2026-04-18'),
+        },
+        {
+          id: 'apo-004',
+          plantation_id: 'plt-s01',
+          financial_year: '2026-27',
+          status: 'DRAFT',
+          total_sanctioned_amount: 325800,
+          created_by: 'usr-ro3',
+          approved_by: null,
+          created_at: new Date('2026-05-20'),
+          updated_at: new Date('2026-05-20'),
         },
       ]
       await db.collection('apo_headers').insertMany(sampleApos)
 
       const sampleApoItems = [
-        { id: 'apoi-001', apo_id: 'apo-001', activity_id: 'act-weeding', activity_name: 'Weeding', sanctioned_qty: 40, sanctioned_rate: 5000, total_cost: 200000, unit: 'Per Hectare' },
-        { id: 'apoi-002', apo_id: 'apo-001', activity_id: 'act-soilwork', activity_name: 'Soil Working', sanctioned_qty: 40, sanctioned_rate: 4000, total_cost: 160000, unit: 'Per Hectare' },
-        { id: 'apoi-003', apo_id: 'apo-001', activity_id: 'act-fireline', activity_name: 'Fire Line Tracing', sanctioned_qty: 5, sanctioned_rate: 8500, total_cost: 42500, unit: 'Per Km' },
-        { id: 'apoi-004', apo_id: 'apo-002', activity_id: 'act-fireline', activity_name: 'Fire Line Tracing', sanctioned_qty: 8, sanctioned_rate: 8500, total_cost: 68000, unit: 'Per Km' },
-        { id: 'apoi-005', apo_id: 'apo-002', activity_id: 'act-pruning', activity_name: 'Pruning', sanctioned_qty: 30, sanctioned_rate: 6500, total_cost: 195000, unit: 'Per Hectare' },
+        // APO-001: Varavanagalavi (12 yr old) - Dharwad
+        { id: 'apoi-001', apo_id: 'apo-001', activity_id: 'act-fireline', activity_name: 'Clearing 5m Wide Fire Lines', sanctioned_qty: 25, sanctioned_rate: 5455.86, total_cost: 136396.5, unit: 'Per Hectare' },
+        { id: 'apoi-002', apo_id: 'apo-001', activity_id: 'act-firewatch', activity_name: 'Engaging Fire Watchers', sanctioned_qty: 25, sanctioned_rate: 1784.01, total_cost: 44600.25, unit: 'Per Month' },
+        { id: 'apoi-003', apo_id: 'apo-001', activity_id: 'act-misc', activity_name: 'Miscellaneous (Implements, Spray pump etc)', sanctioned_qty: 1, sanctioned_rate: 5000, total_cost: 5000, unit: 'Lump Sum' },
+        // APO-002: Alloli-Kanasolli (22 yr old Eucalyptus)
+        { id: 'apoi-004', apo_id: 'apo-002', activity_id: 'act-fireline', activity_name: 'Clearing 5m Wide Fire Lines', sanctioned_qty: 15.5, sanctioned_rate: 5455.86, total_cost: 84565.83, unit: 'Per Hectare' },
+        { id: 'apoi-005', apo_id: 'apo-002', activity_id: 'act-firewatch', activity_name: 'Engaging Fire Watchers', sanctioned_qty: 15.5, sanctioned_rate: 1784.01, total_cost: 27652.16, unit: 'Per Month' },
+        // APO-003: Agara, Bangalore (25 yr old Eucalyptus)
+        { id: 'apoi-006', apo_id: 'apo-003', activity_id: 'act-fireline', activity_name: 'Clearing 5m Wide Fire Lines', sanctioned_qty: 65, sanctioned_rate: 5455.86, total_cost: 354630.9, unit: 'Per Hectare' },
+        { id: 'apoi-007', apo_id: 'apo-003', activity_id: 'act-firewatch', activity_name: 'Engaging Fire Watchers', sanctioned_qty: 65, sanctioned_rate: 1784.01, total_cost: 115960.65, unit: 'Per Month' },
+        // APO-004: Sagara (6 yr old Acacia)
+        { id: 'apoi-008', apo_id: 'apo-004', activity_id: 'act-fireline', activity_name: 'Clearing 5m Wide Fire Lines', sanctioned_qty: 45, sanctioned_rate: 5455.86, total_cost: 245513.7, unit: 'Per Hectare' },
+        { id: 'apoi-009', apo_id: 'apo-004', activity_id: 'act-firewatch', activity_name: 'Engaging Fire Watchers', sanctioned_qty: 45, sanctioned_rate: 1784.01, total_cost: 80280.45, unit: 'Per Month' },
       ]
       await db.collection('apo_items').insertMany(sampleApoItems)
 
       // Sample work logs
       const sampleWorkLogs = [
-        { id: 'wl-001', apo_item_id: 'apoi-001', work_date: new Date('2025-05-15'), actual_qty: 10, expenditure: 50000, logged_by: 'usr-ro1', created_at: new Date('2025-05-15') },
-        { id: 'wl-002', apo_item_id: 'apoi-002', work_date: new Date('2025-05-20'), actual_qty: 15, expenditure: 60000, logged_by: 'usr-ro1', created_at: new Date('2025-05-20') },
+        { id: 'wl-001', apo_item_id: 'apoi-001', work_date: new Date('2026-05-15'), actual_qty: 10, expenditure: 54558.6, logged_by: 'usr-ro1', created_at: new Date('2026-05-15') },
+        { id: 'wl-002', apo_item_id: 'apoi-006', work_date: new Date('2026-05-20'), actual_qty: 20, expenditure: 109117.2, logged_by: 'usr-ro2', created_at: new Date('2026-05-20') },
+        { id: 'wl-003', apo_item_id: 'apoi-007', work_date: new Date('2026-05-22'), actual_qty: 20, expenditure: 35680.2, logged_by: 'usr-ro2', created_at: new Date('2026-05-22') },
       ]
       await db.collection('work_logs').insertMany(sampleWorkLogs)
 
-      return handleCORS(NextResponse.json({ message: 'Database seeded successfully', counts: { divisions: 2, ranges: 4, users: 5, activities: 10, norms: 20, plantations: 8, apos: 2 } }))
+      return handleCORS(NextResponse.json({ message: 'Database seeded with real KFDC data', counts: { divisions: 4, ranges: 19, users: 8, activities: 25, norms: SEED_DATA.norms.length, plantations: SEED_DATA.plantations.length, apos: 4 } }))
     }
 
     // =================== AUTH ===================
