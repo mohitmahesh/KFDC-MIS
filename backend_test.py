@@ -95,8 +95,8 @@ def test_step_2_auth():
     print("="*50)
     
     test_users = [
-        {"email": "ro.dharwad@kfdc.in", "password": "pass123", "role": "RO", "range": "Dharwad"},
-        {"email": "ro.svpura@kfdc.in", "password": "pass123", "role": "RO", "range": "S.V. Pura"},
+        {"email": "ro.dharwad@kfdc.in", "password": "pass123", "role": "RO_DHARWAD", "range": "Dharwad"},
+        {"email": "ro.svpura@kfdc.in", "password": "pass123", "role": "RO_SVPURA", "range": "S.V. Pura"},
         {"email": "dm.dharwad@kfdc.in", "password": "pass123", "role": "DM", "division": "Dharwad"},
         {"email": "admin@kfdc.in", "password": "pass123", "role": "ADMIN", "scope": "All"}
     ]
