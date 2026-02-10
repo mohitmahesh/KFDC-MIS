@@ -43,7 +43,11 @@ class KFDCTester:
                         self.log(f"  Error: {error_data.get('error', 'No error message')}", "WARNING")
                     except:
                         self.log(f"  Response: {response.text[:200]}", "WARNING")
-                    
+            
+            # Debug: verify response object is valid
+            if response is None:
+                self.log(f"  DEBUG: Response object is None!", "ERROR")
+                
             return response
         except Exception as e:
             self.log(f"ERROR testing {method} {endpoint}: {str(e)}", "ERROR")
