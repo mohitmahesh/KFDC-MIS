@@ -352,13 +352,18 @@ class KFDCTester:
         self.log("Testing APO immutability...")
         response = self.test_endpoint("PATCH", f"/apo/{apo_id}/status", {"status": "REJECTED"}, headers=dm_headers, expected_status=400)
         if response and response.status_code == 400:
-            error_data = response.json() if response.text else {}
-            if "Cannot transition" in error_data.get('error', ''):
-                self.log("  APO correctly immutable after sanctioning")
-                workflow_results.append("APO Immutable: PASS")
-            else:
-                self.log(f"  Unexpected immutability error: {error_data.get('error', 'No error message')}", "WARNING")
-                workflow_results.append("APO Immutable: FAIL - Wrong error message")
+            try:
+                error_data = response.json()
+                error_msg = error_data.get('error', '')
+                if "Cannot transition" in error_msg:
+                    self.log("  APO correctly immutable after sanctioning")
+                    workflow_results.append("APO Immutable: PASS")
+                else:
+                    self.log(f"  Unexpected immutability error: {error_msg}", "WARNING")
+                    workflow_results.append("APO Immutable: FAIL - Wrong error message")
+            except:
+                self.log("  APO immutability test - could not parse response", "WARNING")
+                workflow_results.append("APO Immutable: FAIL - Parse error")
         else:
             self.log(f"  APO immutability test failed - status {response.status_code if response else 'None'}", "WARNING")
             workflow_results.append("APO Immutable: FAIL")
