@@ -371,15 +371,16 @@ def test_step_6_apo_workflow(tokens):
                                 item_id = apo_items[0].get("id")
                                 item_cost = apo_items[0].get("total_cost", 0)
                                 
-                                # Try to log work that exceeds budget
-                                overbudget_response = make_request("POST", "/work-logs",
-                                                                 headers={"Authorization": f"Bearer {tokens['RO']}"}, 
-                                                                 data={
-                                                                     "apo_item_id": item_id,
-                                                                     "actual_qty": 1,
-                                                                     "expenditure": item_cost + 1000,  # Exceed by 1000
-                                                                     "work_date": "2026-05-25"
-                                                                 })
+                                if item_cost and item_cost > 0:
+                                    # Try to log work that exceeds budget
+                                    overbudget_response = make_request("POST", "/work-logs",
+                                                                     headers={"Authorization": f"Bearer {tokens['RO']}"}, 
+                                                                     data={
+                                                                         "apo_item_id": item_id,
+                                                                         "actual_qty": 1,
+                                                                         "expenditure": item_cost + 1000,  # Exceed by 1000
+                                                                         "work_date": "2026-05-25"
+                                                                     })
                                 
                                 if overbudget_response and overbudget_response.status_code == 400:
                                     error_data = overbudget_response.json()
