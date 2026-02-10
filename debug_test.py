@@ -29,7 +29,15 @@ class SimpleTest:
         self.log(f"Response object type: {type(response)}")
         self.log(f"Response is None: {response is None}")
         self.log(f"Response status code: {response.status_code}")
-        self.log(f"Response and status==400: {response and response.status_code == 400}")
+        self.log(f"Status code == 400: {response.status_code == 400}")
+        self.log(f"Response truthy: {bool(response)}")
+        self.log(f"Combined condition: {bool(response and response.status_code == 400)}")
+        
+        # Test different condition formats
+        condition1 = response and response.status_code == 400
+        condition2 = response is not None and response.status_code == 400
+        self.log(f"Condition1 result: {condition1} (type: {type(condition1)})")
+        self.log(f"Condition2 result: {condition2} (type: {type(condition2)})")
         
         if response and response.status_code == 400:
             self.log("Condition 1: Correct 400 response")
