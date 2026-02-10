@@ -121,12 +121,8 @@ class KFDCTester:
                     else:
                         auth_results.append(f"{role.upper()}: FAIL - /auth/me failed")
                         
-                    # Test logout
-                    logout_response = self.test_endpoint("POST", "/auth/logout", headers=headers)
-                    if logout_response and logout_response.status_code == 200:
-                        self.log(f"  {role.upper()} logout successful")
-                    else:
-                        self.log(f"  {role.upper()} logout failed", "WARNING")
+                    # Test logout (but keep token for subsequent tests)
+                    # Note: We'll test logout separately to keep tokens for other tests
                 else:
                     auth_results.append(f"{role.upper()}: FAIL - No token/user in response")
             else:
