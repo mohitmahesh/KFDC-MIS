@@ -157,6 +157,9 @@ const SEED_DATA = {
     { id: 'norm-m6b', activity_id: 'act-firewatch', applicable_age: 6, species_id: null, standard_rate: 1784.01, financial_year: '2026-27' },
     { id: 'norm-m7a', activity_id: 'act-fireline', applicable_age: 7, species_id: null, standard_rate: 5455.86, financial_year: '2026-27' },
     { id: 'norm-m7b', activity_id: 'act-firewatch', applicable_age: 7, species_id: null, standard_rate: 1784.01, financial_year: '2026-27' },
+    // === 8TH YEAR (Fire maintenance) ===
+    { id: 'norm-m8a', activity_id: 'act-fireline', applicable_age: 8, species_id: null, standard_rate: 5455.86, financial_year: '2026-27' },
+    { id: 'norm-m8b', activity_id: 'act-firewatch', applicable_age: 8, species_id: null, standard_rate: 1784.01, financial_year: '2026-27' },
     // === 9TH YEAR (After 1st Cut Eucalyptus) ===
     { id: 'norm-m9a', activity_id: 'act-fireline', applicable_age: 9, species_id: null, standard_rate: 5455.86, financial_year: '2026-27' },
     { id: 'norm-m9b', activity_id: 'act-firewatch', applicable_age: 9, species_id: null, standard_rate: 1784.01, financial_year: '2026-27' },
