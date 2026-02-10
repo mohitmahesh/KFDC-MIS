@@ -356,11 +356,7 @@ class KFDCTester:
         else:
             self.log(f"  APO immutability test failed - status {response.status_code if response else 'None'}", "WARNING")
             workflow_results.append("APO Immutable: FAIL")
-                else:
-                    workflow_results.append("Approve APO: FAIL - Wrong status")
-            else:
-                workflow_results.append("Approve APO: FAIL - API call failed")
-        
+            
         self.test_results['apo_workflow'] = {
             'status': 'PASS' if all('PASS' in r for r in workflow_results) else 'FAIL',
             'message': '; '.join(workflow_results),
