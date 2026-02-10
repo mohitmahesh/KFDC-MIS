@@ -1,14 +1,14 @@
 import './globals.css'
 
 export const metadata = {
-  title: 'Next.js MongoDB Template',
-  description: 'A simple template with App Router, MongoDB, and shadcn/ui',
+  title: 'KFDC iFMS - Integrated Forestry Management System',
+  description: 'Karnataka Forest Development Corporation - Stump to Sale Management Platform',
 }
 
 export default function RootLayout({ children }) {
   return (
     <html lang="en">
-      <body>
+      <body className="min-h-screen bg-background antialiased">
         {children}
       </body>
     </html>
