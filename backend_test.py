@@ -142,11 +142,11 @@ def test_step_3_role_scoped_plantations(tokens):
     all_passed = True
     
     # Test RO Dharwad - should see only Dharwad range plantations (plt-d01 through plt-d05)
-    if "RO" in tokens:
-        response = make_request("GET", "/plantations", headers={"Authorization": f"Bearer {tokens['RO']}"})
+    if "RO_DHARWAD" in tokens:
+        response = make_request("GET", "/plantations", headers={"Authorization": f"Bearer {tokens['RO_DHARWAD']}"})
         if response and response.status_code == 200:
             plantations = response.json()
-            print(f"DEBUG: RO sees {len(plantations)} plantations:")
+            print(f"DEBUG: RO Dharwad sees {len(plantations)} plantations:")
             for p in plantations[:3]:  # Show first 3
                 print(f"  DEBUG: {p.get('id')}: range_id={p.get('range_id')}")
             
