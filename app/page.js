@@ -1252,8 +1252,8 @@ function NormsView({ user }) {
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <div>
-          <h2 className="text-2xl font-bold">Norms & Rates</h2>
-          <p className="text-muted-foreground">Standard rates per activity by plantation age</p>
+          <h2 className="text-2xl font-bold">Standard Rate Card</h2>
+          <p className="text-muted-foreground">Approved cost per activity, organized by plantation age (SSR-based)</p>
         </div>
         {user.role === 'ADMIN' && (
           <Dialog open={showCreate} onOpenChange={setShowCreate}>
