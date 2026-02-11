@@ -465,7 +465,7 @@ async function handleRoute(request, { params }) {
     if (route === '/norms' && method === 'POST') {
       const user = await getUser(request, db)
       if (!user || user.role !== 'ADMIN') {
-        return handleCORS(NextResponse.json({ error: 'Only Admin can manage norms' }, { status: 403 }))
+        return handleCORS(NextResponse.json({ error: 'Only Admin can manage the Rate Card' }, { status: 403 }))
       }
       const body = await request.json()
       const norm = {
