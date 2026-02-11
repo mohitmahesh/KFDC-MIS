@@ -212,7 +212,7 @@ function Sidebar({ user, currentView, setView, onLogout }) {
     { id: 'plantations', label: 'Plantations', icon: TreePine, roles: ['RO', 'DM', 'ADMIN'] },
     { id: 'apo-list', label: 'APO Management', icon: FileText, roles: ['RO', 'DM', 'ADMIN'] },
     { id: 'apo-wizard', label: 'Create APO', icon: Plus, roles: ['RO'] },
-    { id: 'norms', label: 'Norms & Rates', icon: BookOpen, roles: ['RO', 'DM', 'ADMIN'] },
+    { id: 'norms', label: 'Standard Rate Card', icon: BookOpen, roles: ['RO', 'DM', 'ADMIN'] },
   ]
 
   const roleLabels = { RO: 'Range Officer', DM: 'Division Manager', ADMIN: 'Admin (HO)' }
