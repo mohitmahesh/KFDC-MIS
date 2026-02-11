@@ -1325,7 +1325,7 @@ function NormsView({ user }) {
                     <TableHead>Category</TableHead>
                     <TableHead>Unit</TableHead>
                     <TableHead className="text-center">Applicable Age (Yr)</TableHead>
-                    <TableHead className="text-right">Standard Rate (₹)</TableHead>
+                    <TableHead className="text-right">Approved Cost (₹)</TableHead>
                     <TableHead>Financial Year</TableHead>
                   </TableRow>
                 </TableHeader>
