@@ -100,29 +100,88 @@
 
 #====================================================================================================
 
-user_problem_statement: "KFDC Integrated Forestry Management System (iFMS) - A norms-driven platform managing plantation lifecycle from Stump to Sale with strict APO (Annual Plan of Operations) financial discipline."
+user_problem_statement: "KFDC iFMS v2 - Works-based APO system. Activity (SSR) → Works → APO hierarchy. Draft & Append workflow."
 
 backend:
-  - task: "Seed demo data"
+  - task: "Seed demo data (v2 - Works edition)"
     implemented: true
     working: true
     file: "app/api/[[...path]]/route.js"
     stuck_count: 0
     priority: "high"
-    needs_retesting: false
+    needs_retesting: true
     status_history:
       - working: true
         agent: "main"
-        comment: "POST /api/seed seeds divisions, ranges, users, activities, norms, plantations, APOs, and work logs"
-      - working: true
-        agent: "testing"
-        comment: "✅ TESTED: Database seeding successful - 2 divisions, 4 ranges, 5 users, 10 activities, 20 norms, 8 plantations, 2 sample APOs created"
+        comment: "v2: Seeds 4 divisions, 19 ranges, 8 users, 25 activities, 85+ norms, 18 plantations, 2 APOs with Works. New 'works' collection replaces flat apo_items."
+
+  - task: "Works CRUD (NEW)"
+    implemented: true
+    working: true
+    file: "app/api/[[...path]]/route.js"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: true
+    status_history:
       - working: true
         agent: "main"
-        comment: "UPDATED: Now seeds with REAL KFDC data from Excel files - 4 divisions, 19 ranges, 8 users, 25 activities with SSR numbers, 80+ norms, 45+ plantations, 4 APOs"
+        comment: "POST /api/works (create work in draft APO), GET /api/works?apo_id=x, DELETE /api/works/:id (only from draft APO), POST /api/works/suggest-activities (norms-based suggestions)"
+
+  - task: "APO Draft & Append Workflow"
+    implemented: true
+    working: true
+    file: "app/api/[[...path]]/route.js"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: true
+    status_history:
       - working: true
-        agent: "testing"
-        comment: "✅ TESTED: Real KFDC data seeding successful - 4 divisions, 19 ranges, 8 users, 25 activities with SSR numbers, 85 norms, 44 plantations. All data matches expected real KFDC structure."
+        agent: "main"
+        comment: "POST /api/apo creates header-only DRAFT. Works added/removed over time. PATCH /api/apo/:id/status submits. Recalculates total on submit."
+
+  - task: "Plantation with new fields"
+    implemented: true
+    working: true
+    file: "app/api/[[...path]]/route.js"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: true
+    status_history:
+      - working: true
+        agent: "main"
+        comment: "Added vidhana_sabha, lok_sabha, latitude, longitude fields. PUT /api/plantations/:id for editing."
+
+  - task: "Budget enforcement via Works"
+    implemented: true
+    working: true
+    file: "app/api/[[...path]]/route.js"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: true
+    status_history:
+      - working: true
+        agent: "main"
+        comment: "POST /api/work-logs now uses work_item_id + work_id. Budget check against work item total_cost."
+
+metadata:
+  created_by: "main_agent"
+  version: "2.0"
+  test_sequence: 3
+  run_ui: false
+
+test_plan:
+  current_focus:
+    - "Seed demo data v2"
+    - "Works CRUD"
+    - "APO Draft & Append"
+    - "Budget enforcement"
+    - "Plantation new fields"
+  stuck_tasks: []
+  test_all: true
+
+agent_communication:
+  - agent: "main"
+    message: "MAJOR RESTRUCTURE: APO system now uses Activity→Works→APO hierarchy. Key changes: 1) POST /api/seed seeds new structure with 'works' collection. 2) POST /api/apo creates DRAFT header only (no items). 3) POST /api/works creates a Work inside a DRAFT APO (select plantation+activities). 4) POST /api/works/suggest-activities returns norms for a plantation. 5) DELETE /api/works/:id removes from draft. 6) APO detail GET /api/apo/:id returns works array. 7) work_logs now use work_item_id + work_id. Test flow: Seed → Login RO → Create APO → Add Work (suggest activities for plt-d02) → Add another Work → Submit → Login DM → Approve → Login RO → Log work. Users: ro.dharwad@kfdc.in, dm.dharwad@kfdc.in, admin@kfdc.in (all pass123)."
 
   - task: "Authentication (Login/Logout/Me)"
     implemented: true
