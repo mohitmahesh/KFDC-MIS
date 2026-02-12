@@ -468,21 +468,53 @@ function ApoDetail({ apoId, user, setView }) {
     try {
       const data = await api.post('/works/suggest-activities', { plantation_id: pltId, financial_year: apo.financial_year })
       setSuggestions(data)
-      const sel = {}, qty = {}
-      data.suggested_activities?.forEach(a => { sel[a.activity_id] = true; qty[a.activity_id] = a.suggested_qty })
-      setSelectedActivities(sel); setQuantities(qty)
+      const sel = {}, qty = {}, rt = {}
+      data.suggested_activities?.forEach(a => { sel[a.activity_id] = true; qty[a.activity_id] = a.suggested_qty; rt[a.activity_id] = a.sanctioned_rate })
+      setSelectedActivities(sel); setQuantities(qty); setRates(rt); setCustomItems([])
       const plt = plantations.find(p => p.id === pltId)
       setWorkName(`${data.age > 0 ? `Year ${data.age} Maintenance` : 'Advance Works'} - ${plt?.name || data.plantation_name}`)
     } catch (e) { alert(e.message) }
   }
 
+  const addCustomActivity = (actId) => {
+    const act = allActivities.find(a => a.id === actId)
+    if (!act) return
+    // Don't add if already in suggestions or custom list
+    if (suggestions?.suggested_activities?.find(a => a.activity_id === actId)) return
+    if (customItems.find(c => c.activity_id === actId)) return
+    const plt = plantations.find(p => p.id === selectedPlt)
+    const newItem = {
+      activity_id: act.id, activity_name: act.name, category: act.category, unit: act.unit,
+      ssr_no: act.ssr_no || '-', sanctioned_rate: 0, suggested_qty: plt?.total_area_ha || 1,
+    }
+    setCustomItems(prev => [...prev, newItem])
+    setSelectedActivities(prev => ({ ...prev, [act.id]: true }))
+    setQuantities(prev => ({ ...prev, [act.id]: plt?.total_area_ha || 1 }))
+    setRates(prev => ({ ...prev, [act.id]: 0 }))
+    setShowActivityPicker(false)
+  }
+
+  const removeCustomActivity = (actId) => {
+    setCustomItems(prev => prev.filter(c => c.activity_id !== actId))
+    setSelectedActivities(prev => { const n = { ...prev }; delete n[actId]; return n })
+    setQuantities(prev => { const n = { ...prev }; delete n[actId]; return n })
+    setRates(prev => { const n = { ...prev }; delete n[actId]; return n })
+  }
+
   const handleAddWork = async () => {
-    if (!suggestions) return
-    const items = suggestions.suggested_activities.filter(a => selectedActivities[a.activity_id]).map(a => ({
-      activity_id: a.activity_id, activity_name: a.activity_name, unit: a.unit, ssr_no: a.ssr_no,
-      sanctioned_rate: a.sanctioned_rate, sanctioned_qty: quantities[a.activity_id] || a.suggested_qty,
-    }))
-    if (items.length === 0) { alert('Select at least one activity'); return }
+    if (!suggestions && customItems.length === 0) return
+    // Combine suggested + custom items that are selected
+    const allItems = [
+      ...(suggestions?.suggested_activities || []).filter(a => selectedActivities[a.activity_id]).map(a => ({
+        activity_id: a.activity_id, activity_name: a.activity_name, unit: a.unit, ssr_no: a.ssr_no,
+        sanctioned_rate: rates[a.activity_id] ?? a.sanctioned_rate, sanctioned_qty: quantities[a.activity_id] || a.suggested_qty,
+      })),
+      ...customItems.filter(a => selectedActivities[a.activity_id]).map(a => ({
+        activity_id: a.activity_id, activity_name: a.activity_name, unit: a.unit, ssr_no: a.ssr_no,
+        sanctioned_rate: rates[a.activity_id] || 0, sanctioned_qty: quantities[a.activity_id] || a.suggested_qty,
+      })),
+    ]
+    if (allItems.length === 0) { alert('Select at least one activity'); return }
     try {
       await api.post('/works', { apo_id: apoId, plantation_id: selectedPlt, name: workName, items })
       setShowAddWork(false); setSuggestions(null); setSelectedPlt(null); setSelectedActivities({}); setQuantities({}); setWorkName('')
