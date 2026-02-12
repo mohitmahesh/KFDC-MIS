@@ -192,13 +192,29 @@ test_plan:
     - "Budget enforcement"
     - "Plantation new fields"
   stuck_tasks: []
-  test_all: true
+  test_all: false
+  current_focus:
+    - "Add Custom Activity to Work"
 
 agent_communication:
   - agent: "main"
     message: "MAJOR RESTRUCTURE: APO system now uses Activity→Works→APO hierarchy. Key changes: 1) POST /api/seed seeds new structure with 'works' collection. 2) POST /api/apo creates DRAFT header only (no items). 3) POST /api/works creates a Work inside a DRAFT APO (select plantation+activities). 4) POST /api/works/suggest-activities returns norms for a plantation. 5) DELETE /api/works/:id removes from draft. 6) APO detail GET /api/apo/:id returns works array. 7) work_logs now use work_item_id + work_id. Test flow: Seed → Login RO → Create APO → Add Work (suggest activities for plt-d02) → Add another Work → Submit → Login DM → Approve → Login RO → Log work. Users: ro.dharwad@kfdc.in, dm.dharwad@kfdc.in, admin@kfdc.in (all pass123)."
   - agent: "testing"
     message: "🎉 KFDC iFMS v2 WORKS EDITION - ALL CORE FEATURES WORKING! Comprehensive testing of NEW RESTRUCTURED system completed: 1) ✅ v2 Works edition seeding confirmed - 'works' collection replaces old apo_items. 2) ✅ Authentication with ro.dharwad@kfdc.in and dm.dharwad@kfdc.in working. 3) ✅ Complete Draft & Append workflow - APO header created as DRAFT (₹0), works added incrementally with automatic total recalculation. 4) ✅ Activity suggestions working (9-year Casuarina plantation gets 2 fire maintenance activities). 5) ✅ Submit/Approve workflow - RO submits, DM approves, status transitions correct. 6) ✅ Budget enforcement via Works - properly blocks overbudget expenditure with detailed error messages. 7) ✅ Work deletion from DRAFT APOs working, blocked from non-DRAFT. 8) ✅ Plantation new fields (vidhana_sabha, lok_sabha, lat/long) creation and updates working. NEW Activity → Works → APO hierarchy fully functional!"
+  - agent: "main"
+    message: "NEW FEATURE - Add Custom Activity to Work: Implemented ability to add ANY activity from the Rate Card to a Work, not just suggested ones. Changes: 1) Fixed bug in handleAddWork - was using 'items' instead of 'allItems'. 2) Added 'Custom Activities' section in Add Work dialog with its own table (blue themed). 3) Added 'Add Activity' button that opens a searchable activity picker. 4) Custom activities allow manual rate entry (since they don't have norms for the plantation age). 5) Total cost calculation updated to include both suggested and custom activities. Test: Login as RO, create/open Draft APO, click Add Work, select plantation, click 'Add Activity' to see picker, select any activity, enter rate and qty. Backend endpoint POST /api/works already handles custom activities correctly."
+
+  - task: "Add Custom Activity to Work"
+    implemented: true
+    working: "NA"
+    file: "app/app/page.js"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: true
+    status_history:
+      - working: "NA"
+        agent: "main"
+        comment: "Implemented custom activity feature. Frontend: Added customItems state, addCustomActivity function, activity picker modal with search, custom activities table in Add Work dialog, and updated total cost calculation. Backend: Fixed bug in handleAddWork (items -> allItems). Custom activities can have manual rates since they don't match norms for the plantation age."
 
   - task: "Authentication (Login/Logout/Me)"
     implemented: true
