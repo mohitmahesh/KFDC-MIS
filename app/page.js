@@ -238,7 +238,12 @@ function PlantationsView({ user, setView, setSelectedPlantation }) {
               <div className="space-y-4">
                 <div className="grid grid-cols-2 gap-4">
                   <div><Label>Plantation Name *</Label><Input value={form.name} onChange={e => setForm(f => ({ ...f, name: e.target.value }))} placeholder="e.g., Varavanagalavi" /></div>
-                  <div><Label>Species *</Label><Input value={form.species} onChange={e => setForm(f => ({ ...f, species: e.target.value }))} placeholder="e.g., Acacia Auriculiformis" /></div>
+                  <div><Label>Species *</Label>
+                    <Select value={form.species} onValueChange={v => setForm(f => ({ ...f, species: v }))}>
+                      <SelectTrigger><SelectValue placeholder="Select species" /></SelectTrigger>
+                      <SelectContent>{speciesList.map(s => <SelectItem key={s.id} value={s.name}>{s.name}</SelectItem>)}</SelectContent>
+                    </Select>
+                  </div>
                 </div>
                 <div className="grid grid-cols-3 gap-4">
                   <div><Label>Year of Planting</Label><Input type="number" value={form.year_of_planting} onChange={e => setForm(f => ({ ...f, year_of_planting: e.target.value }))} /></div>
@@ -252,8 +257,18 @@ function PlantationsView({ user, setView, setSelectedPlantation }) {
                 <Separator />
                 <p className="text-sm font-medium text-muted-foreground">Political & Geographical Data</p>
                 <div className="grid grid-cols-2 gap-4">
-                  <div><Label>Vidhana Sabha Constituency</Label><Input value={form.vidhana_sabha} onChange={e => setForm(f => ({ ...f, vidhana_sabha: e.target.value }))} /></div>
-                  <div><Label>Lok Sabha Constituency</Label><Input value={form.lok_sabha} onChange={e => setForm(f => ({ ...f, lok_sabha: e.target.value }))} /></div>
+                  <div><Label>Vidhana Sabha Constituency</Label>
+                    <Select value={form.vidhana_sabha} onValueChange={v => setForm(f => ({ ...f, vidhana_sabha: v }))}>
+                      <SelectTrigger><SelectValue placeholder="Select constituency" /></SelectTrigger>
+                      <SelectContent>{(userDivision?.vidhana_sabha_list || []).map(c => <SelectItem key={c} value={c}>{c}</SelectItem>)}</SelectContent>
+                    </Select>
+                  </div>
+                  <div><Label>Lok Sabha Constituency</Label>
+                    <Select value={form.lok_sabha} onValueChange={v => setForm(f => ({ ...f, lok_sabha: v }))}>
+                      <SelectTrigger><SelectValue placeholder="Select constituency" /></SelectTrigger>
+                      <SelectContent>{(userDivision?.lok_sabha_list || []).map(c => <SelectItem key={c} value={c}>{c}</SelectItem>)}</SelectContent>
+                    </Select>
+                  </div>
                 </div>
                 <div className="grid grid-cols-2 gap-4">
                   <div><Label>Latitude</Label><Input type="number" step="0.0001" value={form.latitude} onChange={e => setForm(f => ({ ...f, latitude: e.target.value }))} placeholder="e.g., 15.4589" /></div>
