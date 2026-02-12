@@ -9,7 +9,7 @@ import json
 import sys
 from datetime import datetime
 
-BASE_URL = "https://forest-apo-hub.preview.emergentagent.com/api"
+BASE_URL = "https://green-erp.preview.emergentagent.com/api"
 
 def log_test(test_name, status, message="", details=None):
     """Log test results"""
