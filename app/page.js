@@ -516,8 +516,8 @@ function ApoDetail({ apoId, user, setView }) {
     ]
     if (allItems.length === 0) { alert('Select at least one activity'); return }
     try {
-      await api.post('/works', { apo_id: apoId, plantation_id: selectedPlt, name: workName, items })
-      setShowAddWork(false); setSuggestions(null); setSelectedPlt(null); setSelectedActivities({}); setQuantities({}); setWorkName('')
+      await api.post('/works', { apo_id: apoId, plantation_id: selectedPlt, name: workName, items: allItems })
+      setShowAddWork(false); setSuggestions(null); setSelectedPlt(null); setSelectedActivities({}); setQuantities({}); setRates({}); setWorkName(''); setCustomItems([])
       load()
     } catch (e) { alert(e.message) }
   }
