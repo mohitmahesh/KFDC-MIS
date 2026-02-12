@@ -124,11 +124,14 @@ backend:
     file: "app/api/[[...path]]/route.js"
     stuck_count: 0
     priority: "high"
-    needs_retesting: true
+    needs_retesting: false
     status_history:
       - working: true
         agent: "main"
         comment: "POST /api/works (create work in draft APO), GET /api/works?apo_id=x, DELETE /api/works/:id (only from draft APO), POST /api/works/suggest-activities (norms-based suggestions)"
+      - working: true
+        agent: "testing"
+        comment: "✅ TESTED: All Works CRUD operations working. POST /works creates work in DRAFT APO successfully. POST /works/suggest-activities returns 2 activities for 9-year Casuarina plantation. DELETE /works/:id successfully removes work from DRAFT APO. Non-DRAFT work addition correctly blocked with 400 error."
 
   - task: "APO Draft & Append Workflow"
     implemented: true
