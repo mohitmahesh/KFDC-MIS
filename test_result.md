@@ -154,11 +154,14 @@ backend:
     file: "app/api/[[...path]]/route.js"
     stuck_count: 0
     priority: "high"
-    needs_retesting: true
+    needs_retesting: false
     status_history:
       - working: true
         agent: "main"
         comment: "Added vidhana_sabha, lok_sabha, latitude, longitude fields. PUT /api/plantations/:id for editing."
+      - working: true
+        agent: "testing"
+        comment: "✅ TESTED: All new plantation fields working. POST /plantations creates plantation with vidhana_sabha, lok_sabha, latitude, longitude fields. PUT /plantations/:id successfully updates all new fields. Field validation and persistence working correctly."
 
   - task: "Budget enforcement via Works"
     implemented: true
