@@ -175,7 +175,7 @@ async function handleRoute(request, { params }) {
 
     // =================== SEED ===================
     if (route === '/seed' && method === 'POST') {
-      const collections = ['users', 'divisions', 'ranges', 'activity_master', 'norms_config', 'plantations', 'apo_headers', 'works', 'work_logs', 'sessions']
+      const collections = ['users', 'divisions', 'ranges', 'activity_master', 'norms_config', 'plantations', 'apo_headers', 'works', 'work_logs', 'sessions', 'species_master']
       for (const col of collections) {
         try { await db.collection(col).drop() } catch (e) { /* ignore */ }
       }
