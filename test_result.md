@@ -139,11 +139,14 @@ backend:
     file: "app/api/[[...path]]/route.js"
     stuck_count: 0
     priority: "high"
-    needs_retesting: true
+    needs_retesting: false
     status_history:
       - working: true
         agent: "main"
         comment: "POST /api/apo creates header-only DRAFT. Works added/removed over time. PATCH /api/apo/:id/status submits. Recalculates total on submit."
+      - working: true
+        agent: "testing"
+        comment: "✅ TESTED: Complete Draft & Append workflow working. APO created as DRAFT header (₹0). First work added, total recalculated (₹54,558.6). Second work appended, total updated (₹80,605.15). Submit to PENDING_APPROVAL and DM approval to SANCTIONED working correctly."
 
   - task: "Plantation with new fields"
     implemented: true
