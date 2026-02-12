@@ -182,6 +182,23 @@ async function handleRoute(request, { params }) {
 
       await db.collection('divisions').insertMany(SEED_DATA.divisions)
       await db.collection('ranges').insertMany(SEED_DATA.ranges)
+      
+      // Species Master
+      const speciesMaster = [
+        { id: 'sp-euc-pellita', name: 'Eucalyptus pellita' },
+        { id: 'sp-eucalyptus', name: 'Eucalyptus' },
+        { id: 'sp-acacia-spring', name: 'Acacia springvale' },
+        { id: 'sp-acacia-auri', name: 'Acacia auriculiformis' },
+        { id: 'sp-acacia-citri', name: 'Acacia citriodora' },
+        { id: 'sp-corymbia', name: 'Corymbia' },
+        { id: 'sp-casurina', name: 'Casurina junguniana' },
+        { id: 'sp-subabool', name: 'Subabool' },
+        { id: 'sp-marihal-bamboo', name: 'Marihal Bamboo' },
+        { id: 'sp-dowga-bamboo', name: 'Dowga Bamboo' },
+        { id: 'sp-red-sanders', name: 'Red sanders' },
+        { id: 'sp-teak', name: 'Teak' },
+      ]
+      await db.collection('species_master').insertMany(speciesMaster)
       await db.collection('users').insertMany(SEED_DATA.users)
       await db.collection('activity_master').insertMany(SEED_DATA.activities)
       await db.collection('norms_config').insertMany(SEED_DATA.norms)
