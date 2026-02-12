@@ -276,6 +276,10 @@ async function handleRoute(request, { params }) {
       const divisions = await db.collection('divisions').find({}).toArray()
       return handleCORS(NextResponse.json(divisions.map(({ _id, ...d }) => d)))
     }
+    if (route === '/species' && method === 'GET') {
+      const species = await db.collection('species_master').find({}).toArray()
+      return handleCORS(NextResponse.json(species.map(({ _id, ...s }) => s)))
+    }
     if (route === '/ranges' && method === 'GET') {
       const url = new URL(request.url)
       const divisionId = url.searchParams.get('division_id')
