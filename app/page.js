@@ -647,7 +647,7 @@ function ApoDetail({ apoId, user, setView }) {
               </div>
               <div><Label>Work Name</Label><Input value={workName} onChange={e => setWorkName(e.target.value)} /></div>
               <div>
-                <Label className="mb-2 block">Select Activities <span className="text-amber-600 text-xs">(Rates are locked from SSR)</span></Label>
+                <Label className="mb-2 block">Suggested Activities <span className="text-amber-600 text-xs">(Based on plantation age, rates locked from SSR)</span></Label>
                 <div className="rounded-lg border overflow-hidden">
                   <Table>
                     <TableHeader><TableRow className="bg-muted/50">
@@ -655,27 +655,123 @@ function ApoDetail({ apoId, user, setView }) {
                       <TableHead className="text-right">Rate (₹)</TableHead><TableHead className="text-right w-24">Qty</TableHead>
                       <TableHead className="text-right">Cost (₹)</TableHead>
                     </TableRow></TableHeader>
-                    <TableBody>{suggestions.suggested_activities?.map(a => (
-                      <TableRow key={a.activity_id} className={selectedActivities[a.activity_id] ? 'bg-emerald-50/50' : 'opacity-60'}>
-                        <TableCell><Checkbox checked={!!selectedActivities[a.activity_id]} onCheckedChange={(v) => setSelectedActivities(p => ({ ...p, [a.activity_id]: v }))} /></TableCell>
-                        <TableCell className="font-medium text-sm">{a.activity_name}</TableCell>
-                        <TableCell className="text-xs font-mono">{a.ssr_no}</TableCell>
-                        <TableCell className="text-right"><span className="bg-gray-100 text-gray-600 px-2 py-1 rounded text-sm font-mono">{a.sanctioned_rate?.toLocaleString('en-IN')}</span></TableCell>
-                        <TableCell className="text-right"><Input type="number" step="0.1" className="w-20 text-right" value={quantities[a.activity_id] || ''} onChange={e => setQuantities(p => ({ ...p, [a.activity_id]: parseFloat(e.target.value) || 0 }))} disabled={!selectedActivities[a.activity_id]} /></TableCell>
-                        <TableCell className="text-right font-semibold">{selectedActivities[a.activity_id] ? formatCurrency((quantities[a.activity_id] || 0) * a.sanctioned_rate) : '-'}</TableCell>
-                      </TableRow>
-                    ))}</TableBody>
+                    <TableBody>
+                      {suggestions.suggested_activities?.map(a => (
+                        <TableRow key={a.activity_id} className={selectedActivities[a.activity_id] ? 'bg-emerald-50/50' : 'opacity-60'}>
+                          <TableCell><Checkbox checked={!!selectedActivities[a.activity_id]} onCheckedChange={(v) => setSelectedActivities(p => ({ ...p, [a.activity_id]: v }))} /></TableCell>
+                          <TableCell className="font-medium text-sm">{a.activity_name}</TableCell>
+                          <TableCell className="text-xs font-mono">{a.ssr_no}</TableCell>
+                          <TableCell className="text-right"><span className="bg-gray-100 text-gray-600 px-2 py-1 rounded text-sm font-mono">{a.sanctioned_rate?.toLocaleString('en-IN')}</span></TableCell>
+                          <TableCell className="text-right"><Input type="number" step="0.1" className="w-20 text-right" value={quantities[a.activity_id] || ''} onChange={e => setQuantities(p => ({ ...p, [a.activity_id]: parseFloat(e.target.value) || 0 }))} disabled={!selectedActivities[a.activity_id]} /></TableCell>
+                          <TableCell className="text-right font-semibold">{selectedActivities[a.activity_id] ? formatCurrency((quantities[a.activity_id] || 0) * a.sanctioned_rate) : '-'}</TableCell>
+                        </TableRow>
+                      ))}
+                      {(!suggestions.suggested_activities || suggestions.suggested_activities.length === 0) && (
+                        <TableRow><TableCell colSpan={6} className="text-center text-muted-foreground py-4">No suggested activities for this plantation age. Add custom activities below.</TableCell></TableRow>
+                      )}
+                    </TableBody>
                   </Table>
                 </div>
-                <div className="flex justify-end mt-3 p-3 bg-emerald-50 rounded-lg border border-emerald-200">
-                  <div className="text-right"><p className="text-sm text-muted-foreground">Selected Cost</p>
-                    <p className="text-xl font-bold text-emerald-800">{formatCurrency(suggestions.suggested_activities?.filter(a => selectedActivities[a.activity_id]).reduce((s, a) => s + (quantities[a.activity_id] || 0) * a.sanctioned_rate, 0))}</p>
+              </div>
+
+              {/* Custom Activities Section */}
+              <div>
+                <div className="flex items-center justify-between mb-2">
+                  <Label className="block">Custom Activities <span className="text-blue-600 text-xs">(Add any activity from the Rate Card)</span></Label>
+                  <Button variant="outline" size="sm" onClick={() => setShowActivityPicker(true)} className="gap-1"><Plus className="w-3 h-3" />Add Activity</Button>
+                </div>
+                {customItems.length > 0 && (
+                  <div className="rounded-lg border overflow-hidden border-blue-200">
+                    <Table>
+                      <TableHeader><TableRow className="bg-blue-50/50">
+                        <TableHead className="w-10"></TableHead><TableHead>Activity</TableHead><TableHead>SSR</TableHead>
+                        <TableHead className="text-right">Rate (₹)</TableHead><TableHead className="text-right w-24">Qty</TableHead>
+                        <TableHead className="text-right">Cost (₹)</TableHead><TableHead className="w-10"></TableHead>
+                      </TableRow></TableHeader>
+                      <TableBody>
+                        {customItems.map(a => (
+                          <TableRow key={a.activity_id} className={selectedActivities[a.activity_id] ? 'bg-blue-50/30' : 'opacity-60'}>
+                            <TableCell><Checkbox checked={!!selectedActivities[a.activity_id]} onCheckedChange={(v) => setSelectedActivities(p => ({ ...p, [a.activity_id]: v }))} /></TableCell>
+                            <TableCell className="font-medium text-sm">{a.activity_name}</TableCell>
+                            <TableCell className="text-xs font-mono">{a.ssr_no}</TableCell>
+                            <TableCell className="text-right">
+                              <Input type="number" step="0.01" className="w-24 text-right" placeholder="Rate" value={rates[a.activity_id] || ''} onChange={e => setRates(p => ({ ...p, [a.activity_id]: parseFloat(e.target.value) || 0 }))} disabled={!selectedActivities[a.activity_id]} />
+                            </TableCell>
+                            <TableCell className="text-right"><Input type="number" step="0.1" className="w-20 text-right" value={quantities[a.activity_id] || ''} onChange={e => setQuantities(p => ({ ...p, [a.activity_id]: parseFloat(e.target.value) || 0 }))} disabled={!selectedActivities[a.activity_id]} /></TableCell>
+                            <TableCell className="text-right font-semibold">{selectedActivities[a.activity_id] ? formatCurrency((quantities[a.activity_id] || 0) * (rates[a.activity_id] || 0)) : '-'}</TableCell>
+                            <TableCell><Button variant="ghost" size="sm" className="text-red-500 hover:text-red-700 p-1" onClick={() => removeCustomActivity(a.activity_id)}><Trash2 className="w-3 h-3" /></Button></TableCell>
+                          </TableRow>
+                        ))}
+                      </TableBody>
+                    </Table>
                   </div>
+                )}
+                {customItems.length === 0 && (
+                  <div className="border border-dashed border-blue-200 rounded-lg p-4 text-center text-sm text-muted-foreground">
+                    No custom activities added. Click "Add Activity" to include activities not suggested for this plantation age.
+                  </div>
+                )}
+              </div>
+
+              {/* Total Cost Summary */}
+              <div className="flex justify-end p-3 bg-emerald-50 rounded-lg border border-emerald-200">
+                <div className="text-right">
+                  <p className="text-sm text-muted-foreground">Total Selected Cost</p>
+                  <p className="text-xl font-bold text-emerald-800">{formatCurrency(
+                    (suggestions.suggested_activities?.filter(a => selectedActivities[a.activity_id]).reduce((s, a) => s + (quantities[a.activity_id] || 0) * a.sanctioned_rate, 0) || 0) +
+                    customItems.filter(a => selectedActivities[a.activity_id]).reduce((s, a) => s + (quantities[a.activity_id] || 0) * (rates[a.activity_id] || 0), 0)
+                  )}</p>
                 </div>
               </div>
+
               <div className="flex justify-between">
-                <Button variant="outline" onClick={() => { setSuggestions(null); setSelectedPlt(null) }}>Back</Button>
+                <Button variant="outline" onClick={() => { setSuggestions(null); setSelectedPlt(null); setCustomItems([]) }}>Back</Button>
                 <Button className="bg-emerald-700 hover:bg-emerald-800" onClick={handleAddWork}><Plus className="w-4 h-4 mr-2" />Save Work</Button>
+              </div>
+            </div>
+          )}
+
+          {/* Activity Picker Dialog */}
+          {showActivityPicker && (
+            <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center" onClick={() => setShowActivityPicker(false)}>
+              <div className="bg-white rounded-lg shadow-xl w-full max-w-lg max-h-[70vh] overflow-hidden" onClick={e => e.stopPropagation()}>
+                <div className="p-4 border-b">
+                  <h3 className="font-semibold">Add Activity from Rate Card</h3>
+                  <p className="text-sm text-muted-foreground">Search and select an activity to add</p>
+                  <Input className="mt-2" placeholder="Search activities..." id="activity-search" autoFocus onChange={e => {
+                    const search = e.target.value.toLowerCase()
+                    const items = document.querySelectorAll('.activity-picker-item')
+                    items.forEach(item => {
+                      const text = item.textContent?.toLowerCase() || ''
+                      item.style.display = text.includes(search) ? 'block' : 'none'
+                    })
+                  }} />
+                </div>
+                <div className="overflow-y-auto max-h-[50vh] p-2">
+                  {allActivities.filter(act => 
+                    !suggestions?.suggested_activities?.find(s => s.activity_id === act.id) &&
+                    !customItems.find(c => c.activity_id === act.id)
+                  ).map(act => (
+                    <div key={act.id} className="activity-picker-item p-3 hover:bg-emerald-50 rounded-lg cursor-pointer border border-transparent hover:border-emerald-200 transition-colors" onClick={() => addCustomActivity(act.id)}>
+                      <div className="flex items-center justify-between">
+                        <div>
+                          <p className="font-medium text-sm">{act.name}</p>
+                          <p className="text-xs text-muted-foreground">{act.category} | {act.unit} | SSR: {act.ssr_no || '-'}</p>
+                        </div>
+                        <Plus className="w-4 h-4 text-emerald-600" />
+                      </div>
+                    </div>
+                  ))}
+                  {allActivities.filter(act => 
+                    !suggestions?.suggested_activities?.find(s => s.activity_id === act.id) &&
+                    !customItems.find(c => c.activity_id === act.id)
+                  ).length === 0 && (
+                    <p className="text-center text-muted-foreground py-8">All activities have been added</p>
+                  )}
+                </div>
+                <div className="p-3 border-t bg-gray-50">
+                  <Button variant="outline" className="w-full" onClick={() => setShowActivityPicker(false)}>Cancel</Button>
+                </div>
               </div>
             </div>
           )}
