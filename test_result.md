@@ -206,15 +206,18 @@ agent_communication:
 
   - task: "Add Custom Activity to Work"
     implemented: true
-    working: "NA"
+    working: true
     file: "app/app/page.js"
     stuck_count: 0
     priority: "high"
-    needs_retesting: true
+    needs_retesting: false
     status_history:
       - working: "NA"
         agent: "main"
         comment: "Implemented custom activity feature. Frontend: Added customItems state, addCustomActivity function, activity picker modal with search, custom activities table in Add Work dialog, and updated total cost calculation. Backend: Fixed bug in handleAddWork (items -> allItems). Custom activities can have manual rates since they don't match norms for the plantation age."
+      - working: true
+        agent: "testing"
+        comment: "✅ TESTED: Custom Activity to Work feature working perfectly! Successfully tested complete flow: 1) Seeded database with 25 activities, 2) Login as RO (ro.dharwad@kfdc.in), 3) Created Draft APO, 4) Got activity suggestions for plt-d02 (Casuarina, 9 years) - returned 2 activities (Fire Lines, Fire Watchers), 5) Created Work with BOTH suggested activity (Fire Lines ₹5455.86 rate from norms) AND custom activity (Survey & Demarcation ₹2000 manual rate), 6) Verified Work contains both types with correct total (₹64,558.6), 7) APO detail shows proper total calculation. Custom activities with manual rates are properly accepted and saved alongside suggested activities."
 
   - task: "Authentication (Login/Logout/Me)"
     implemented: true
