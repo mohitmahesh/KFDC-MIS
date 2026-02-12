@@ -169,11 +169,14 @@ backend:
     file: "app/api/[[...path]]/route.js"
     stuck_count: 0
     priority: "high"
-    needs_retesting: true
+    needs_retesting: false
     status_history:
       - working: true
         agent: "main"
         comment: "POST /api/work-logs now uses work_item_id + work_id. Budget check against work item total_cost."
+      - working: true
+        agent: "testing"
+        comment: "✅ TESTED: Budget enforcement working via Works structure. POST /work-logs correctly validates expenditure against work item total_cost. Returns 400 'Budget Exceeded' error with detailed budget information when expenditure exceeds available budget. Manual verification confirmed proper budget checking."
 
 metadata:
   created_by: "main_agent"
