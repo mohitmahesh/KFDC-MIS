@@ -208,10 +208,19 @@ function PlantationsView({ user, setView, setSelectedPlantation }) {
   const [plantations, setPlantations] = useState([])
   const [loading, setLoading] = useState(true)
   const [showCreate, setShowCreate] = useState(false)
+  const [divisions, setDivisions] = useState([])
+  const [speciesList, setSpeciesList] = useState([])
   const [form, setForm] = useState({ name: '', species: '', year_of_planting: 2025, total_area_ha: '', village: '', taluk: '', district: '', vidhana_sabha: '', lok_sabha: '', latitude: '', longitude: '' })
 
   const load = useCallback(() => { setLoading(true); api.get('/plantations').then(setPlantations).catch(console.error).finally(() => setLoading(false)) }, [])
   useEffect(() => { load() }, [load])
+  useEffect(() => {
+    api.get('/divisions').then(setDivisions).catch(console.error)
+    api.get('/species').then(setSpeciesList).catch(console.error)
+  }, [])
+
+  // Find user's division for constituency dropdowns
+  const userDivision = divisions.find(d => d.id === user.division_id)
 
   const handleCreate = async () => {
     try { await api.post('/plantations', form); setShowCreate(false); setForm({ name: '', species: '', year_of_planting: 2025, total_area_ha: '', village: '', taluk: '', district: '', vidhana_sabha: '', lok_sabha: '', latitude: '', longitude: '' }); load() } catch (e) { alert(e.message) }
