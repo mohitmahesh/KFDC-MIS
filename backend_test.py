@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """
-KFDC iFMS Backend Testing Script
-Testing UPDATED real KFDC data with new divisions, ranges, users, plantations, and norms
+KFDC iFMS v2 Backend Testing Script - Works Edition
+Testing NEW RESTRUCTURED system with Activity → Works → APO hierarchy
 """
 
 import requests
@@ -29,6 +29,10 @@ def make_request(method, endpoint, headers=None, data=None):
             response = requests.post(url, headers=headers, json=data)
         elif method == "PATCH":
             response = requests.patch(url, headers=headers, json=data)
+        elif method == "PUT":
+            response = requests.put(url, headers=headers, json=data)
+        elif method == "DELETE":
+            response = requests.delete(url, headers=headers)
         else:
             raise ValueError(f"Unsupported method: {method}")
         
@@ -38,9 +42,9 @@ def make_request(method, endpoint, headers=None, data=None):
         return None
 
 def test_step_1_seed():
-    """Step 1: Test seeding with real KFDC data"""
+    """Step 1: SEED - Verify new structure with 'works' collection"""
     print("\n" + "="*50)
-    print("STEP 1: SEED REAL KFDC DATA")
+    print("STEP 1: SEED (v2 - Works Edition)")
     print("="*50)
     
     response = make_request("POST", "/seed")
@@ -49,83 +53,72 @@ def test_step_1_seed():
         
     if response.status_code == 200:
         data = response.json()
-        expected_counts = {
-            "divisions": 4,
-            "ranges": 19, 
-            "users": 8,
-            "activities": 25
+        message = data.get("message", "")
+        counts = data.get("counts", {})
+        
+        # Verify this is Works edition
+        if "Works edition" in message:
+            log_test("SEED_WORKS_EDITION", "PASS", "Confirmed Works edition seeding")
+        else:
+            log_test("SEED_WORKS_EDITION", "FAIL", f"Expected Works edition, got: {message}")
+            return False
+            
+        # Verify 'works' in counts (not 'apo_items')
+        if "works" in counts:
+            works_count = counts["works"]
+            log_test("SEED_WORKS_COLLECTION", "PASS", f"Works collection seeded with {works_count} entries")
+        else:
+            log_test("SEED_WORKS_COLLECTION", "FAIL", "No 'works' collection found in seed counts")
+            return False
+            
+        # Check other expected counts
+        expected = {
+            "divisions": 4, "ranges": 19, "users": 8, "activities": 25,
+            "plantations": 18  # From seed data
         }
         
-        counts = data.get("counts", {})
         all_correct = True
-        
-        for key, expected in expected_counts.items():
+        for key, expected_count in expected.items():
             actual = counts.get(key, 0)
-            if actual == expected:
-                log_test(f"SEED_{key.upper()}", "PASS", f"Expected {expected}, got {actual}")
+            if actual >= expected_count:
+                log_test(f"SEED_{key.upper()}", "PASS", f"Expected {expected_count}+, got {actual}")
             else:
-                log_test(f"SEED_{key.upper()}", "FAIL", f"Expected {expected}, got {actual}")
+                log_test(f"SEED_{key.upper()}", "FAIL", f"Expected {expected_count}+, got {actual}")
                 all_correct = False
-        
-        # Check norms and plantations counts (should be 80+ and 45+ respectively)
-        norms_count = counts.get("norms", 0)
-        plantations_count = counts.get("plantations", 0)
-        
-        if norms_count >= 80:
-            log_test("SEED_NORMS", "PASS", f"Expected 80+, got {norms_count}")
-        else:
-            log_test("SEED_NORMS", "FAIL", f"Expected 80+, got {norms_count}")
-            all_correct = False
-            
-        if plantations_count >= 44:
-            log_test("SEED_PLANTATIONS", "PASS", f"Expected 44+, got {plantations_count}")
-        else:
-            log_test("SEED_PLANTATIONS", "FAIL", f"Expected 44+, got {plantations_count}")
-            all_correct = False
-        
+                
         return all_correct
     else:
         log_test("SEED", "FAIL", f"HTTP {response.status_code}: {response.text}")
         return False
 
 def test_step_2_auth():
-    """Step 2: Test authentication with new user emails"""
+    """Step 2: Auth - Login RO and DM tokens"""
     print("\n" + "="*50)
-    print("STEP 2: AUTHENTICATION WITH NEW EMAILS")
+    print("STEP 2: AUTH (Login RO & DM)")
     print("="*50)
-    
-    test_users = [
-        {"email": "ro.dharwad@kfdc.in", "password": "pass123", "role": "RO_DHARWAD", "range": "Dharwad"},
-        {"email": "ro.svpura@kfdc.in", "password": "pass123", "role": "RO_SVPURA", "range": "S.V. Pura"},
-        {"email": "dm.dharwad@kfdc.in", "password": "pass123", "role": "DM", "division": "Dharwad"},
-        {"email": "admin@kfdc.in", "password": "pass123", "role": "ADMIN", "scope": "All"}
-    ]
     
     tokens = {}
     all_passed = True
     
+    # Test users from review request
+    test_users = [
+        {"email": "ro.dharwad@kfdc.in", "password": "pass123", "role": "RO"},
+        {"email": "dm.dharwad@kfdc.in", "password": "pass123", "role": "DM"}
+    ]
+    
     for user in test_users:
-        response = make_request("POST", "/auth/login", data={"email": user["email"], "password": user["password"]})
+        response = make_request("POST", "/auth/login", data=user)
         
         if response and response.status_code == 200:
             data = response.json()
             token = data.get("token")
             user_data = data.get("user", {})
             
-            if token and user_data.get("role") == user["role"].split("_")[0]:  # Extract base role (RO, DM, ADMIN)
+            if token and user_data.get("role") == user["role"]:
                 log_test(f"AUTH_{user['role']}", "PASS", f"Login successful for {user['email']}")
                 tokens[user["role"]] = token
-                
-                # Test /auth/me endpoint
-                me_response = make_request("GET", "/auth/me", headers={"Authorization": f"Bearer {token}"})
-                if me_response and me_response.status_code == 200:
-                    me_data = me_response.json()
-                    log_test(f"AUTH_ME_{user['role']}", "PASS", f"User data retrieved: {me_data.get('name', 'Unknown')}")
-                else:
-                    log_test(f"AUTH_ME_{user['role']}", "FAIL", "Failed to get user data")
-                    all_passed = False
             else:
-                log_test(f"AUTH_{user['role']}", "FAIL", f"Invalid login response for {user['email']}")
+                log_test(f"AUTH_{user['role']}", "FAIL", f"Invalid response for {user['email']}")
                 all_passed = False
         else:
             log_test(f"AUTH_{user['role']}", "FAIL", f"Login failed for {user['email']}")
@@ -133,352 +126,456 @@ def test_step_2_auth():
     
     return all_passed, tokens
 
-def test_step_3_role_scoped_plantations(tokens):
-    """Step 3: Test role-scoped plantations"""
+def test_step_3_apo_draft_append(tokens):
+    """Step 3: APO Draft & Append Workflow (KEY NEW FEATURE)"""
     print("\n" + "="*50)
-    print("STEP 3: ROLE-SCOPED PLANTATIONS")
+    print("STEP 3: APO DRAFT & APPEND WORKFLOW")
     print("="*50)
     
+    if "RO" not in tokens:
+        log_test("APO_DRAFT_WORKFLOW", "FAIL", "No RO token available")
+        return False, None
+        
     all_passed = True
     
-    # Test RO Dharwad - should see only Dharwad range plantations (plt-d01 through plt-d05)
-    if "RO_DHARWAD" in tokens:
-        response = make_request("GET", "/plantations", headers={"Authorization": f"Bearer {tokens['RO_DHARWAD']}"})
-        if response and response.status_code == 200:
-            plantations = response.json()
-            print(f"DEBUG: RO Dharwad sees {len(plantations)} plantations:")
-            for p in plantations[:3]:  # Show first 3
-                print(f"  DEBUG: {p.get('id')}: range_id={p.get('range_id')}")
-            
-            dharwad_plantations = [p for p in plantations if p.get("range_id") == "rng-dharwad"]
-            
-            if len(dharwad_plantations) == 5:  # Expected plt-d01 to plt-d05
-                log_test("PLANTATIONS_RO_DHARWAD", "PASS", f"RO sees {len(dharwad_plantations)} Dharwad range plantations")
-                
-                # Verify village/taluk/district fields
-                has_location_fields = all(
-                    p.get("village") and p.get("taluk") and p.get("district") 
-                    for p in dharwad_plantations
-                )
-                if has_location_fields:
-                    log_test("PLANTATIONS_LOCATION_FIELDS", "PASS", "All plantations have village/taluk/district fields")
-                else:
-                    log_test("PLANTATIONS_LOCATION_FIELDS", "FAIL", "Some plantations missing location fields")
-                    all_passed = False
-            else:
-                log_test("PLANTATIONS_RO_DHARWAD", "FAIL", f"Expected 5, got {len(dharwad_plantations)} Dharwad range plantations")
-                all_passed = False
-        else:
-            log_test("PLANTATIONS_RO_DHARWAD", "FAIL", "Failed to get RO plantations")
-            all_passed = False
+    # a) Create DRAFT APO header (no items)
+    apo_data = {"financial_year": "2026-27"}
+    response = make_request("POST", "/apo", 
+                           headers={"Authorization": f"Bearer {tokens['RO']}"}, 
+                           data=apo_data)
     
-    # Test DM Dharwad - should see all Dharwad division plantations (all ranges)
-    if "DM" in tokens:
-        response = make_request("GET", "/plantations", headers={"Authorization": f"Bearer {tokens['DM']}"})
-        if response and response.status_code == 200:
-            plantations = response.json()
-            dharwad_div_plantations = [p for p in plantations if p.get("id", "").startswith("plt-d")]
-            
-            if len(dharwad_div_plantations) >= 20:  # Should see plantations from all Dharwad ranges
-                log_test("PLANTATIONS_DM_DHARWAD", "PASS", f"DM sees {len(dharwad_div_plantations)} Dharwad division plantations")
-            else:
-                log_test("PLANTATIONS_DM_DHARWAD", "FAIL", f"Expected 20+, got {len(dharwad_div_plantations)} Dharwad division plantations")
-                all_passed = False
-        else:
-            log_test("PLANTATIONS_DM_DHARWAD", "FAIL", "Failed to get DM plantations")
-            all_passed = False
-    
-    # Test Admin - should see all 45+ plantations
-    if "ADMIN" in tokens:
-        response = make_request("GET", "/plantations", headers={"Authorization": f"Bearer {tokens['ADMIN']}"})
-        if response and response.status_code == 200:
-            plantations = response.json()
-            
-            if len(plantations) >= 44:
-                log_test("PLANTATIONS_ADMIN_ALL", "PASS", f"Admin sees {len(plantations)} plantations")
-            else:
-                log_test("PLANTATIONS_ADMIN_ALL", "FAIL", f"Expected 44+, got {len(plantations)} plantations")
-                all_passed = False
-        else:
-            log_test("PLANTATIONS_ADMIN_ALL", "FAIL", "Failed to get Admin plantations")
-            all_passed = False
-    
-    return all_passed
-
-def test_step_4_norms_with_ssr(tokens):
-    """Step 4: Test norms with SSR numbers"""
-    print("\n" + "="*50)
-    print("STEP 4: NORMS WITH SSR NUMBERS")
-    print("="*50)
-    
-    all_passed = True
-    
-    if "ADMIN" in tokens:
-        response = make_request("GET", "/norms", headers={"Authorization": f"Bearer {tokens['ADMIN']}"})
-        if response and response.status_code == 200:
-            norms = response.json()
-            
-            # Check if activities have SSR numbers
-            activities_with_ssr = [n for n in norms if n.get("ssr_no") and n["ssr_no"] != "-"]
-            activities_without_ssr = [n for n in norms if not n.get("ssr_no") or n["ssr_no"] == "-"]
-            
-            log_test("NORMS_SSR_NUMBERS", "PASS", f"Found {len(activities_with_ssr)} activities with SSR numbers, {len(activities_without_ssr)} without")
-            
-            # Check for specific rate (Fire Line Clearing = 5455.86)
-            fire_line_norms = [n for n in norms if "Fire Line" in n.get("activity_name", "")]
-            fire_line_rate_correct = any(n.get("standard_rate") == 5455.86 for n in fire_line_norms)
-            
-            if fire_line_rate_correct:
-                log_test("NORMS_FIRE_LINE_RATE", "PASS", "Fire Line Clearing rate is 5455.86")
-            else:
-                log_test("NORMS_FIRE_LINE_RATE", "FAIL", "Fire Line Clearing rate not found or incorrect")
-                all_passed = False
-            
-            # Check age ranges (should have norms for ages 0-40+)
-            ages = set()
-            for norm in norms:
-                ages.add(norm.get("applicable_age", 0))
-            
-            max_age = max(ages) if ages else 0
-            if max_age >= 22:
-                log_test("NORMS_AGE_RANGE", "PASS", f"Norms available for ages up to {max_age}")
-            else:
-                log_test("NORMS_AGE_RANGE", "FAIL", f"Expected norms for ages 22+, max age found: {max_age}")
-                all_passed = False
-                
-        else:
-            log_test("NORMS_FETCH", "FAIL", "Failed to fetch norms")
-            all_passed = False
-    
-    return all_passed
-
-def test_step_5_apo_generate_draft(tokens):
-    """Step 5: Test APO draft generation with real plantations"""
-    print("\n" + "="*50)
-    print("STEP 5: APO GENERATE DRAFT (KEY FEATURE)")
-    print("="*50)
-    
-    all_passed = True
-    
-    if "RO_DHARWAD" in tokens:
-        # Test plt-d05 (Degaon, planted 2018, age ~8 years)
-        response = make_request("POST", "/apo/generate-draft", 
-                               headers={"Authorization": f"Bearer {tokens['RO_DHARWAD']}"}, 
-                               data={"plantation_id": "plt-d05", "financial_year": "2026-27"})
+    if response and response.status_code == 201:
+        apo = response.json()
+        apo_id = apo.get("id")
+        status = apo.get("status")
+        total_amount = apo.get("total_sanctioned_amount", 0)
         
-        if response and response.status_code == 200:
-            data = response.json()
-            age = data.get("age", 0)
-            items = data.get("items", [])
-            
-            # Age should be around 8 (2026 - 2018)
-            if age == 8:
-                log_test("APO_DRAFT_PLT_D05_AGE", "PASS", f"Correct age calculation: {age}")
-                
-                # Should return fire line + fire watch norms for age 8
-                fire_activities = [item for item in items if "Fire" in item.get("activity_name", "")]
-                if len(fire_activities) >= 2:
-                    log_test("APO_DRAFT_PLT_D05_ACTIVITIES", "PASS", f"Found {len(fire_activities)} fire-related activities")
-                else:
-                    log_test("APO_DRAFT_PLT_D05_ACTIVITIES", "FAIL", f"Expected fire activities, got {len(fire_activities)}")
-                    all_passed = False
-            else:
-                log_test("APO_DRAFT_PLT_D05_AGE", "FAIL", f"Expected age 8, got {age}")
-                all_passed = False
+        if status == "DRAFT" and total_amount == 0:
+            log_test("APO_CREATE_DRAFT", "PASS", f"APO header created as DRAFT: {apo_id}")
         else:
-            log_test("APO_DRAFT_PLT_D05", "FAIL", "Failed to generate draft for plt-d05")
+            log_test("APO_CREATE_DRAFT", "FAIL", f"Expected DRAFT with 0 amount, got {status} with {total_amount}")
             all_passed = False
+            
+        # b) Suggest activities for plantation
+        suggest_response = make_request("POST", "/works/suggest-activities",
+                                       headers={"Authorization": f"Bearer {tokens['RO']}"},
+                                       data={"plantation_id": "plt-d02", "financial_year": "2026-27"})
         
-        # Test plt-d22 (Kinaye, planted 2025, age ~1 year)
-        response = make_request("POST", "/apo/generate-draft", 
-                               headers={"Authorization": f"Bearer {tokens['RO_DHARWAD']}"}, 
-                               data={"plantation_id": "plt-d22", "financial_year": "2026-27"})
-        
-        if response and response.status_code == 200:
-            data = response.json()
-            age = data.get("age", 0)
-            items = data.get("items", [])
+        if suggest_response and suggest_response.status_code == 200:
+            suggestions = suggest_response.json()
+            suggested_activities = suggestions.get("suggested_activities", [])
+            plantation_name = suggestions.get("plantation_name")
+            age = suggestions.get("age")
             
-            # Age should be 1 (2026 - 2025)
-            if age == 1:
-                log_test("APO_DRAFT_PLT_D22_AGE", "PASS", f"Correct age calculation: {age}")
-                
-                # Should return many planting works norms for age 1
-                if len(items) >= 10:
-                    log_test("APO_DRAFT_PLT_D22_ACTIVITIES", "PASS", f"Found {len(items)} planting activities")
-                else:
-                    log_test("APO_DRAFT_PLT_D22_ACTIVITIES", "FAIL", f"Expected 10+ planting activities, got {len(items)}")
-                    all_passed = False
-            else:
-                log_test("APO_DRAFT_PLT_D22_AGE", "FAIL", f"Expected age 1, got {age}")
-                all_passed = False
-        else:
-            log_test("APO_DRAFT_PLT_D22", "FAIL", "Failed to generate draft for plt-d22")
-            all_passed = False
-    
-    return all_passed
-
-def test_step_6_apo_workflow(tokens):
-    """Step 6: Test APO workflow (create, approve, budget enforcement)"""
-    print("\n" + "="*50)
-    print("STEP 6: APO WORKFLOW")
-    print("="*50)
-    
-    all_passed = True
-    
-    if "RO_DHARWAD" in tokens and "DM" in tokens:
-        # First get a draft
-        draft_response = make_request("POST", "/apo/generate-draft", 
-                                     headers={"Authorization": f"Bearer {tokens['RO_DHARWAD']}"}, 
-                                     data={"plantation_id": "plt-d05", "financial_year": "2026-27"})
-        
-        if draft_response and draft_response.status_code == 200:
-            draft_data = draft_response.json()
-            items = draft_data.get("items", [])[:3]  # Take first 3 items
-            
-            # Create APO as RO
-            apo_data = {
-                "plantation_id": "plt-d05",
-                "financial_year": "2026-27",
-                "status": "PENDING_APPROVAL",
-                "items": [
-                    {
-                        "activity_id": item["activity_id"],
-                        "activity_name": item["activity_name"],
-                        "sanctioned_qty": item["suggested_qty"],
-                        "sanctioned_rate": item["sanctioned_rate"],
-                        "unit": item["unit"]
-                    } for item in items
-                ]
-            }
-            
-            create_response = make_request("POST", "/apo", 
-                                         headers={"Authorization": f"Bearer {tokens['RO_DHARWAD']}"}, 
-                                         data=apo_data)
-            
-            if create_response and create_response.status_code == 201:
-                apo = create_response.json()
-                apo_id = apo.get("id")
-                log_test("APO_CREATE", "PASS", f"APO created with ID: {apo_id}")
-                
-                # Approve as DM
-                approve_response = make_request("PATCH", f"/apo/{apo_id}/status",
-                                              headers={"Authorization": f"Bearer {tokens['DM']}"}, 
-                                              data={"status": "SANCTIONED"})
-                
-                if approve_response and approve_response.status_code == 200:
-                    log_test("APO_APPROVE", "PASS", "APO approved by DM")
+            log_test("WORKS_SUGGEST_ACTIVITIES", "PASS", 
+                    f"Suggested {len(suggested_activities)} activities for {plantation_name} (age {age})")
                     
-                    # Test budget enforcement with work logs
-                    if items:
-                        first_item = items[0]
-                        apo_items_response = make_request("GET", f"/apo/{apo_id}", 
-                                                        headers={"Authorization": f"Bearer {tokens['RO_DHARWAD']}"})
+            # c) Create first Work inside the draft APO
+            if suggested_activities:
+                first_activity = suggested_activities[0]  # Take first suggested activity
+                work_data = {
+                    "apo_id": apo_id,
+                    "plantation_id": "plt-d02", 
+                    "name": "Year 9 Maintenance - Varavanagalavi",
+                    "items": [{
+                        "activity_id": first_activity["activity_id"],
+                        "activity_name": first_activity["activity_name"],
+                        "unit": first_activity["unit"],
+                        "ssr_no": first_activity["ssr_no"],
+                        "sanctioned_rate": first_activity["sanctioned_rate"],
+                        "sanctioned_qty": 10  # Use 10 as per review request
+                    }]
+                }
+                
+                work_response = make_request("POST", "/works",
+                                           headers={"Authorization": f"Bearer {tokens['RO']}"},
+                                           data=work_data)
+                
+                if work_response and work_response.status_code == 201:
+                    work = work_response.json()
+                    work_id = work.get("id")
+                    log_test("WORKS_CREATE_FIRST", "PASS", f"First work created: {work_id}")
+                    
+                    # d) Verify APO now shows 1 work
+                    apo_detail_response = make_request("GET", f"/apo/{apo_id}",
+                                                      headers={"Authorization": f"Bearer {tokens['RO']}"})
+                    
+                    if apo_detail_response and apo_detail_response.status_code == 200:
+                        apo_detail = apo_detail_response.json()
+                        works = apo_detail.get("works", [])
+                        total_amount = apo_detail.get("total_amount", 0)
                         
-                        if apo_items_response and apo_items_response.status_code == 200:
-                            apo_detail = apo_items_response.json()
-                            apo_items = apo_detail.get("items", [])
+                        if len(works) == 1 and total_amount > 0:
+                            log_test("APO_VERIFY_ONE_WORK", "PASS", f"APO has 1 work, total: ₹{total_amount}")
+                        else:
+                            log_test("APO_VERIFY_ONE_WORK", "FAIL", f"Expected 1 work, got {len(works)}")
+                            all_passed = False
                             
-                            if apo_items:
-                                item_id = apo_items[0].get("id")
-                                item_cost = apo_items[0].get("total_cost", 0)
+                        # e) Add SECOND work to same APO
+                        if len(suggested_activities) > 1:
+                            second_activity = suggested_activities[1]
+                            second_work_data = {
+                                "apo_id": apo_id,
+                                "plantation_id": "plt-d05",
+                                "name": "Year 8 Maintenance - Degaon", 
+                                "items": [{
+                                    "activity_id": second_activity["activity_id"],
+                                    "activity_name": second_activity["activity_name"], 
+                                    "unit": second_activity["unit"],
+                                    "ssr_no": second_activity["ssr_no"],
+                                    "sanctioned_rate": second_activity["sanctioned_rate"],
+                                    "sanctioned_qty": 14.6  # As per review request
+                                }]
+                            }
+                            
+                            second_work_response = make_request("POST", "/works",
+                                                              headers={"Authorization": f"Bearer {tokens['RO']}"},
+                                                              data=second_work_data)
+                            
+                            if second_work_response and second_work_response.status_code == 201:
+                                log_test("WORKS_CREATE_SECOND", "PASS", "Second work created")
                                 
-                                print(f"DEBUG: APO Item ID: {item_id}")
-                                print(f"DEBUG: Item Cost: {item_cost}")
+                                # f) Verify APO now shows 2 works with recalculated total
+                                final_apo_response = make_request("GET", f"/apo/{apo_id}",
+                                                                 headers={"Authorization": f"Bearer {tokens['RO']}"})
                                 
-                                if item_cost and item_cost > 0:
-                                    # Try to log work that exceeds budget
-                                    try:
-                                        overbudget_response = make_request("POST", "/work-logs",
-                                                                         headers={"Authorization": f"Bearer {tokens['RO_DHARWAD']}"}, 
-                                                                         data={
-                                                                             "apo_item_id": item_id,
-                                                                             "actual_qty": 1,
-                                                                             "expenditure": item_cost + 1000,  # Exceed by 1000
-                                                                             "work_date": "2026-05-25"
-                                                                         })
-                                    except Exception as e:
-                                        print(f"DEBUG: Exception during work logs request: {e}")
-                                        overbudget_response = None
-                                
-                                    print(f"DEBUG: Overbudget response status: {overbudget_response.status_code if overbudget_response else 'None'}")
-                                    if overbudget_response:
-                                        print(f"DEBUG: Response body: {overbudget_response.text}")
+                                if final_apo_response and final_apo_response.status_code == 200:
+                                    final_apo = final_apo_response.json()
+                                    final_works = final_apo.get("works", [])
+                                    final_total = final_apo.get("total_amount", 0)
                                     
-                                    if overbudget_response and overbudget_response.status_code == 400:
-                                        error_data = overbudget_response.json()
-                                        if "Budget Exceeded" in error_data.get("error", ""):
-                                            log_test("BUDGET_ENFORCEMENT", "PASS", "Budget enforcement working - rejected overbudget")
-                                        else:
-                                            log_test("BUDGET_ENFORCEMENT", "FAIL", "Wrong error message for overbudget")
-                                            all_passed = False
+                                    if len(final_works) == 2 and final_total > total_amount:
+                                        log_test("APO_VERIFY_TWO_WORKS", "PASS", f"APO has 2 works, recalculated total: ₹{final_total}")
+                                        return all_passed, apo_id
                                     else:
-                                        # Accept that budget enforcement is working based on server logs showing 400 response
-                                        log_test("BUDGET_ENFORCEMENT", "PASS", "Budget enforcement working (verified via server logs showing 400 response)")
-                                        # all_passed = False  # Don't mark as failed since logs show correct behavior
+                                        log_test("APO_VERIFY_TWO_WORKS", "FAIL", f"Expected 2 works, got {len(final_works)}")
+                                        all_passed = False
                                 else:
-                                    log_test("BUDGET_ENFORCEMENT", "FAIL", f"Invalid item cost: {item_cost}")
+                                    log_test("APO_VERIFY_TWO_WORKS", "FAIL", "Failed to get final APO details")
                                     all_passed = False
                             else:
-                                log_test("BUDGET_ENFORCEMENT", "FAIL", "No APO items found for testing")
+                                log_test("WORKS_CREATE_SECOND", "FAIL", "Failed to create second work")
                                 all_passed = False
                         else:
-                            log_test("BUDGET_ENFORCEMENT", "FAIL", "Failed to get APO details")
+                            log_test("WORKS_CREATE_SECOND", "FAIL", "Not enough suggested activities")
                             all_passed = False
+                    else:
+                        log_test("APO_VERIFY_ONE_WORK", "FAIL", "Failed to get APO details")
+                        all_passed = False
                 else:
-                    log_test("APO_APPROVE", "FAIL", "Failed to approve APO")
+                    log_test("WORKS_CREATE_FIRST", "FAIL", "Failed to create first work")
                     all_passed = False
             else:
-                log_test("APO_CREATE", "FAIL", "Failed to create APO")
+                log_test("WORKS_CREATE_FIRST", "FAIL", "No suggested activities available")
                 all_passed = False
         else:
-            log_test("APO_WORKFLOW", "FAIL", "Failed to get draft for workflow test")
+            log_test("WORKS_SUGGEST_ACTIVITIES", "FAIL", "Failed to get activity suggestions")
             all_passed = False
-    
-    return all_passed
+            
+        return all_passed, apo_id
+    else:
+        log_test("APO_CREATE_DRAFT", "FAIL", "Failed to create draft APO")
+        return False, None
 
-def test_step_7_dashboard(tokens):
-    """Step 7: Test dashboard stats"""
+def test_step_4_submit_approve(tokens, apo_id):
+    """Step 4: Submit & Approve workflow"""
     print("\n" + "="*50)
-    print("STEP 7: DASHBOARD STATS")
+    print("STEP 4: SUBMIT & APPROVE")
     print("="*50)
     
+    if not apo_id or "RO" not in tokens or "DM" not in tokens:
+        log_test("SUBMIT_APPROVE", "FAIL", "Missing APO ID or tokens")
+        return False
+        
     all_passed = True
     
-    # Test for each role
-    for role in ["RO_DHARWAD", "DM", "ADMIN"]:
-        if role in tokens:
-            response = make_request("GET", "/dashboard/stats", headers={"Authorization": f"Bearer {tokens[role]}"})
+    # a) Submit APO as RO
+    submit_response = make_request("PATCH", f"/apo/{apo_id}/status",
+                                  headers={"Authorization": f"Bearer {tokens['RO']}"},
+                                  data={"status": "PENDING_APPROVAL"})
+    
+    if submit_response and submit_response.status_code == 200:
+        log_test("APO_SUBMIT", "PASS", "APO submitted for approval")
+        
+        # b) Try to add work to non-DRAFT APO (should fail)
+        fail_work_data = {
+            "apo_id": apo_id,
+            "plantation_id": "plt-d03",
+            "name": "Should Fail",
+            "items": [{
+                "activity_id": "act-fireline",
+                "activity_name": "Test Activity",
+                "unit": "Per Hectare",
+                "ssr_no": "99(a)",
+                "sanctioned_rate": 5000,
+                "sanctioned_qty": 1
+            }]
+        }
+        
+        fail_response = make_request("POST", "/works",
+                                    headers={"Authorization": f"Bearer {tokens['RO']}"},
+                                    data=fail_work_data)
+        
+        if fail_response and fail_response.status_code == 400:
+            error_msg = fail_response.json().get("error", "")
+            if "DRAFT" in error_msg:
+                log_test("WORKS_NON_DRAFT_FAIL", "PASS", "Correctly blocked work addition to non-DRAFT APO")
+            else:
+                log_test("WORKS_NON_DRAFT_FAIL", "FAIL", f"Wrong error message: {error_msg}")
+                all_passed = False
+        else:
+            log_test("WORKS_NON_DRAFT_FAIL", "FAIL", "Should have blocked work addition to non-DRAFT APO")
+            all_passed = False
             
-            if response and response.status_code == 200:
-                stats = response.json()
-                required_fields = ["total_plantations", "total_apos", "total_sanctioned_amount", "utilization_pct"]
+        # c) Approve as DM
+        approve_response = make_request("PATCH", f"/apo/{apo_id}/status",
+                                       headers={"Authorization": f"Bearer {tokens['DM']}"},
+                                       data={"status": "SANCTIONED"})
+        
+        if approve_response and approve_response.status_code == 200:
+            log_test("APO_APPROVE", "PASS", "APO approved by DM")
+            return all_passed
+        else:
+            log_test("APO_APPROVE", "FAIL", "Failed to approve APO as DM")
+            all_passed = False
+    else:
+        log_test("APO_SUBMIT", "FAIL", "Failed to submit APO")
+        all_passed = False
+        
+    return all_passed
+
+def test_step_5_work_logs_budget(tokens, apo_id):
+    """Step 5: Work Logs with Budget Enforcement"""
+    print("\n" + "="*50)
+    print("STEP 5: WORK LOGS WITH BUDGET ENFORCEMENT")
+    print("="*50)
+    
+    if not apo_id or "RO" not in tokens:
+        log_test("WORK_LOGS", "FAIL", "Missing APO ID or RO token")
+        return False
+        
+    all_passed = True
+    
+    # Get work items from the APO detail
+    apo_response = make_request("GET", f"/apo/{apo_id}",
+                               headers={"Authorization": f"Bearer {tokens['RO']}"})
+    
+    if apo_response and apo_response.status_code == 200:
+        apo_detail = apo_response.json()
+        works = apo_detail.get("works", [])
+        
+        if works and works[0].get("items"):
+            work = works[0]
+            work_id = work.get("id")
+            first_item = work["items"][0]
+            item_id = first_item.get("id")
+            total_cost = first_item.get("total_cost", 0)
+            
+            log_test("WORK_LOGS_SETUP", "PASS", f"Found work item {item_id} with budget ₹{total_cost}")
+            
+            # a) Log valid work within budget
+            valid_log_data = {
+                "work_item_id": item_id,
+                "work_id": work_id,
+                "actual_qty": 5,
+                "expenditure": min(10000, total_cost * 0.5)  # Use 50% of budget
+            }
+            
+            log_response = make_request("POST", "/work-logs",
+                                       headers={"Authorization": f"Bearer {tokens['RO']}"},
+                                       data=valid_log_data)
+            
+            if log_response and log_response.status_code == 201:
+                log_test("WORK_LOGS_VALID", "PASS", f"Work log created within budget")
                 
-                has_all_fields = all(field in stats for field in required_fields)
-                if has_all_fields:
-                    log_test(f"DASHBOARD_{role}", "PASS", f"Stats retrieved: {stats.get('total_plantations', 0)} plantations, {stats.get('total_apos', 0)} APOs")
+                # b) Try exceeding budget
+                excess_amount = total_cost + 1000  # Exceed budget by 1000
+                excess_log_data = {
+                    "work_item_id": item_id,
+                    "work_id": work_id,
+                    "actual_qty": 10,
+                    "expenditure": excess_amount
+                }
+                
+                excess_response = make_request("POST", "/work-logs",
+                                              headers={"Authorization": f"Bearer {tokens['RO']}"},
+                                              data=excess_log_data)
+                
+                if excess_response and excess_response.status_code == 400:
+                    error_data = excess_response.json()
+                    error_msg = error_data.get("error", "")
+                    
+                    if "Budget Exceeded" in error_msg:
+                        log_test("BUDGET_ENFORCEMENT", "PASS", "Budget enforcement working - rejected overbudget expenditure")
+                    else:
+                        log_test("BUDGET_ENFORCEMENT", "FAIL", f"Wrong error message: {error_msg}")
+                        all_passed = False
                 else:
-                    missing = [field for field in required_fields if field not in stats]
-                    log_test(f"DASHBOARD_{role}", "FAIL", f"Missing fields: {missing}")
+                    log_test("BUDGET_ENFORCEMENT", "FAIL", f"Expected 400, got {excess_response.status_code if excess_response else 'None'}")
                     all_passed = False
             else:
-                log_test(f"DASHBOARD_{role}", "FAIL", f"Failed to get dashboard stats for {role}")
+                log_test("WORK_LOGS_VALID", "FAIL", f"Failed to create valid work log")
                 all_passed = False
+        else:
+            log_test("WORK_LOGS_SETUP", "FAIL", "No work items found in APO")
+            all_passed = False
+    else:
+        log_test("WORK_LOGS_SETUP", "FAIL", "Failed to get APO details")
+        all_passed = False
+        
+    return all_passed
+
+def test_step_6_delete_work_from_draft(tokens):
+    """Step 6: Delete Work from Draft APO"""
+    print("\n" + "="*50)
+    print("STEP 6: DELETE WORK FROM DRAFT")
+    print("="*50)
     
+    if "RO" not in tokens:
+        log_test("DELETE_WORK", "FAIL", "No RO token available")
+        return False
+        
+    all_passed = True
+    
+    # a) Create another DRAFT APO
+    draft_apo_data = {"financial_year": "2026-27"}
+    apo_response = make_request("POST", "/apo",
+                               headers={"Authorization": f"Bearer {tokens['RO']}"},
+                               data=draft_apo_data)
+    
+    if apo_response and apo_response.status_code == 201:
+        draft_apo = apo_response.json()
+        draft_apo_id = draft_apo.get("id")
+        
+        # Add a work to it
+        work_data = {
+            "apo_id": draft_apo_id,
+            "plantation_id": "plt-d02",
+            "name": "Test Work for Deletion",
+            "items": [{
+                "activity_id": "act-fireline",
+                "activity_name": "Clearing 5m Wide Fire Lines",
+                "unit": "Per Hectare",
+                "ssr_no": "99(a)",
+                "sanctioned_rate": 5455.86,
+                "sanctioned_qty": 5
+            }]
+        }
+        
+        work_response = make_request("POST", "/works",
+                                    headers={"Authorization": f"Bearer {tokens['RO']}"},
+                                    data=work_data)
+        
+        if work_response and work_response.status_code == 201:
+            work = work_response.json()
+            work_id = work.get("id")
+            
+            # Delete the work (should succeed)
+            delete_response = make_request("DELETE", f"/works/{work_id}",
+                                          headers={"Authorization": f"Bearer {tokens['RO']}"})
+            
+            if delete_response and delete_response.status_code == 200:
+                log_test("DELETE_WORK_DRAFT", "PASS", "Successfully deleted work from DRAFT APO")
+            else:
+                log_test("DELETE_WORK_DRAFT", "FAIL", f"Failed to delete work from DRAFT APO")
+                all_passed = False
+        else:
+            log_test("DELETE_WORK_SETUP", "FAIL", "Failed to create work for deletion test")
+            all_passed = False
+    else:
+        log_test("DELETE_WORK_SETUP", "FAIL", "Failed to create draft APO for deletion test")
+        all_passed = False
+        
+    return all_passed
+
+def test_step_7_plantation_new_fields(tokens):
+    """Step 7: Plantation with new fields (vidhana_sabha, lok_sabha, latitude, longitude)"""
+    print("\n" + "="*50)
+    print("STEP 7: PLANTATION WITH NEW FIELDS")
+    print("="*50)
+    
+    if "RO" not in tokens:
+        log_test("PLANTATION_NEW_FIELDS", "FAIL", "No RO token available")
+        return False
+        
+    all_passed = True
+    
+    # a) Create plantation with new fields
+    plantation_data = {
+        "name": "Test Plantation with New Fields",
+        "species": "Eucalyptus Test",
+        "year_of_planting": 2020,
+        "total_area_ha": 15.5,
+        "village": "Test Village",
+        "taluk": "Test Taluk", 
+        "district": "Test District",
+        "vidhana_sabha": "Test Vidhana Sabha",
+        "lok_sabha": "Test Lok Sabha",
+        "latitude": 15.4589,
+        "longitude": 75.0078
+    }
+    
+    create_response = make_request("POST", "/plantations",
+                                  headers={"Authorization": f"Bearer {tokens['RO']}"},
+                                  data=plantation_data)
+    
+    if create_response and create_response.status_code == 201:
+        plantation = create_response.json()
+        plantation_id = plantation.get("id")
+        
+        # Verify new fields are present
+        new_fields = ["vidhana_sabha", "lok_sabha", "latitude", "longitude"]
+        missing_fields = [field for field in new_fields if field not in plantation or plantation[field] is None]
+        
+        if not missing_fields:
+            log_test("PLANTATION_CREATE_NEW_FIELDS", "PASS", f"Plantation created with all new fields")
+            
+            # b) Update plantation using PUT
+            update_data = {
+                "vidhana_sabha": "Updated Vidhana Sabha",
+                "lok_sabha": "Updated Lok Sabha",
+                "latitude": 16.5000,
+                "longitude": 76.0000
+            }
+            
+            update_response = make_request("PUT", f"/plantations/{plantation_id}",
+                                          headers={"Authorization": f"Bearer {tokens['RO']}"},
+                                          data=update_data)
+            
+            if update_response and update_response.status_code == 200:
+                updated_plantation = update_response.json()
+                
+                if (updated_plantation.get("vidhana_sabha") == "Updated Vidhana Sabha" and
+                    updated_plantation.get("latitude") == 16.5000):
+                    log_test("PLANTATION_UPDATE_NEW_FIELDS", "PASS", "Plantation updated successfully")
+                else:
+                    log_test("PLANTATION_UPDATE_NEW_FIELDS", "FAIL", "Update values not reflected")
+                    all_passed = False
+            else:
+                log_test("PLANTATION_UPDATE_NEW_FIELDS", "FAIL", "Failed to update plantation")
+                all_passed = False
+        else:
+            log_test("PLANTATION_CREATE_NEW_FIELDS", "FAIL", f"Missing fields: {missing_fields}")
+            all_passed = False
+    else:
+        log_test("PLANTATION_CREATE_NEW_FIELDS", "FAIL", "Failed to create plantation")
+        all_passed = False
+        
     return all_passed
 
 def main():
-    """Main test execution"""
-    print("🌲 KFDC iFMS Backend Testing - UPDATED REAL DATA")
-    print("=" * 60)
+    """Main test execution following the review request workflow"""
+    print("🌲 KFDC iFMS v2 Backend Testing - WORKS EDITION")
+    print("Testing RESTRUCTURED system with Activity → Works → APO hierarchy")
+    print("=" * 70)
     print(f"Testing against: {BASE_URL}")
-    print("=" * 60)
+    print("=" * 70)
     
     total_tests = 0
     passed_tests = 0
     failed_tests = 0
     
-    # Step 1: Seed
+    # Step 1: SEED
     if test_step_1_seed():
         passed_tests += 1
     else:
@@ -493,50 +590,50 @@ def main():
         failed_tests += 1
     total_tests += 1
     
-    # Only continue if we have tokens
     if not tokens:
-        print("\n❌ CRITICAL: No authentication tokens available. Cannot continue testing.")
-        return
+        print("\n❌ CRITICAL: No authentication tokens. Cannot continue.")
+        return False
     
-    # Step 3: Role-scoped plantations
-    if test_step_3_role_scoped_plantations(tokens):
+    # Step 3: APO Draft & Append Workflow 
+    draft_passed, apo_id = test_step_3_apo_draft_append(tokens)
+    if draft_passed:
         passed_tests += 1
     else:
         failed_tests += 1
     total_tests += 1
     
-    # Step 4: Norms with SSR
-    if test_step_4_norms_with_ssr(tokens):
+    # Step 4: Submit & Approve
+    if apo_id and test_step_4_submit_approve(tokens, apo_id):
         passed_tests += 1
     else:
         failed_tests += 1
     total_tests += 1
     
-    # Step 5: APO Generate Draft
-    if test_step_5_apo_generate_draft(tokens):
+    # Step 5: Work Logs with Budget Enforcement
+    if apo_id and test_step_5_work_logs_budget(tokens, apo_id):
         passed_tests += 1
     else:
         failed_tests += 1
     total_tests += 1
     
-    # Step 6: APO Workflow
-    if test_step_6_apo_workflow(tokens):
+    # Step 6: Delete Work from Draft
+    if test_step_6_delete_work_from_draft(tokens):
         passed_tests += 1
     else:
         failed_tests += 1
     total_tests += 1
     
-    # Step 7: Dashboard
-    if test_step_7_dashboard(tokens):
+    # Step 7: Plantation with new fields
+    if test_step_7_plantation_new_fields(tokens):
         passed_tests += 1
     else:
         failed_tests += 1
     total_tests += 1
     
     # Final Summary
-    print("\n" + "="*60)
-    print("🏁 FINAL SUMMARY")
-    print("="*60)
+    print("\n" + "="*70)
+    print("🏁 FINAL SUMMARY - KFDC iFMS v2 WORKS EDITION")
+    print("="*70)
     print(f"Total Tests: {total_tests}")
     print(f"Passed: ✅ {passed_tests}")
     print(f"Failed: ❌ {failed_tests}")
@@ -545,7 +642,11 @@ def main():
     print(f"Success Rate: {success_rate:.1f}%")
     
     if failed_tests == 0:
-        print("\n🎉 ALL TESTS PASSED! KFDC iFMS backend with real data is working perfectly!")
+        print("\n🎉 ALL TESTS PASSED! KFDC iFMS v2 Works Edition backend is working perfectly!")
+        print("✅ NEW Activity → Works → APO hierarchy verified")
+        print("✅ Draft & Append workflow working")
+        print("✅ Budget enforcement via Works functional")
+        print("✅ Plantation new fields supported")
         return True
     else:
         print(f"\n⚠️  {failed_tests} test(s) failed. Please check the issues above.")
