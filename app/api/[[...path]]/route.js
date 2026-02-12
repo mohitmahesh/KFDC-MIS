@@ -37,10 +37,10 @@ async function getUser(request, db) {
 // ===================== SEED DATA (Real KFDC) =====================
 const SEED_DATA = {
   divisions: [
-    { id: 'div-bangalore', name: 'Bangalore', code: 'BLR' },
-    { id: 'div-dharwad', name: 'Dharwad', code: 'DWD' },
-    { id: 'div-shimoga', name: 'Shivamogga', code: 'SHM' },
-    { id: 'div-chikmagalur', name: 'Chikkamagaluru', code: 'CKM' },
+    { id: 'div-bangalore', name: 'Bengaluru', code: 'BLR', vidhana_sabha_list: ['Malur', 'Kolar', 'Magadi', 'Bengaluru Rural', 'Devanahalli', 'Chikkaballapura', 'Shidlagatta', 'Srinivasapura', 'Mulabagilu'], lok_sabha_list: ['Kolar', 'Bengaluru Rural', 'Chikkaballapura'] },
+    { id: 'div-dharwad', name: 'Dharwad', code: 'DWD', vidhana_sabha_list: ['Dharwad', 'Khanapura', 'Shiggavi', 'Hanagal', 'Sirsi', 'Mundgod', 'Kalagatagi', 'Yellapura', 'Haliyala', 'Belagavi'], lok_sabha_list: ['Uttara Kannada', 'Dharwad', 'Haveri', 'Belagavi'] },
+    { id: 'div-shimoga', name: 'Shivamogga', code: 'SHM', vidhana_sabha_list: ['Shikaripura', 'Sagara', 'Soraba', 'Thirthahalli', 'Shimoga Rural', 'Sirigere'], lok_sabha_list: ['Shivamogga', 'Chikkamagalore'] },
+    { id: 'div-chikmagalur', name: 'Chikkamagaluru', code: 'CKM', vidhana_sabha_list: ['Chikkamagalore', 'Kadur', 'Sringeri', 'Shivamogga', 'Koppa', 'Bhadravathi', 'Sakaleshapura', 'Arasikere', 'Hassan', 'Holenarasipura', 'Chennarayapattana'], lok_sabha_list: ['Hassan', 'Udupi-Chikkamagalore', 'Shivamogga'] },
   ],
   ranges: [
     { id: 'rng-svpura', division_id: 'div-bangalore', name: 'S.V. Pura' },
