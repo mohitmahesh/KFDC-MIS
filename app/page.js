@@ -441,15 +441,22 @@ function ApoDetail({ apoId, user, setView }) {
 
   // Work creation state
   const [plantations, setPlantations] = useState([])
+  const [allActivities, setAllActivities] = useState([])
   const [selectedPlt, setSelectedPlt] = useState(null)
   const [suggestions, setSuggestions] = useState(null)
   const [selectedActivities, setSelectedActivities] = useState({})
   const [quantities, setQuantities] = useState({})
+  const [rates, setRates] = useState({})
   const [workName, setWorkName] = useState('')
+  const [customItems, setCustomItems] = useState([])
+  const [showActivityPicker, setShowActivityPicker] = useState(false)
 
   const load = useCallback(() => { setLoading(true); api.get(`/apo/${apoId}`).then(setApo).catch(console.error).finally(() => setLoading(false)) }, [apoId])
   useEffect(() => { load() }, [load])
-  useEffect(() => { api.get('/plantations').then(setPlantations).catch(console.error) }, [])
+  useEffect(() => {
+    api.get('/plantations').then(setPlantations).catch(console.error)
+    api.get('/activities').then(setAllActivities).catch(console.error)
+  }, [])
 
   const handleStatusChange = async (status) => {
     try { await api.patch(`/apo/${apoId}/status`, { status }); setShowApproval(false); load() } catch (e) { alert(e.message) }
