@@ -193,8 +193,6 @@ test_plan:
     - "Plantation new fields"
   stuck_tasks: []
   test_all: false
-  current_focus:
-    - "Add Custom Activity to Work"
 
 agent_communication:
   - agent: "main"
