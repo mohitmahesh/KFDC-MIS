@@ -43,23 +43,30 @@ const api = {
 }
 
 // ===================== CONSTANTS =====================
+// APO Status Flow: DRAFT → PENDING_DM_APPROVAL → PENDING_HO_APPROVAL → SANCTIONED
 const STATUS_COLORS = {
   DRAFT: 'bg-gray-100 text-gray-700 border-gray-300',
-  PENDING_APPROVAL: 'bg-amber-50 text-amber-700 border-amber-300',
+  PENDING_DM_APPROVAL: 'bg-amber-50 text-amber-700 border-amber-300',
+  PENDING_HO_APPROVAL: 'bg-blue-50 text-blue-700 border-blue-300',
+  PENDING_APPROVAL: 'bg-amber-50 text-amber-700 border-amber-300', // Legacy
   SANCTIONED: 'bg-emerald-50 text-emerald-700 border-emerald-300',
   REJECTED: 'bg-red-50 text-red-700 border-red-300',
 }
 
 const STATUS_LABELS = {
   DRAFT: 'Draft',
-  PENDING_APPROVAL: 'Pending Approval',
+  PENDING_DM_APPROVAL: 'Pending DM Approval',
+  PENDING_HO_APPROVAL: 'Pending HO Approval',
+  PENDING_APPROVAL: 'Pending Approval', // Legacy
   SANCTIONED: 'Sanctioned',
   REJECTED: 'Rejected',
 }
 
 const STATUS_ICONS = {
   DRAFT: <Clock className="w-3.5 h-3.5" />,
-  PENDING_APPROVAL: <AlertTriangle className="w-3.5 h-3.5" />,
+  PENDING_DM_APPROVAL: <AlertTriangle className="w-3.5 h-3.5" />,
+  PENDING_HO_APPROVAL: <Send className="w-3.5 h-3.5" />,
+  PENDING_APPROVAL: <AlertTriangle className="w-3.5 h-3.5" />, // Legacy
   SANCTIONED: <CheckCircle className="w-3.5 h-3.5" />,
   REJECTED: <XCircle className="w-3.5 h-3.5" />,
 }
