@@ -8,8 +8,8 @@ import json
 import sys
 import os
 
-# Base URL from environment
-BASE_URL = os.getenv('NEXT_PUBLIC_BASE_URL', 'https://green-erp.preview.emergentagent.com')
+# Base URL from environment - use localhost for testing to avoid 520 errors
+BASE_URL = 'http://localhost:3001'  # Direct localhost testing
 API_BASE = f"{BASE_URL}/api"
 
 # Global auth token storage
