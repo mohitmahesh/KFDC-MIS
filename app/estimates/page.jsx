@@ -19,7 +19,7 @@ const api = {
         // But for consistency, we try to behave like an authenticated app.
         if (token) headers['Authorization'] = `Bearer ${token}`
 
-        const res = await fetch(`http://localhost:3000${url}`, { ...options, headers })
+        const res = await fetch(`/api${url}`, { ...options, headers })
         const data = await res.json()
         if (!res.ok) throw new Error(data.error || data.message || 'Request failed')
         return data
