@@ -120,6 +120,9 @@ backend:
       - working: true
         agent: "testing"
         comment: "✅ COMPREHENSIVE TESTING COMPLETE: Database seeding working perfectly. Confirmed 8 users including NEW estimate users (ECW: ecw.dharwad@kfdc.in with CASE_WORKER_ESTIMATES role, PS: ps.dharwad@kfdc.in with PLANTATION_SUPERVISOR role), 25 activities, 44 plantations, 4 APOs. All new user roles properly seeded and functional."
+      - working: true
+        agent: "testing"
+        comment: "✅ JURISDICTION-BASED TESTING: Database seeding confirmed working with 8 users, 4 APOs. All NEW estimate users (ECW, PS) properly seeded and authenticated successfully. Ready for jurisdiction-based estimates testing."
 
   - task: "NEW Estimates Feature - Core Functionality"
     implemented: true
