@@ -216,10 +216,23 @@ function Sidebar({ user, currentView, setView, onLogout }) {
     { id: 'apo-list', label: 'APO Management', icon: FileText, roles: ['RO', 'DM', 'ADMIN'] },
     { id: 'apo-wizard', label: 'Create APO', icon: Plus, roles: ['RO'] },
     { id: 'norms', label: 'Standard Rate Card', icon: BookOpen, roles: ['RO', 'DM', 'ADMIN'] },
+    { id: 'estimates', label: 'Estimates', icon: ClipboardList, roles: ['CASE_WORKER_ESTIMATES', 'PLANTATION_SUPERVISOR'] },
   ]
 
-  const roleLabels = { RO: 'Range Officer', DM: 'Division Manager', ADMIN: 'Admin (HO)' }
-  const roleColors = { RO: 'bg-blue-100 text-blue-800', DM: 'bg-purple-100 text-purple-800', ADMIN: 'bg-amber-100 text-amber-800' }
+  const roleLabels = { 
+    RO: 'Range Officer', 
+    DM: 'Division Manager', 
+    ADMIN: 'Admin (HO)',
+    CASE_WORKER_ESTIMATES: 'Estimates Case Worker',
+    PLANTATION_SUPERVISOR: 'Plantation Supervisor'
+  }
+  const roleColors = { 
+    RO: 'bg-blue-100 text-blue-800', 
+    DM: 'bg-purple-100 text-purple-800', 
+    ADMIN: 'bg-amber-100 text-amber-800',
+    CASE_WORKER_ESTIMATES: 'bg-cyan-100 text-cyan-800',
+    PLANTATION_SUPERVISOR: 'bg-teal-100 text-teal-800'
+  }
 
   return (
     <div className="w-64 bg-white border-r border-border h-screen flex flex-col shadow-sm">
