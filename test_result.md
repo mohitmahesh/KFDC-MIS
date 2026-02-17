@@ -138,6 +138,9 @@ backend:
       - working: true
         agent: "testing"
         comment: "🎯 FULLY TESTED & WORKING: Complete estimates workflow successfully tested. 1) GET /apo/estimates?plantation_id=plt-d01 returns 3 sanctioned APO items, 2) ECW can update revised quantities via PATCH /apo/items/{id}/estimate, 3) ECW can submit estimates, 4) PS can approve/reject estimates, 5) RBAC working perfectly - ECW blocked from approving, PS blocked from editing quantities, 6) Budget validation working - rejects quantities exceeding sanctioned amounts. All NEW estimate roles and functionality working correctly."
+      - working: true
+        agent: "testing"
+        comment: "🎉 JURISDICTION-BASED ESTIMATES FULLY TESTED: Updated estimates feature with jurisdiction-based access working perfectly! KEY CHANGES VERIFIED: 1) GET /api/apo/estimates NO LONGER requires plantation_id parameter, 2) ECW/PS only see works from SANCTIONED APOs in their jurisdiction (Dharwad range), 3) Summary includes jurisdiction info (Dharwad Range), 4) RO access correctly denied with 403 Forbidden, 5) ECW can update/submit estimates, 6) PS can approve estimates, 7) RBAC enforcement working (ECW blocked from approval, PS blocked from editing). All 13 tests PASSED (100% success rate)."
 
   - task: "Authentication with NEW estimate users"
     implemented: true
