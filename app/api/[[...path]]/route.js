@@ -982,7 +982,7 @@ async function handleRoute(request, { params }) {
       }))
     }
 
-    // APO Status Update
+    // APO Status Update - 3-tier hierarchy: RO → DM → HO (Admin)
     const apoStatusMatch = route.match(/^\/apo\/([^/]+)\/status$/)
     if (apoStatusMatch && method === 'PATCH') {
       const user = await getUser(request, db)
@@ -995,32 +995,104 @@ async function handleRoute(request, { params }) {
       const apo = await db.collection('apo_headers').findOne({ id: apoId })
       if (!apo) return handleCORS(NextResponse.json({ error: 'APO not found' }, { status: 404 }))
 
-      // Validate transitions
+      // APO Approval Hierarchy:
+      // DRAFT → PENDING_DM_APPROVAL (RO submits to DM)
+      // PENDING_DM_APPROVAL → PENDING_HO_APPROVAL (DM approves, forwards to HO)
+      // PENDING_DM_APPROVAL → REJECTED (DM rejects, back to RO)
+      // PENDING_HO_APPROVAL → SANCTIONED (HO/Admin final approval)
+      // PENDING_HO_APPROVAL → REJECTED (HO rejects)
+      // REJECTED → DRAFT (RO can revise and resubmit)
+
       const validTransitions = {
-        'DRAFT': ['PENDING_APPROVAL'],
-        'PENDING_APPROVAL': ['SANCTIONED', 'REJECTED'],
+        'DRAFT': ['PENDING_DM_APPROVAL'],
+        'PENDING_DM_APPROVAL': ['PENDING_HO_APPROVAL', 'REJECTED'],
+        'PENDING_HO_APPROVAL': ['SANCTIONED', 'REJECTED'],
         'REJECTED': ['DRAFT'],
+        // Legacy support for old status
+        'PENDING_APPROVAL': ['PENDING_HO_APPROVAL', 'SANCTIONED', 'REJECTED'],
       }
 
       if (!validTransitions[apo.status]?.includes(status)) {
-        return handleCORS(NextResponse.json({ error: `Cannot transition from ${apo.status} to ${status}` }, { status: 400 }))
+        return handleCORS(NextResponse.json({ 
+          error: `Invalid transition from ${apo.status} to ${status}`,
+          hint: `Valid transitions from ${apo.status}: ${validTransitions[apo.status]?.join(', ') || 'none'}`
+        }, { status: 400 }))
       }
 
-      // Only DM/ADMIN can approve/reject
-      if (['SANCTIONED', 'REJECTED'].includes(status) && !['DM', 'ADMIN'].includes(user.role)) {
-        return handleCORS(NextResponse.json({ error: 'Only DM/Admin can approve or reject APOs' }, { status: 403 }))
+      // Role-based permissions for status changes
+      // RO can: DRAFT → PENDING_DM_APPROVAL, REJECTED → DRAFT
+      // DM can: PENDING_DM_APPROVAL → PENDING_HO_APPROVAL, PENDING_DM_APPROVAL → REJECTED
+      // ADMIN/HO can: PENDING_HO_APPROVAL → SANCTIONED, PENDING_HO_APPROVAL → REJECTED
+
+      if (status === 'PENDING_DM_APPROVAL') {
+        if (user.role !== 'RO') {
+          return handleCORS(NextResponse.json({ error: 'Only Range Officer can submit APO for DM approval' }, { status: 403 }))
+        }
+      }
+
+      if (status === 'PENDING_HO_APPROVAL') {
+        if (user.role !== 'DM') {
+          return handleCORS(NextResponse.json({ error: 'Only Division Manager can forward APO to Head Office' }, { status: 403 }))
+        }
+      }
+
+      if (status === 'SANCTIONED') {
+        if (user.role !== 'ADMIN') {
+          return handleCORS(NextResponse.json({ error: 'Only Head Office (Admin) can give final sanction to APO' }, { status: 403 }))
+        }
+      }
+
+      if (status === 'REJECTED') {
+        // DM can reject from PENDING_DM_APPROVAL, ADMIN can reject from PENDING_HO_APPROVAL
+        if (apo.status === 'PENDING_DM_APPROVAL' && user.role !== 'DM') {
+          return handleCORS(NextResponse.json({ error: 'Only Division Manager can reject at DM approval stage' }, { status: 403 }))
+        }
+        if (apo.status === 'PENDING_HO_APPROVAL' && user.role !== 'ADMIN') {
+          return handleCORS(NextResponse.json({ error: 'Only Head Office (Admin) can reject at HO approval stage' }, { status: 403 }))
+        }
       }
 
       const updateData = {
         status,
         updated_at: new Date(),
+        rejection_comment: status === 'REJECTED' ? (comment || null) : undefined,
       }
-      if (status === 'SANCTIONED' || status === 'REJECTED') {
-        updateData.approved_by = user.id
+      
+      // Track who approved/rejected at each stage
+      if (status === 'PENDING_HO_APPROVAL') {
+        updateData.dm_approved_by = user.id
+        updateData.dm_approved_at = new Date()
+      }
+      if (status === 'SANCTIONED') {
+        updateData.ho_approved_by = user.id
+        updateData.ho_approved_at = new Date()
+        updateData.approved_by = user.id // Legacy field
+      }
+      if (status === 'REJECTED') {
+        updateData.rejected_by = user.id
+        updateData.rejected_at = new Date()
       }
 
+      // Clean undefined fields
+      Object.keys(updateData).forEach(key => updateData[key] === undefined && delete updateData[key])
+
       await db.collection('apo_headers').updateOne({ id: apoId }, { $set: updateData })
-      return handleCORS(NextResponse.json({ message: `APO ${status.toLowerCase()}`, apo_id: apoId, new_status: status }))
+
+      const statusMessages = {
+        'PENDING_DM_APPROVAL': 'APO submitted to Division Manager for approval',
+        'PENDING_HO_APPROVAL': 'APO forwarded to Head Office for final sanction',
+        'SANCTIONED': 'APO sanctioned by Head Office',
+        'REJECTED': 'APO rejected',
+        'DRAFT': 'APO returned to draft for revision',
+      }
+
+      return handleCORS(NextResponse.json({ 
+        message: statusMessages[status] || `APO status changed to ${status}`, 
+        apo_id: apoId, 
+        new_status: status,
+        approved_by: user.name,
+        approved_by_role: user.role
+      }))
     }
 
     // =================== WORK LOGS ===================
