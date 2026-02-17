@@ -103,7 +103,7 @@
 user_problem_statement: "KFDC iFMS v2 - Works-based APO system. Activity (SSR) → Works → APO hierarchy. Draft & Append workflow."
 
 backend:
-  - task: "Seed demo data (v2 - Works edition)"
+  - task: "Seed demo data with NEW estimate users"
     implemented: true
     working: true
     file: "app/api/[[...path]]/route.js"
@@ -117,6 +117,66 @@ backend:
       - working: true
         agent: "testing"
         comment: "✅ TESTED: v2 Works edition seeding confirmed. 'works' collection created with 2 entries. All counts verified: 4 divisions, 19 ranges, 8 users, 25 activities, 18 plantations. Seed response correctly identifies Works edition."
+      - working: true
+        agent: "testing"
+        comment: "✅ COMPREHENSIVE TESTING COMPLETE: Database seeding working perfectly. Confirmed 8 users including NEW estimate users (ECW: ecw.dharwad@kfdc.in with CASE_WORKER_ESTIMATES role, PS: ps.dharwad@kfdc.in with PLANTATION_SUPERVISOR role), 25 activities, 44 plantations, 4 APOs. All new user roles properly seeded and functional."
+
+  - task: "NEW Estimates Feature - Core Functionality"
+    implemented: true
+    working: true
+    file: "app/api/[[...path]]/route.js"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: false
+    status_history:
+      - working: "NA"
+        agent: "main"
+        comment: "NEW ESTIMATES FEATURE: Implemented GET /api/apo/estimates?plantation_id=xxx endpoint to retrieve sanctioned APO items, PATCH /api/apo/items/{id}/estimate to update revised_qty, and PATCH /api/apo/items/{id}/status for estimate workflow management. Full RBAC implementation with CASE_WORKER_ESTIMATES and PLANTATION_SUPERVISOR roles."
+      - working: true
+        agent: "testing"
+        comment: "🎯 FULLY TESTED & WORKING: Complete estimates workflow successfully tested. 1) GET /apo/estimates?plantation_id=plt-d01 returns 3 sanctioned APO items, 2) ECW can update revised quantities via PATCH /apo/items/{id}/estimate, 3) ECW can submit estimates, 4) PS can approve/reject estimates, 5) RBAC working perfectly - ECW blocked from approving, PS blocked from editing quantities, 6) Budget validation working - rejects quantities exceeding sanctioned amounts. All NEW estimate roles and functionality working correctly."
+
+  - task: "Authentication with NEW estimate users"
+    implemented: true
+    working: true
+    file: "app/api/[[...path]]/route.js"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: false
+    status_history:
+      - working: true
+        agent: "main"
+        comment: "POST /api/auth/login, GET /api/auth/me, POST /api/auth/logout with token-based sessions"
+      - working: true
+        agent: "testing"
+        comment: "✅ TESTED: All 3 user roles (RO: Ramesh Kumar, DM: Anjali Sharma, Admin: Dr. Venkatesh Rao) login/logout/me endpoints working correctly"
+      - working: true
+        agent: "testing"
+        comment: "✅ TESTED: Updated email addresses working - ro.dharwad@kfdc.in (Ramesh Kumar), ro.svpura@kfdc.in (Suresh Gowda), dm.dharwad@kfdc.in (Anjali Sharma), admin@kfdc.in (Dr. Venkatesh Rao)"
+      - working: true
+        agent: "testing"
+        comment: "✅ COMPREHENSIVE TESTING: All 4 NEW user logins tested and working perfectly: 1) ro.dharwad@kfdc.in (RO - Ramesh Kumar) ✓, 2) dm.dharwad@kfdc.in (DM - Anjali Sharma) ✓, 3) ecw.dharwad@kfdc.in (CASE_WORKER_ESTIMATES - Ravi HW) ✓, 4) ps.dharwad@kfdc.in (PLANTATION_SUPERVISOR - Sunil PS) ✓. All authentication endpoints functional with proper token generation and user role identification."
+
+  - task: "APO Basic Workflow"
+    implemented: true
+    working: true
+    file: "app/api/[[...path]]/route.js"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: false
+    status_history:
+      - working: true
+        agent: "main"
+        comment: "POST /api/apo (create), GET /api/apo (list, role-scoped), GET /api/apo/:id (detail), PATCH /api/apo/:id/status (DRAFT->PENDING->SANCTIONED/REJECTED)"
+      - working: true
+        agent: "testing"
+        comment: "✅ TESTED: Complete workflow working - RO creates APO (PENDING_APPROVAL), DM approves to SANCTIONED, immutability correctly enforced (Cannot transition from SANCTIONED)"
+      - working: true
+        agent: "testing"
+        comment: "✅ TESTED: APO workflow with real data - APO creation by RO, approval by DM, status transitions working correctly. APO items properly stored and retrieved."
+      - working: true
+        agent: "testing"
+        comment: "✅ COMPREHENSIVE WORKFLOW TESTED: Fixed APO creation issue (items parameter handling), complete APO basic workflow now working: 1) RO creates DRAFT APO with header-only (no items initially), 2) RO submits APO to PENDING_APPROVAL, 3) DM approves to SANCTIONED status. All status transitions working correctly. Core APO functionality fully operational."
 
   - task: "Works CRUD (NEW)"
     implemented: true
