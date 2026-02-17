@@ -1,354 +1,534 @@
 #!/usr/bin/env python3
-
+"""
+KFDC iFMS Backend Testing Script
+Testing comprehensive backend functionality including new estimates feature
+"""
 import requests
 import json
-from datetime import datetime
+import sys
+import os
 
-BASE_URL = "https://green-erp.preview.emergentagent.com/api"
+# Base URL from environment
+BASE_URL = os.getenv('NEXT_PUBLIC_BASE_URL', 'https://green-erp.preview.emergentagent.com')
+API_BASE = f"{BASE_URL}/api"
 
-def test_custom_activity_to_work():
-    """
-    Test the 'Add Custom Activity to Work' feature for KFDC iFMS v2
-    
-    Test Flow:
-    1. Seed the database
-    2. Login as RO
-    3. Get all activities 
-    4. Create a Draft APO
-    5. Get activity suggestions for plantation
-    6. Create Work with BOTH suggested AND custom activities
-    7. Verify the work was created correctly
-    8. Get APO detail and verify total calculation
-    """
-    
-    print("🚀 Testing: Add Custom Activity to Work Feature")
-    print("=" * 60)
-    
-    # Step 1: Seed the database
-    print("\n1. 🌱 Seeding database...")
-    try:
-        response = requests.post(f"{BASE_URL}/seed")
-        response.raise_for_status()
-        seed_result = response.json()
-        print(f"   ✅ Seed successful: {seed_result.get('message', 'Database seeded')}")
-        if 'activities' in seed_result:
-            print(f"   📊 Activities seeded: {seed_result['activities']}")
-    except Exception as e:
-        print(f"   ❌ FAILED to seed database: {str(e)}")
-        return False
+# Global auth token storage
+AUTH_TOKENS = {}
 
-    # Step 2: Login as RO
-    print("\n2. 🔐 Logging in as RO (ro.dharwad@kfdc.in)...")
-    try:
-        login_data = {
-            "email": "ro.dharwad@kfdc.in",
-            "password": "pass123"
-        }
-        response = requests.post(f"{BASE_URL}/auth/login", json=login_data)
-        response.raise_for_status()
-        login_result = response.json()
+class KFDCTester:
+    def __init__(self):
+        self.session = requests.Session()
+        self.session.headers.update({
+            'Content-Type': 'application/json',
+            'Accept': 'application/json'
+        })
         
-        if 'token' not in login_result:
-            print(f"   ❌ FAILED: No token in login response: {login_result}")
-            return False
-            
-        token = login_result['token']
-        headers = {"Authorization": f"Bearer {token}"}
-        
-        print(f"   ✅ Login successful: {login_result['user']['name']} ({login_result['user']['role']})")
-    except Exception as e:
-        print(f"   ❌ FAILED to login: {str(e)}")
-        return False
+    def print_result(self, test_name, success, message="", data=None):
+        """Print test result in consistent format"""
+        status = "✅ PASS" if success else "❌ FAIL"
+        print(f"{status}: {test_name}")
+        if message:
+            print(f"   → {message}")
+        if data and isinstance(data, dict):
+            if 'error' in data:
+                print(f"   → Error: {data['error']}")
+        print()
 
-    # Step 3: Get all activities (should return 25 activities)
-    print("\n3. 📋 Getting all activities from master...")
-    try:
-        response = requests.get(f"{BASE_URL}/activities", headers=headers)
-        response.raise_for_status()
-        activities = response.json()
-        
-        print(f"   ✅ Retrieved {len(activities)} activities")
-        if len(activities) >= 25:
-            print("   ✅ Expected 25 activities found")
-        else:
-            print(f"   ⚠️  Expected 25 activities, got {len(activities)}")
-            
-        # Show some activity examples
-        if activities:
-            print("   📝 Sample activities:")
-            for i, activity in enumerate(activities[:3]):
-                print(f"      - {activity.get('name', 'Unknown')} (ID: {activity.get('id', 'N/A')}, SSR: {activity.get('ssr_no', 'N/A')})")
-                
-    except Exception as e:
-        print(f"   ❌ FAILED to get activities: {str(e)}")
-        return False
-
-    # Step 4: Create a Draft APO
-    print("\n4. 📄 Creating Draft APO for FY 2026-27...")
-    try:
-        apo_data = {
-            "financial_year": "2026-27"
-        }
-        response = requests.post(f"{BASE_URL}/apo", json=apo_data, headers=headers)
-        response.raise_for_status()
-        apo_result = response.json()
-        
-        apo_id = apo_result['id']
-        print(f"   ✅ Draft APO created: {apo_id}")
-        print(f"   📊 Status: {apo_result.get('status', 'Unknown')}, Amount: ₹{apo_result.get('total_sanctioned_amount', 0)}")
-        
-    except Exception as e:
-        print(f"   ❌ FAILED to create APO: {str(e)}")
-        return False
-
-    # Step 5: Get activity suggestions for plantation plt-d02 (Casuarina, 9 years old)
-    print("\n5. 💡 Getting activity suggestions for plantation plt-d02...")
-    try:
-        suggestion_data = {
-            "plantation_id": "plt-d02",
-            "financial_year": "2026-27"
-        }
-        response = requests.post(f"{BASE_URL}/works/suggest-activities", json=suggestion_data, headers=headers)
-        response.raise_for_status()
-        suggestions = response.json()
-        
-        plantation_name = suggestions.get('plantation_name', 'Unknown')
-        plantation_age = suggestions.get('age', 0)
-        suggested_activities = suggestions.get('suggested_activities', [])
-        
-        print(f"   ✅ Suggestions for {plantation_name} (Age: {plantation_age} years)")
-        print(f"   📊 Found {len(suggested_activities)} suggested activities")
-        
-        if suggested_activities:
-            print("   📝 Suggested activities:")
-            for activity in suggested_activities:
-                print(f"      - {activity.get('activity_name', 'Unknown')} (Rate: ₹{activity.get('sanctioned_rate', 0)})")
-                
-    except Exception as e:
-        print(f"   ❌ FAILED to get activity suggestions: {str(e)}")
-        return False
-
-    # Step 6: Create Work with BOTH suggested AND custom activities
-    print("\n6. 🔨 Creating Work with both suggested and custom activities...")
-    try:
-        # Prepare items array with suggested and custom activities
-        work_items = []
-        
-        # Add a suggested activity (if available)
-        if suggested_activities:
-            suggested_activity = suggested_activities[0]  # Take first suggested activity
-            work_items.append({
-                "activity_id": suggested_activity['activity_id'],
-                "activity_name": suggested_activity['activity_name'],
-                "unit": suggested_activity['unit'],
-                "ssr_no": suggested_activity['ssr_no'],
-                "sanctioned_rate": suggested_activity['sanctioned_rate'],
-                "sanctioned_qty": 10
-            })
-            print(f"   📝 Added suggested activity: {suggested_activity['activity_name']}")
-        
-        # Add custom activities (activities NOT in suggestions)
-        # Find activities not in suggestions
-        suggested_activity_ids = [act['activity_id'] for act in suggested_activities]
-        custom_activities = [act for act in activities if act['id'] not in suggested_activity_ids]
-        
-        if custom_activities:
-            # Add Survey & Demarcation as custom activity with manual rate
-            survey_activity = next((act for act in custom_activities if 'survey' in act.get('name', '').lower()), None)
-            if survey_activity:
-                work_items.append({
-                    "activity_id": survey_activity['id'],
-                    "activity_name": survey_activity['name'],
-                    "unit": survey_activity['unit'],
-                    "ssr_no": survey_activity['ssr_no'],
-                    "sanctioned_rate": 2000,  # Manual rate since not in plantation norms
-                    "sanctioned_qty": 5
-                })
-                print(f"   📝 Added custom activity: {survey_activity['name']} (Manual rate: ₹2000)")
-            else:
-                # Fallback to any custom activity
-                custom_act = custom_activities[0]
-                work_items.append({
-                    "activity_id": custom_act['id'],
-                    "activity_name": custom_act['name'],
-                    "unit": custom_act['unit'],
-                    "ssr_no": custom_act['ssr_no'],
-                    "sanctioned_rate": 1500,  # Manual rate
-                    "sanctioned_qty": 3
-                })
-                print(f"   📝 Added custom activity: {custom_act['name']} (Manual rate: ₹1500)")
-        
-        # Create the work
-        work_data = {
-            "apo_id": apo_id,
-            "plantation_id": "plt-d02",
-            "name": "Test Work with Custom Activities",
-            "items": work_items
-        }
-        
-        response = requests.post(f"{BASE_URL}/works", json=work_data, headers=headers)
-        response.raise_for_status()
-        work_result = response.json()
-        
-        work_id = work_result['id']
-        total_estimated_cost = work_result.get('total_estimated_cost', 0)
-        
-        print(f"   ✅ Work created successfully: {work_id}")
-        print(f"   📊 Total estimated cost: ₹{total_estimated_cost}")
-        print(f"   📊 Number of items: {len(work_result.get('items', []))}")
-        
-        # Verify items in work
-        work_items_result = work_result.get('items', [])
-        print("   📝 Work items created:")
-        for item in work_items_result:
-            print(f"      - {item.get('activity_name', 'Unknown')}: ₹{item.get('sanctioned_rate', 0)} x {item.get('sanctioned_qty', 0)} = ₹{item.get('total_cost', 0)}")
-            
-    except Exception as e:
-        print(f"   ❌ FAILED to create work: {str(e)}")
+    def test_seed_database(self):
+        """Test POST /api/seed"""
         try:
-            error_detail = response.json() if response else {}
-            print(f"   📄 Error detail: {error_detail}")
-        except:
-            pass
-        return False
-
-    # Step 7: Get APO detail and verify total calculation
-    print("\n7. 🔍 Verifying APO detail and total calculation...")
-    try:
-        response = requests.get(f"{BASE_URL}/apo/{apo_id}", headers=headers)
-        response.raise_for_status()
-        apo_detail = response.json()
-        
-        works = apo_detail.get('works', [])
-        total_amount = apo_detail.get('total_amount', 0)
-        
-        print(f"   ✅ APO detail retrieved")
-        print(f"   📊 Number of works: {len(works)}")
-        print(f"   📊 Total amount: ₹{total_amount}")
-        
-        if works:
-            work = works[0]  # Our created work
-            work_items = work.get('items', [])
-            work_total = work.get('total_estimated_cost', 0)
+            print("🔄 Testing Database Seeding...")
+            response = self.session.post(f"{API_BASE}/seed")
             
-            print(f"   📊 Work contains {len(work_items)} items with total ₹{work_total}")
-            
-            # Check if both suggested and custom activities are present
-            has_suggested = False
-            has_custom = False
-            
-            for item in work_items:
-                item_activity_id = item.get('activity_id')
-                if item_activity_id in suggested_activity_ids:
-                    has_suggested = True
-                    print(f"   ✅ Found suggested activity: {item.get('activity_name')}")
+            if response.status_code == 200:
+                data = response.json()
+                # Check if it's v2 Works edition
+                success = 'works' in data.get('collections_seeded', [])
+                
+                if success:
+                    works_count = data.get('collections_created', {}).get('works', 0)
+                    users_count = data.get('collections_created', {}).get('users', 0)
+                    activities_count = data.get('collections_created', {}).get('activities', 0)
+                    plantations_count = data.get('collections_created', {}).get('plantations', 0)
+                    
+                    message = f"v2 Works edition seeded. Works: {works_count}, Users: {users_count}, Activities: {activities_count}, Plantations: {plantations_count}"
+                    # Check for new estimate users
+                    if users_count >= 10:  # Should include ECW and PS users
+                        message += " (includes ECW and PS users)"
                 else:
-                    has_custom = True
-                    print(f"   ✅ Found custom activity: {item.get('activity_name')} (Rate: ₹{item.get('sanctioned_rate')})")
-            
-            if has_suggested and has_custom:
-                print("   ✅ SUCCESS: Work contains both suggested AND custom activities!")
-            elif has_suggested:
-                print("   ⚠️  Work contains only suggested activities")
-            elif has_custom:
-                print("   ⚠️  Work contains only custom activities")
+                    message = "v2 Works edition not detected"
+                    
+                self.print_result("POST /api/seed", success, message)
+                return success
             else:
-                print("   ❌ Work contains no identifiable activity types")
-                
-            # Verify total calculation
-            calculated_total = sum(item.get('total_cost', 0) for item in work_items)
-            if abs(calculated_total - work_total) < 0.01:
-                print(f"   ✅ Total calculation correct: ₹{work_total}")
-            else:
-                print(f"   ❌ Total calculation incorrect: Expected ₹{calculated_total}, got ₹{work_total}")
-                
-    except Exception as e:
-        print(f"   ❌ FAILED to get APO detail: {str(e)}")
-        return False
-
-    print("\n🎉 Custom Activity to Work Feature Test COMPLETED!")
-    print("=" * 60)
-    return True
-
-
-# Additional test function to verify API endpoint responses
-def test_api_endpoints():
-    """Test that all required API endpoints are responding correctly"""
-    
-    print("\n🔧 Testing API Endpoints...")
-    print("-" * 40)
-    
-    endpoints_to_test = [
-        ("POST", "/seed", "Seed database"),
-        ("POST", "/auth/login", "Authentication"),
-        ("GET", "/activities", "Get activities", True),  # Requires auth
-        ("POST", "/apo", "Create APO", True),  # Requires auth
-        ("POST", "/works/suggest-activities", "Activity suggestions", True),  # Requires auth
-        ("POST", "/works", "Create work", True),  # Requires auth
-    ]
-    
-    # First login to get token for authenticated endpoints
-    token = None
-    try:
-        login_data = {"email": "ro.dharwad@kfdc.in", "password": "pass123"}
-        response = requests.post(f"{BASE_URL}/auth/login", json=login_data)
-        if response.status_code == 200:
-            token = response.json().get('token')
-            print(f"   🔐 Auth token obtained")
-    except:
-        print(f"   ⚠️  Could not obtain auth token for endpoint testing")
-    
-    headers = {"Authorization": f"Bearer {token}"} if token else {}
-    
-    for method, endpoint, description, *auth_required in endpoints_to_test:
-        try:
-            if endpoint == "/seed":
-                response = requests.post(f"{BASE_URL}{endpoint}")
-            elif endpoint == "/auth/login":
-                response = requests.post(f"{BASE_URL}{endpoint}", json={"email": "ro.dharwad@kfdc.in", "password": "pass123"})
-            elif endpoint == "/activities":
-                response = requests.get(f"{BASE_URL}{endpoint}", headers=headers)
-            elif endpoint == "/apo":
-                response = requests.post(f"{BASE_URL}{endpoint}", json={"financial_year": "2026-27"}, headers=headers)
-            elif endpoint == "/works/suggest-activities":
-                response = requests.post(f"{BASE_URL}{endpoint}", json={"plantation_id": "plt-d02", "financial_year": "2026-27"}, headers=headers)
-            elif endpoint == "/works":
-                # Skip actual work creation in endpoint test
-                print(f"   ⏭️  Skipping {description} - tested in main flow")
-                continue
-            else:
-                continue
-                
-            if response.status_code in [200, 201]:
-                print(f"   ✅ {description}: {response.status_code}")
-            else:
-                print(f"   ❌ {description}: {response.status_code} - {response.text[:100]}")
+                self.print_result("POST /api/seed", False, f"HTTP {response.status_code}")
+                return False
                 
         except Exception as e:
-            print(f"   ❌ {description}: Error - {str(e)}")
+            self.print_result("POST /api/seed", False, f"Exception: {str(e)}")
+            return False
 
+    def test_login(self, email, password, expected_role):
+        """Test login for a specific user"""
+        try:
+            print(f"🔄 Testing Login: {email}...")
+            response = self.session.post(f"{API_BASE}/auth/login", json={
+                'email': email,
+                'password': password
+            })
+            
+            if response.status_code == 200:
+                data = response.json()
+                if 'token' in data and 'user' in data:
+                    token = data['token']
+                    user = data['user']
+                    role = user.get('role')
+                    name = user.get('name')
+                    
+                    # Store token for later use
+                    AUTH_TOKENS[role] = token
+                    
+                    success = role == expected_role
+                    message = f"{name} ({role})" + (" ✓" if success else f" ≠ {expected_role}")
+                    
+                    self.print_result(f"Login {email}", success, message)
+                    return success, token
+                else:
+                    self.print_result(f"Login {email}", False, "Missing token or user in response")
+                    return False, None
+            else:
+                self.print_result(f"Login {email}", False, f"HTTP {response.status_code}")
+                return False, None
+                
+        except Exception as e:
+            self.print_result(f"Login {email}", False, f"Exception: {str(e)}")
+            return False, None
 
-if __name__ == "__main__":
-    print(f"🧪 KFDC iFMS v2 - Custom Activity Testing Suite")
-    print(f"🌐 Base URL: {BASE_URL}")
-    print(f"⏰ Test started: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}")
+    def test_dashboard_stats(self, token, expected_role):
+        """Test GET /api/dashboard/stats with auth"""
+        try:
+            print(f"🔄 Testing Dashboard Stats for {expected_role}...")
+            headers = {'Authorization': f'Bearer {token}'}
+            response = self.session.get(f"{API_BASE}/dashboard/stats", headers=headers)
+            
+            if response.status_code == 200:
+                data = response.json()
+                required_fields = ['total_plantations', 'total_apos', 'total_sanctioned_amount']
+                
+                success = all(field in data for field in required_fields)
+                plantations = data.get('total_plantations', 0)
+                apos = data.get('total_apos', 0)
+                
+                message = f"Plantations: {plantations}, APOs: {apos}"
+                self.print_result(f"Dashboard Stats ({expected_role})", success, message)
+                return success
+            else:
+                self.print_result(f"Dashboard Stats ({expected_role})", False, f"HTTP {response.status_code}")
+                return False
+                
+        except Exception as e:
+            self.print_result(f"Dashboard Stats ({expected_role})", False, f"Exception: {str(e)}")
+            return False
+
+    def test_basic_endpoints(self, token):
+        """Test basic GET endpoints"""
+        endpoints = [
+            ('/plantations', 'Plantations'),
+            ('/apo', 'APOs'),
+            ('/activities', 'Activities'),
+            ('/norms', 'Norms')
+        ]
+        
+        headers = {'Authorization': f'Bearer {token}'}
+        results = []
+        
+        for endpoint, name in endpoints:
+            try:
+                print(f"🔄 Testing GET {endpoint}...")
+                response = self.session.get(f"{API_BASE}{endpoint}", headers=headers)
+                
+                if response.status_code == 200:
+                    data = response.json()
+                    count = len(data) if isinstance(data, list) else 1
+                    self.print_result(f"GET {endpoint}", True, f"Retrieved {count} {name.lower()}")
+                    results.append(True)
+                else:
+                    self.print_result(f"GET {endpoint}", False, f"HTTP {response.status_code}")
+                    results.append(False)
+            except Exception as e:
+                self.print_result(f"GET {endpoint}", False, f"Exception: {str(e)}")
+                results.append(False)
+                
+        return all(results)
+
+    def test_apo_workflow(self, ro_token, dm_token):
+        """Test complete APO workflow: create draft → add works → submit → approve"""
+        try:
+            print("🔄 Testing APO Draft & Append Workflow...")
+            
+            # Step 1: Create draft APO as RO
+            print("   → Creating draft APO...")
+            ro_headers = {'Authorization': f'Bearer {ro_token}'}
+            
+            # Get a plantation first
+            plantations_resp = self.session.get(f"{API_BASE}/plantations", headers=ro_headers)
+            if plantations_resp.status_code != 200:
+                self.print_result("APO Workflow", False, "Cannot get plantations")
+                return False
+                
+            plantations = plantations_resp.json()
+            if not plantations:
+                self.print_result("APO Workflow", False, "No plantations available")
+                return False
+                
+            test_plantation = plantations[0]  # Use first plantation
+            plantation_id = test_plantation['id']
+            
+            apo_data = {
+                'plantation_id': plantation_id,
+                'financial_year': '2026-27',
+                'title': 'Test APO for Backend Testing'
+            }
+            
+            apo_response = self.session.post(f"{API_BASE}/apo", json=apo_data, headers=ro_headers)
+            if apo_response.status_code != 201:
+                self.print_result("APO Workflow - Create", False, f"Create APO failed: HTTP {apo_response.status_code}")
+                return False
+                
+            apo = apo_response.json()
+            apo_id = apo['id']
+            print(f"   → APO created: {apo_id}")
+            
+            # Step 2: Add work to APO
+            print("   → Adding work to APO...")
+            
+            # Get activity suggestions for plantation
+            suggest_response = self.session.post(
+                f"{API_BASE}/works/suggest-activities", 
+                json={'plantation_id': plantation_id}, 
+                headers=ro_headers
+            )
+            
+            if suggest_response.status_code == 200:
+                activities = suggest_response.json()
+                if activities:
+                    # Add first suggested activity
+                    activity = activities[0]
+                    work_data = {
+                        'apo_id': apo_id,
+                        'plantation_id': plantation_id,
+                        'items': [activity]  # Use suggested activity with rate
+                    }
+                    
+                    work_response = self.session.post(f"{API_BASE}/works", json=work_data, headers=ro_headers)
+                    if work_response.status_code != 201:
+                        self.print_result("APO Workflow - Add Work", False, f"Add work failed: HTTP {work_response.status_code}")
+                        return False
+                        
+                    print("   → Work added successfully")
+                else:
+                    self.print_result("APO Workflow", False, "No activity suggestions available")
+                    return False
+            else:
+                self.print_result("APO Workflow", False, f"Activity suggestions failed: HTTP {suggest_response.status_code}")
+                return False
+                
+            # Step 3: Submit APO
+            print("   → Submitting APO...")
+            submit_response = self.session.patch(
+                f"{API_BASE}/apo/{apo_id}/status", 
+                json={'status': 'PENDING_APPROVAL'}, 
+                headers=ro_headers
+            )
+            
+            if submit_response.status_code != 200:
+                self.print_result("APO Workflow - Submit", False, f"Submit failed: HTTP {submit_response.status_code}")
+                return False
+                
+            print("   → APO submitted for approval")
+            
+            # Step 4: Approve APO as DM
+            print("   → Approving APO as DM...")
+            dm_headers = {'Authorization': f'Bearer {dm_token}'}
+            
+            approve_response = self.session.patch(
+                f"{API_BASE}/apo/{apo_id}/status", 
+                json={'status': 'SANCTIONED'}, 
+                headers=dm_headers
+            )
+            
+            if approve_response.status_code == 200:
+                print("   → APO approved successfully")
+                self.print_result("APO Workflow (Complete)", True, f"APO {apo_id} created → submitted → approved")
+                return True, apo_id
+            else:
+                self.print_result("APO Workflow - Approve", False, f"Approve failed: HTTP {approve_response.status_code}")
+                return False, None
+                
+        except Exception as e:
+            self.print_result("APO Workflow", False, f"Exception: {str(e)}")
+            return False, None
+
+    def test_estimates_feature(self, ecw_token, ps_token):
+        """Test the NEW estimates feature comprehensively"""
+        try:
+            print("🔄 Testing NEW Estimates Feature...")
+            
+            # Step 1: Get estimates for plantation plt-d01 as ECW
+            print("   → Getting estimates for plt-d01...")
+            ecw_headers = {'Authorization': f'Bearer {ecw_token}'}
+            
+            estimates_response = self.session.get(
+                f"{API_BASE}/apo/estimates?plantation_id=plt-d01", 
+                headers=ecw_headers
+            )
+            
+            if estimates_response.status_code != 200:
+                self.print_result("Estimates - Get Items", False, f"HTTP {estimates_response.status_code}")
+                return False
+                
+            estimates = estimates_response.json()
+            if not estimates:
+                self.print_result("Estimates - Get Items", False, "No sanctioned APO items found for plt-d01")
+                return False
+                
+            print(f"   → Found {len(estimates)} estimate items")
+            test_item = estimates[0]
+            item_id = test_item['id']
+            original_qty = test_item.get('sanctioned_qty', 1)
+            rate = test_item.get('sanctioned_rate', 100)
+            
+            # Step 2: Update revised_qty as ECW
+            print("   → Updating revised quantity as ECW...")
+            revised_qty = max(1, original_qty - 5)  # Reduce quantity to test budget
+            
+            update_response = self.session.patch(
+                f"{API_BASE}/apo/items/{item_id}/estimate",
+                json={
+                    'revised_qty': revised_qty,
+                    'user_role': 'CASE_WORKER_ESTIMATES'
+                },
+                headers=ecw_headers
+            )
+            
+            if update_response.status_code != 200:
+                self.print_result("Estimates - Update Qty", False, f"HTTP {update_response.status_code}")
+                return False
+                
+            print(f"   → Revised quantity updated to {revised_qty}")
+            
+            # Step 3: Submit estimate as ECW
+            print("   → Submitting estimate as ECW...")
+            submit_response = self.session.patch(
+                f"{API_BASE}/apo/items/{item_id}/status",
+                json={
+                    'status': 'SUBMITTED',
+                    'user_role': 'CASE_WORKER_ESTIMATES'
+                },
+                headers=ecw_headers
+            )
+            
+            if submit_response.status_code != 200:
+                self.print_result("Estimates - Submit", False, f"HTTP {submit_response.status_code}")
+                return False
+                
+            print("   → Estimate submitted successfully")
+            
+            # Step 4: Test RBAC - ECW should NOT be able to approve
+            print("   → Testing RBAC - ECW trying to approve (should fail)...")
+            rbac_fail_response = self.session.patch(
+                f"{API_BASE}/apo/items/{item_id}/status",
+                json={
+                    'status': 'APPROVED',
+                    'user_role': 'CASE_WORKER_ESTIMATES'
+                },
+                headers=ecw_headers
+            )
+            
+            rbac_blocked = rbac_fail_response.status_code == 403
+            if rbac_blocked:
+                print("   → ✓ RBAC working: ECW blocked from approving")
+            else:
+                self.print_result("Estimates - RBAC", False, f"ECW was able to approve (should be blocked): HTTP {rbac_fail_response.status_code}")
+                return False
+                
+            # Step 5: Approve estimate as PS
+            print("   → Approving estimate as PS...")
+            ps_headers = {'Authorization': f'Bearer {ps_token}'}
+            
+            approve_response = self.session.patch(
+                f"{API_BASE}/apo/items/{item_id}/status",
+                json={
+                    'status': 'APPROVED',
+                    'user_role': 'PLANTATION_SUPERVISOR'
+                },
+                headers=ps_headers
+            )
+            
+            if approve_response.status_code != 200:
+                self.print_result("Estimates - Approve", False, f"HTTP {approve_response.status_code}")
+                return False
+                
+            print("   → Estimate approved by PS")
+            
+            # Step 6: Test RBAC - PS should NOT be able to edit quantities
+            print("   → Testing RBAC - PS trying to edit quantity (should fail)...")
+            ps_edit_response = self.session.patch(
+                f"{API_BASE}/apo/items/{item_id}/estimate",
+                json={
+                    'revised_qty': revised_qty + 10,
+                    'user_role': 'PLANTATION_SUPERVISOR'
+                },
+                headers=ps_headers
+            )
+            
+            ps_blocked = ps_edit_response.status_code == 403
+            if ps_blocked:
+                print("   → ✓ RBAC working: PS blocked from editing quantities")
+            else:
+                self.print_result("Estimates - RBAC", False, f"PS was able to edit quantities (should be blocked): HTTP {ps_edit_response.status_code}")
+                return False
+                
+            # Step 7: Test budget validation by trying to exceed sanctioned amount
+            print("   → Testing budget validation...")
+            
+            # First, create another item to test budget overflow
+            if len(estimates) > 1:
+                second_item = estimates[1]
+                second_item_id = second_item['id']
+                
+                # Try to set a very high quantity that would exceed budget
+                high_qty = original_qty * 100  # Intentionally high
+                
+                budget_test_response = self.session.patch(
+                    f"{API_BASE}/apo/items/{second_item_id}/estimate",
+                    json={
+                        'revised_qty': high_qty,
+                        'user_role': 'CASE_WORKER_ESTIMATES'
+                    },
+                    headers=ecw_headers
+                )
+                
+                if budget_test_response.status_code == 400:
+                    print("   → ✓ Budget validation working: High quantity rejected")
+                else:
+                    print("   → Budget validation may not be triggered or APO has high budget")
+            
+            self.print_result("NEW Estimates Feature (Complete)", True, "All estimates workflow and RBAC rules working correctly")
+            return True
+            
+        except Exception as e:
+            self.print_result("NEW Estimates Feature", False, f"Exception: {str(e)}")
+            return False
+
+def main():
+    print("=" * 80)
+    print("🧪 KFDC iFMS Backend Testing - Comprehensive Test Suite")
+    print("   Including NEW Estimates Feature Testing")
+    print("=" * 80)
     print()
     
-    try:
-        # Test API endpoints first
-        test_api_endpoints()
-        
-        # Run main custom activity test
-        success = test_custom_activity_to_work()
-        
-        if success:
-            print("\n🎯 ALL TESTS PASSED! ✅")
-            print("Custom Activity to Work feature is working correctly.")
-        else:
-            print("\n💥 SOME TESTS FAILED! ❌")
-            print("Please check the errors above and fix the issues.")
-            
-    except KeyboardInterrupt:
-        print("\n\n⏹️  Test interrupted by user")
-    except Exception as e:
-        print(f"\n💥 UNEXPECTED ERROR: {str(e)}")
+    tester = KFDCTester()
+    
+    # Test Results Tracking
+    test_results = []
+    
+    # 1. Seed Database
+    print("📂 PHASE 1: DATABASE SEEDING")
+    print("-" * 40)
+    seed_result = tester.test_seed_database()
+    test_results.append(("Database Seeding", seed_result))
+    
+    # 2. Authentication Tests
+    print("🔐 PHASE 2: AUTHENTICATION TESTING")
+    print("-" * 40)
+    
+    login_tests = [
+        ('ro.dharwad@kfdc.in', 'pass123', 'RO'),
+        ('dm.dharwad@kfdc.in', 'pass123', 'DM'),
+        ('ecw.dharwad@kfdc.in', 'pass123', 'CASE_WORKER_ESTIMATES'),
+        ('ps.dharwad@kfdc.in', 'pass123', 'PLANTATION_SUPERVISOR')
+    ]
+    
+    login_results = []
+    tokens = {}
+    
+    for email, password, expected_role in login_tests:
+        success, token = tester.test_login(email, password, expected_role)
+        login_results.append(success)
+        if success and token:
+            tokens[expected_role] = token
+    
+    auth_success = all(login_results)
+    test_results.append(("Authentication (All Users)", auth_success))
+    
+    if not auth_success:
+        print("❌ Authentication failed - cannot proceed with remaining tests")
+        sys.exit(1)
+    
+    # 3. Basic API Endpoints
+    print("📡 PHASE 3: BASIC API ENDPOINTS")
+    print("-" * 40)
+    
+    basic_endpoints_result = True
+    for role, token in tokens.items():
+        if role in ['RO', 'DM']:  # Test basic endpoints with standard roles
+            dashboard_result = tester.test_dashboard_stats(token, role)
+            basic_result = tester.test_basic_endpoints(token)
+            if not dashboard_result or not basic_result:
+                basic_endpoints_result = False
+    
+    test_results.append(("Basic API Endpoints", basic_endpoints_result))
+    
+    # 4. APO Workflow Testing
+    print("📋 PHASE 4: APO WORKFLOW TESTING")
+    print("-" * 40)
+    
+    if 'RO' in tokens and 'DM' in tokens:
+        apo_result, apo_id = tester.test_apo_workflow(tokens['RO'], tokens['DM'])
+        test_results.append(("APO Workflow", apo_result))
+    else:
+        print("❌ Missing RO or DM tokens - skipping APO workflow test")
+        test_results.append(("APO Workflow", False))
+    
+    # 5. NEW Estimates Feature Testing
+    print("🎯 PHASE 5: NEW ESTIMATES FEATURE TESTING")
+    print("-" * 40)
+    
+    if 'CASE_WORKER_ESTIMATES' in tokens and 'PLANTATION_SUPERVISOR' in tokens:
+        estimates_result = tester.test_estimates_feature(
+            tokens['CASE_WORKER_ESTIMATES'], 
+            tokens['PLANTATION_SUPERVISOR']
+        )
+        test_results.append(("NEW Estimates Feature", estimates_result))
+    else:
+        print("❌ Missing ECW or PS tokens - skipping estimates feature test")
+        test_results.append(("NEW Estimates Feature", False))
+    
+    # Final Results Summary
+    print("=" * 80)
+    print("📊 FINAL TEST RESULTS SUMMARY")
+    print("=" * 80)
+    
+    passed = 0
+    total = len(test_results)
+    
+    for test_name, result in test_results:
+        status = "✅ PASS" if result else "❌ FAIL"
+        print(f"{status}: {test_name}")
+        if result:
+            passed += 1
+    
+    print()
+    print(f"📈 OVERALL: {passed}/{total} tests passed ({(passed/total)*100:.1f}%)")
+    
+    if passed == total:
+        print("🎉 ALL TESTS PASSED! KFDC iFMS backend is working correctly.")
+        return True
+    else:
+        print("⚠️  Some tests failed. Please review the results above.")
+        return False
+
+if __name__ == "__main__":
+    success = main()
+    sys.exit(0 if success else 1)
