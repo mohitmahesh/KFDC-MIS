@@ -655,6 +655,7 @@ async function handleRoute(request, { params }) {
         id: apoId,
         plantation_id,
         financial_year,
+        title: title || 'APO',
         status: status || 'DRAFT',
         total_sanctioned_amount: totalAmount,
         created_by: user.id,
