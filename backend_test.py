@@ -198,9 +198,9 @@ class BackendTester:
         })
         
         self.test_assertion(
-            not direct_ho_response["success"] and direct_ho_response["status_code"] == 400,
+            not direct_ho_response["success"] and direct_ho_response["status_code"] == 403,
             "RO blocked from forwarding directly to HO",
-            f"Status: {direct_ho_response['status_code']}, Expected: 400"
+            f"Status: {direct_ho_response['status_code']}, Expected: 403 (Only DM can forward to HO)"
         )
 
         # Step B: DM Reviews and Forwards to HO
