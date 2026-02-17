@@ -714,6 +714,123 @@ async function handleRoute(request, { params }) {
       return handleCORS(NextResponse.json(enriched))
     }
 
+    // =================== WORKS ENDPOINTS ===================
+
+    // POST /works/suggest-activities - Get suggested activities based on plantation age
+    if (route === '/works/suggest-activities' && method === 'POST') {
+      const user = await getUser(request, db)
+      if (!user) return handleCORS(NextResponse.json({ error: 'Unauthorized' }, { status: 401 }))
+
+      const body = await request.json()
+      const { plantation_id, financial_year } = body
+
+      const plantation = await db.collection('plantations').findOne({ id: plantation_id })
+      if (!plantation) return handleCORS(NextResponse.json({ error: 'Plantation not found' }, { status: 404 }))
+
+      const plantationAge = new Date().getFullYear() - plantation.year_of_planting
+
+      // Get norms applicable for this age
+      const norms = await db.collection('norms_config').find({
+        applicable_age: plantationAge,
+        financial_year: financial_year || '2026-27'
+      }).toArray()
+
+      // Enrich with activity details
+      const activities = await db.collection('activity_master').find({}).toArray()
+      const actMap = {}
+      activities.forEach(a => { actMap[a.id] = a })
+
+      const suggestions = norms.map(n => ({
+        activity_id: n.activity_id,
+        activity_name: actMap[n.activity_id]?.name || 'Unknown',
+        ssr_no: actMap[n.activity_id]?.ssr_no,
+        unit: actMap[n.activity_id]?.unit,
+        category: actMap[n.activity_id]?.category,
+        sanctioned_rate: n.standard_rate,
+        applicable_age: n.applicable_age,
+      }))
+
+      return handleCORS(NextResponse.json({
+        plantation,
+        plantation_age: plantationAge,
+        suggested_activities: suggestions,
+      }))
+    }
+
+    // POST /works - Create a new work (add activities to APO)
+    if (route === '/works' && method === 'POST') {
+      const user = await getUser(request, db)
+      if (!user) return handleCORS(NextResponse.json({ error: 'Unauthorized' }, { status: 401 }))
+      if (user.role !== 'RO') return handleCORS(NextResponse.json({ error: 'Only RO can add works' }, { status: 403 }))
+
+      const body = await request.json()
+      const { apo_id, plantation_id, name, items } = body
+
+      if (!apo_id || !items || items.length === 0) {
+        return handleCORS(NextResponse.json({ error: 'APO ID and items are required' }, { status: 400 }))
+      }
+
+      const apo = await db.collection('apo_headers').findOne({ id: apo_id })
+      if (!apo) return handleCORS(NextResponse.json({ error: 'APO not found' }, { status: 404 }))
+      if (apo.status !== 'DRAFT') return handleCORS(NextResponse.json({ error: 'Can only add works to DRAFT APOs' }, { status: 400 }))
+
+      // Create APO items from work items
+      let totalAdded = 0
+      for (const item of items) {
+        const itemId = uuidv4()
+        const totalCost = (item.sanctioned_qty || 0) * (item.sanctioned_rate || 0)
+        await db.collection('apo_items').insertOne({
+          id: itemId,
+          apo_id,
+          activity_id: item.activity_id,
+          activity_name: item.activity_name,
+          ssr_no: item.ssr_no,
+          unit: item.unit,
+          sanctioned_rate: item.sanctioned_rate,
+          sanctioned_qty: item.sanctioned_qty,
+          total_cost: totalCost,
+          estimate_status: 'DRAFT',
+          created_at: new Date(),
+        })
+        totalAdded += totalCost
+      }
+
+      // Update APO total
+      const newTotal = (apo.total_sanctioned_amount || 0) + totalAdded
+      await db.collection('apo_headers').updateOne(
+        { id: apo_id },
+        { $set: { total_sanctioned_amount: newTotal, plantation_id: plantation_id || apo.plantation_id, updated_at: new Date() } }
+      )
+
+      return handleCORS(NextResponse.json({ message: 'Work added successfully', items_added: items.length, total_added: totalAdded }, { status: 201 }))
+    }
+
+    // DELETE /works/:id - Delete a work/item from draft APO
+    const workDeleteMatch = route.match(/^\/works\/([^/]+)$/)
+    if (workDeleteMatch && method === 'DELETE') {
+      const user = await getUser(request, db)
+      if (!user) return handleCORS(NextResponse.json({ error: 'Unauthorized' }, { status: 401 }))
+
+      const itemId = workDeleteMatch[1]
+      const item = await db.collection('apo_items').findOne({ id: itemId })
+      if (!item) return handleCORS(NextResponse.json({ error: 'Work item not found' }, { status: 404 }))
+
+      const apo = await db.collection('apo_headers').findOne({ id: item.apo_id })
+      if (!apo) return handleCORS(NextResponse.json({ error: 'APO not found' }, { status: 404 }))
+      if (apo.status !== 'DRAFT') return handleCORS(NextResponse.json({ error: 'Can only delete works from DRAFT APOs' }, { status: 400 }))
+
+      await db.collection('apo_items').deleteOne({ id: itemId })
+
+      // Update APO total
+      const newTotal = Math.max(0, (apo.total_sanctioned_amount || 0) - (item.total_cost || 0))
+      await db.collection('apo_headers').updateOne(
+        { id: item.apo_id },
+        { $set: { total_sanctioned_amount: newTotal, updated_at: new Date() } }
+      )
+
+      return handleCORS(NextResponse.json({ message: 'Work deleted successfully' }))
+    }
+
     // =================== ESTIMATES ENDPOINTS ===================
     
     // GET /apo/estimates?plantation_id=xxx - Get items for sanctioned APOs
