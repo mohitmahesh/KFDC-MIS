@@ -485,7 +485,11 @@ def main():
     print("-" * 40)
     
     if 'RO' in tokens and 'DM' in tokens:
-        apo_result, apo_id = tester.test_apo_workflow(tokens['RO'], tokens['DM'])
+        apo_workflow_result = tester.test_apo_workflow(tokens['RO'], tokens['DM'])
+        if isinstance(apo_workflow_result, tuple):
+            apo_result, apo_id = apo_workflow_result
+        else:
+            apo_result = apo_workflow_result
         test_results.append(("APO Workflow", apo_result))
     else:
         print("❌ Missing RO or DM tokens - skipping APO workflow test")
