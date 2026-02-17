@@ -928,6 +928,142 @@ async function handleRoute(request, { params }) {
       }))
     }
 
+    // =================== ESTIMATES ENDPOINTS ===================
+    
+    // GET /apo/estimates?plantation_id=xxx - Get items for sanctioned APOs
+    if (route === '/apo/estimates' && method === 'GET') {
+      const url = new URL(request.url)
+      const plantationId = url.searchParams.get('plantation_id')
+      
+      if (!plantationId) {
+        return handleCORS(NextResponse.json({ error: 'Plantation ID is required' }, { status: 400 }))
+      }
+
+      // Find APOs for this plantation that are SANCTIONED
+      const apos = await db.collection('apo_headers').find({ 
+        plantation_id: plantationId, 
+        status: 'SANCTIONED' 
+      }).toArray()
+      
+      const apoIds = apos.map(a => a.id)
+      if (apoIds.length === 0) {
+        return handleCORS(NextResponse.json([]))
+      }
+
+      // Find items for these APOs
+      const items = await db.collection('apo_items').find({ 
+        apo_id: { $in: apoIds } 
+      }).toArray()
+
+      // Ensure estimate_status field exists
+      const enrichedItems = items.map(({ _id, ...item }) => ({
+        ...item,
+        estimate_status: item.estimate_status || 'DRAFT',
+        revised_qty: item.revised_qty !== undefined ? item.revised_qty : null,
+      }))
+
+      return handleCORS(NextResponse.json(enrichedItems))
+    }
+
+    // PATCH /apo/items/:id/estimate - Update revised_qty
+    const estimateUpdateMatch = route.match(/^\/apo\/items\/([^/]+)\/estimate$/)
+    if (estimateUpdateMatch && method === 'PATCH') {
+      const itemId = estimateUpdateMatch[1]
+      const body = await request.json()
+      const { revised_qty, user_role } = body
+
+      const item = await db.collection('apo_items').findOne({ id: itemId })
+      if (!item) {
+        return handleCORS(NextResponse.json({ error: 'Item not found' }, { status: 404 }))
+      }
+
+      // Get the APO for budget validation
+      const apo = await db.collection('apo_headers').findOne({ id: item.apo_id })
+      if (!apo) {
+        return handleCORS(NextResponse.json({ error: 'APO not found' }, { status: 404 }))
+      }
+
+      // RBAC: Only CASE_WORKER_ESTIMATES can update, and only if DRAFT or REJECTED
+      if (user_role === 'PLANTATION_SUPERVISOR') {
+        return handleCORS(NextResponse.json({ error: 'Supervisors cannot edit quantities. Only approval allowed.' }, { status: 403 }))
+      }
+
+      const currentStatus = item.estimate_status || 'DRAFT'
+      if (user_role === 'CASE_WORKER_ESTIMATES' && !['DRAFT', 'REJECTED'].includes(currentStatus)) {
+        return handleCORS(NextResponse.json({ error: 'Cannot edit items that are already submitted or approved.' }, { status: 403 }))
+      }
+
+      const newCost = parseFloat(revised_qty) * item.sanctioned_rate
+
+      // Calculate total cost of all items in this APO, using revised_qty if available
+      const allItems = await db.collection('apo_items').find({ apo_id: apo.id }).toArray()
+      
+      let totalRevisedCost = 0
+      for (const i of allItems) {
+        if (i.id === item.id) {
+          totalRevisedCost += newCost
+        } else {
+          const qty = i.revised_qty !== null && i.revised_qty !== undefined ? i.revised_qty : i.sanctioned_qty
+          totalRevisedCost += qty * i.sanctioned_rate
+        }
+      }
+
+      if (totalRevisedCost > apo.total_sanctioned_amount) {
+        return handleCORS(NextResponse.json({ 
+          error: `Total cost ₹${Math.round(totalRevisedCost)} exceeds sanctioned amount ₹${apo.total_sanctioned_amount}` 
+        }, { status: 400 }))
+      }
+
+      await db.collection('apo_items').updateOne(
+        { id: itemId }, 
+        { $set: { revised_qty: parseFloat(revised_qty), updated_at: new Date() } }
+      )
+
+      const updatedItem = await db.collection('apo_items').findOne({ id: itemId })
+      const { _id, ...result } = updatedItem
+      return handleCORS(NextResponse.json(result))
+    }
+
+    // PATCH /apo/items/:id/status - Update estimate_status
+    const itemStatusMatch = route.match(/^\/apo\/items\/([^/]+)\/status$/)
+    if (itemStatusMatch && method === 'PATCH') {
+      const itemId = itemStatusMatch[1]
+      const body = await request.json()
+      const { status, user_role } = body
+
+      const item = await db.collection('apo_items').findOne({ id: itemId })
+      if (!item) {
+        return handleCORS(NextResponse.json({ error: 'Item not found' }, { status: 404 }))
+      }
+
+      const currentStatus = item.estimate_status || 'DRAFT'
+
+      if (user_role === 'CASE_WORKER_ESTIMATES') {
+        if (status !== 'SUBMITTED') {
+          return handleCORS(NextResponse.json({ error: 'Case workers can only Submit items.' }, { status: 403 }))
+        }
+        if (!['DRAFT', 'REJECTED'].includes(currentStatus)) {
+          return handleCORS(NextResponse.json({ error: 'Can only submit Draft or Rejected items.' }, { status: 403 }))
+        }
+      } else if (user_role === 'PLANTATION_SUPERVISOR') {
+        if (!['APPROVED', 'REJECTED'].includes(status)) {
+          return handleCORS(NextResponse.json({ error: 'Supervisors can only Approve or Reject.' }, { status: 403 }))
+        }
+        if (currentStatus !== 'SUBMITTED') {
+          return handleCORS(NextResponse.json({ error: 'Can only review Submitted items.' }, { status: 403 }))
+        }
+      }
+
+      await db.collection('apo_items').updateOne(
+        { id: itemId }, 
+        { $set: { estimate_status: status, updated_at: new Date() } }
+      )
+
+      const updatedItem = await db.collection('apo_items').findOne({ id: itemId })
+      const { _id, ...result } = updatedItem
+      return handleCORS(NextResponse.json(result))
+    }
+
     // Route not found
     return handleCORS(NextResponse.json({ error: `Route ${route} not found` }, { status: 404 }))
 
