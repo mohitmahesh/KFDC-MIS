@@ -1367,6 +1367,216 @@ function NormsView({ user }) {
   )
 }
 
+// ===================== ESTIMATES VIEW =====================
+function EstimatesView({ user }) {
+  const [plantationId, setPlantationId] = useState('plt-d01')
+  const [items, setItems] = useState([])
+  const [loading, setLoading] = useState(false)
+  const [error, setError] = useState('')
+  const [plantations, setPlantations] = useState([])
+
+  const isECW = user.role === 'CASE_WORKER_ESTIMATES'
+  const isPS = user.role === 'PLANTATION_SUPERVISOR'
+
+  useEffect(() => {
+    // Fetch plantations for dropdown
+    api.get('/plantations').then(setPlantations).catch(console.error)
+  }, [])
+
+  const fetchItems = useCallback(async () => {
+    if (!plantationId) return
+    setLoading(true)
+    setError('')
+    try {
+      const data = await api.get(`/apo/estimates?plantation_id=${plantationId}`)
+      setItems(data)
+    } catch (e) {
+      setError(e.message)
+      setItems([])
+    }
+    setLoading(false)
+  }, [plantationId])
+
+  useEffect(() => {
+    fetchItems()
+  }, [fetchItems])
+
+  const handleUpdateQty = async (itemId, newQty) => {
+    try {
+      await api.patch(`/apo/items/${itemId}/estimate`, { revised_qty: parseFloat(newQty), user_role: user.role })
+      fetchItems()
+    } catch (e) {
+      setError(e.message)
+    }
+  }
+
+  const handleStatusChange = async (itemId, newStatus) => {
+    try {
+      await api.patch(`/apo/items/${itemId}/status`, { status: newStatus, user_role: user.role })
+      fetchItems()
+    } catch (e) {
+      setError(e.message)
+    }
+  }
+
+  const totalSanctioned = items.reduce((sum, i) => sum + (i.sanctioned_qty * i.sanctioned_rate), 0)
+  const totalRevised = items.reduce((sum, i) => {
+    const qty = i.revised_qty !== null ? i.revised_qty : i.sanctioned_qty
+    return sum + (qty * i.sanctioned_rate)
+  }, 0)
+
+  return (
+    <div className="space-y-6">
+      <div className="flex items-center justify-between">
+        <div>
+          <h1 className="text-2xl font-bold text-foreground">Estimates Management</h1>
+          <p className="text-muted-foreground">View and manage work estimates for sanctioned APOs</p>
+        </div>
+      </div>
+
+      {/* Controls */}
+      <Card>
+        <CardContent className="pt-6">
+          <div className="flex flex-wrap gap-4 items-end">
+            <div className="flex-1 min-w-[250px]">
+              <Label className="text-xs uppercase tracking-wide text-muted-foreground">Select Plantation</Label>
+              <Select value={plantationId} onValueChange={setPlantationId}>
+                <SelectTrigger className="mt-1">
+                  <SelectValue placeholder="Select a plantation" />
+                </SelectTrigger>
+                <SelectContent>
+                  {plantations.map(p => (
+                    <SelectItem key={p.id} value={p.id}>{p.name} ({p.id})</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            <Button onClick={fetchItems} className="bg-emerald-700 hover:bg-emerald-800">
+              <RefreshCw className="w-4 h-4 mr-2" /> Reload
+            </Button>
+            <div className="pl-4 border-l flex gap-6">
+              <div>
+                <div className="text-xs text-muted-foreground">Budget Limit</div>
+                <div className="text-lg font-bold">{formatCurrency(totalSanctioned)}</div>
+              </div>
+              <div>
+                <div className="text-xs text-muted-foreground">Revised Total</div>
+                <div className={`text-lg font-bold ${totalRevised > totalSanctioned ? 'text-red-600' : 'text-emerald-600'}`}>
+                  {formatCurrency(totalRevised)}
+                </div>
+              </div>
+            </div>
+          </div>
+        </CardContent>
+      </Card>
+
+      {error && <div className="bg-red-50 text-red-600 p-4 rounded-lg border border-red-200">{error}</div>}
+
+      {/* Table */}
+      <Card>
+        <CardContent className="p-0">
+          <Table>
+            <TableHeader>
+              <TableRow className="bg-muted/50">
+                <TableHead>Work Name</TableHead>
+                <TableHead>Status</TableHead>
+                <TableHead className="text-right">Sanctioned Qty</TableHead>
+                <TableHead className="text-right">Revised Qty</TableHead>
+                <TableHead className="text-right">Cost (₹)</TableHead>
+                <TableHead className="text-center">Actions</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {loading ? (
+                <TableRow>
+                  <TableCell colSpan={6} className="text-center py-8">
+                    <RefreshCw className="w-6 h-6 animate-spin text-emerald-600 mx-auto" />
+                  </TableCell>
+                </TableRow>
+              ) : items.length === 0 ? (
+                <TableRow>
+                  <TableCell colSpan={6} className="text-center py-12">
+                    <AlertTriangle className="w-10 h-10 text-amber-500 mx-auto mb-3" />
+                    <h3 className="text-lg font-medium">No Sanctioned Works Found</h3>
+                    <p className="text-sm text-muted-foreground mt-1">
+                      Either the plantation has no sanctioned APOs, or the plantation ID is incorrect.
+                    </p>
+                  </TableCell>
+                </TableRow>
+              ) : items.map(item => {
+                const currentQty = item.revised_qty !== null ? item.revised_qty : item.sanctioned_qty
+                const cost = currentQty * item.sanctioned_rate
+                const isEditable = isECW && ['DRAFT', 'REJECTED'].includes(item.estimate_status)
+
+                const statusColors = {
+                  DRAFT: 'bg-gray-100 text-gray-800',
+                  SUBMITTED: 'bg-amber-100 text-amber-800',
+                  APPROVED: 'bg-emerald-100 text-emerald-800',
+                  REJECTED: 'bg-red-100 text-red-800'
+                }
+
+                return (
+                  <TableRow key={item.id} className="hover:bg-muted/30">
+                    <TableCell>
+                      <div className="font-medium">{item.activity_name}</div>
+                      <div className="text-xs text-muted-foreground">{item.unit} @ {formatCurrency(item.sanctioned_rate)}</div>
+                    </TableCell>
+                    <TableCell>
+                      <Badge className={`${statusColors[item.estimate_status]} gap-1`}>
+                        {item.estimate_status === 'DRAFT' && <Clock className="w-3 h-3" />}
+                        {item.estimate_status === 'SUBMITTED' && <AlertTriangle className="w-3 h-3" />}
+                        {item.estimate_status === 'APPROVED' && <CheckCircle className="w-3 h-3" />}
+                        {item.estimate_status === 'REJECTED' && <XCircle className="w-3 h-3" />}
+                        {item.estimate_status}
+                      </Badge>
+                    </TableCell>
+                    <TableCell className="text-right">{item.sanctioned_qty}</TableCell>
+                    <TableCell className="text-right">
+                      {isEditable ? (
+                        <Input 
+                          type="number" 
+                          defaultValue={currentQty} 
+                          className="w-24 text-right"
+                          onBlur={(e) => handleUpdateQty(item.id, e.target.value)}
+                        />
+                      ) : (
+                        <span className="font-medium">{currentQty}</span>
+                      )}
+                    </TableCell>
+                    <TableCell className="text-right font-medium">{formatCurrency(cost)}</TableCell>
+                    <TableCell className="text-center">
+                      <div className="flex justify-center gap-2">
+                        {isECW && ['DRAFT', 'REJECTED'].includes(item.estimate_status) && (
+                          <Button size="sm" onClick={() => handleStatusChange(item.id, 'SUBMITTED')} className="bg-blue-600 hover:bg-blue-700">
+                            <Send className="w-3 h-3 mr-1" /> Submit
+                          </Button>
+                        )}
+                        {isPS && item.estimate_status === 'SUBMITTED' && (
+                          <>
+                            <Button size="sm" onClick={() => handleStatusChange(item.id, 'APPROVED')} className="bg-emerald-600 hover:bg-emerald-700">
+                              <CheckCircle className="w-3 h-3 mr-1" /> Approve
+                            </Button>
+                            <Button size="sm" variant="destructive" onClick={() => handleStatusChange(item.id, 'REJECTED')}>
+                              <XCircle className="w-3 h-3 mr-1" /> Reject
+                            </Button>
+                          </>
+                        )}
+                        {!isEditable && item.estimate_status !== 'SUBMITTED' && (
+                          <span className="text-xs text-muted-foreground">-</span>
+                        )}
+                      </div>
+                    </TableCell>
+                  </TableRow>
+                )
+              })}
+            </TableBody>
+          </Table>
+        </CardContent>
+      </Card>
+    </div>
+  )
+}
+
 // ===================== MAIN APP =====================
 function App() {
   const [user, setUser] = useState(null)
