@@ -80,6 +80,9 @@ const SEED_DATA = {
     { id: 'usr-dm2', email: 'dm.bangalore@kfdc.in', password: 'pass123', name: 'Priya Hegde', role: 'DM', division_id: 'div-bangalore', range_id: null },
     { id: 'usr-dm3', email: 'dm.shimoga@kfdc.in', password: 'pass123', name: 'Nagaraj Rao', role: 'DM', division_id: 'div-shimoga', range_id: null },
     { id: 'usr-admin1', email: 'admin@kfdc.in', password: 'pass123', name: 'Dr. Venkatesh Rao', role: 'ADMIN', division_id: null, range_id: null },
+    // New Estimates RBAC Users
+    { id: 'usr-ecw1', email: 'ecw.dharwad@kfdc.in', password: 'pass123', name: 'Ravi HW', role: 'CASE_WORKER_ESTIMATES', division_id: 'div-dharwad', range_id: 'rng-dharwad' },
+    { id: 'usr-ps1', email: 'ps.dharwad@kfdc.in', password: 'pass123', name: 'Sunil PS', role: 'PLANTATION_SUPERVISOR', division_id: 'div-dharwad', range_id: 'rng-dharwad' },
   ],
   // Real KFDC Activities with SSR Numbers from Masters Excel
   activities: [
