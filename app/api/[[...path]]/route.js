@@ -714,6 +714,43 @@ async function handleRoute(request, { params }) {
       return handleCORS(NextResponse.json(enriched))
     }
 
+    // =================== ESTIMATES ENDPOINTS ===================
+    
+    // GET /apo/estimates?plantation_id=xxx - Get items for sanctioned APOs
+    if (route === '/apo/estimates' && method === 'GET') {
+      const url = new URL(request.url)
+      const plantationId = url.searchParams.get('plantation_id')
+      
+      if (!plantationId) {
+        return handleCORS(NextResponse.json({ error: 'Plantation ID is required' }, { status: 400 }))
+      }
+
+      // Find APOs for this plantation that are SANCTIONED
+      const apos = await db.collection('apo_headers').find({ 
+        plantation_id: plantationId, 
+        status: 'SANCTIONED' 
+      }).toArray()
+      
+      const apoIds = apos.map(a => a.id)
+      if (apoIds.length === 0) {
+        return handleCORS(NextResponse.json([]))
+      }
+
+      // Find items for these APOs
+      const items = await db.collection('apo_items').find({ 
+        apo_id: { $in: apoIds } 
+      }).toArray()
+
+      // Ensure estimate_status field exists
+      const enrichedItems = items.map(({ _id, ...item }) => ({
+        ...item,
+        estimate_status: item.estimate_status || 'DRAFT',
+        revised_qty: item.revised_qty !== undefined ? item.revised_qty : null,
+      }))
+
+      return handleCORS(NextResponse.json(enrichedItems))
+    }
+
     // APO Detail
     const apoDetailMatch = route.match(/^\/apo\/([^/]+)$/)
     if (apoDetailMatch && method === 'GET') {
