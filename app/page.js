@@ -882,8 +882,8 @@ function ApoWizard({ user, setView }) {
               <Button variant="outline" onClick={() => submitApo('DRAFT')} disabled={submitting}>
                 <Clock className="w-4 h-4 mr-2" /> Save as Draft
               </Button>
-              <Button className="bg-emerald-700 hover:bg-emerald-800" onClick={() => submitApo('PENDING_APPROVAL')} disabled={submitting}>
-                {submitting ? <><RefreshCw className="w-4 h-4 mr-2 animate-spin" /> Submitting...</> : <><Send className="w-4 h-4 mr-2" /> Submit for Approval</>}
+              <Button className="bg-emerald-700 hover:bg-emerald-800" onClick={() => submitApo('PENDING_DM_APPROVAL')} disabled={submitting}>
+                {submitting ? <><RefreshCw className="w-4 h-4 mr-2 animate-spin" /> Submitting...</> : <><Send className="w-4 h-4 mr-2" /> Submit to DM</>}
               </Button>
             </div>
           </CardFooter>
@@ -898,7 +898,10 @@ function ApoWizard({ user, setView }) {
               <CheckCircle className="w-8 h-8 text-emerald-700" />
             </div>
             <h3 className="text-xl font-bold mb-2">APO Submitted Successfully!</h3>
-            <p className="text-muted-foreground mb-6">Your APO has been created and submitted for approval by the Division Manager.</p>
+            <p className="text-muted-foreground mb-6">Your APO has been submitted to the Division Manager for approval.</p>
+            <div className="bg-blue-50 rounded-lg p-4 mb-6 text-sm text-blue-800">
+              <strong>Approval Hierarchy:</strong> RO → DM → Head Office (Admin)
+            </div>
             <div className="flex gap-3 justify-center">
               <Button variant="outline" onClick={() => setView('apo-list')}>View All APOs</Button>
               <Button className="bg-emerald-700 hover:bg-emerald-800" onClick={() => { setStep(1); setDraft(null); setItems([]); setSelectedPlt(null) }}>
