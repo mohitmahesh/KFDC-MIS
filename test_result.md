@@ -361,12 +361,18 @@ metadata:
 
 test_plan:
   current_focus:
-    - "NEW Estimates Feature - Core Functionality"
-    - "Authentication with NEW estimate users"
-    - "APO Basic Workflow"
-    - "Seed demo data with NEW estimate users"
-  stuck_tasks: []
-  test_all: true
+    - "Complete UI Testing - 8 Test Scenarios"
+    - "RO Login & Dashboard UI"
+    - "Plantations View UI"
+    - "APO Workflow UI (Create & Submit)"
+    - "APO List View UI"
+    - "DM Login & Forward to HO UI"
+    - "Admin Login & Sanction UI"
+    - "ECW Login & Estimates Dashboard UI"
+    - "PS Login & Estimates UI"
+  stuck_tasks:
+    - "Complete UI Testing - 8 Test Scenarios"
+  test_all: false
   test_priority: "high_first"
 
 agent_communication:
