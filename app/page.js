@@ -1092,22 +1092,55 @@ function ApoDetail({ apoId, user, setView }) {
             </div>
           </div>
 
-          {/* Actions */}
-          <div className="flex gap-2 mt-4">
+          {/* APO Approval Workflow: RO → DM → HO (Admin) */}
+          <div className="flex gap-2 mt-4 flex-wrap">
+            {/* RO: Submit DRAFT to DM */}
             {user.role === 'RO' && apo.status === 'DRAFT' && (
-              <Button className="bg-emerald-700 hover:bg-emerald-800" onClick={() => handleStatusChange('PENDING_APPROVAL')}>
-                <Send className="w-4 h-4 mr-2" /> Submit for Approval
+              <Button className="bg-emerald-700 hover:bg-emerald-800" onClick={() => handleStatusChange('PENDING_DM_APPROVAL')}>
+                <Send className="w-4 h-4 mr-2" /> Submit to DM for Approval
               </Button>
             )}
-            {['DM', 'ADMIN'].includes(user.role) && apo.status === 'PENDING_APPROVAL' && (
+            
+            {/* RO: Revise rejected APO */}
+            {user.role === 'RO' && apo.status === 'REJECTED' && (
+              <Button variant="outline" onClick={() => handleStatusChange('DRAFT')}>
+                <RefreshCw className="w-4 h-4 mr-2" /> Revise & Resubmit
+              </Button>
+            )}
+            
+            {/* DM: Approve (forward to HO) or Reject */}
+            {user.role === 'DM' && (apo.status === 'PENDING_DM_APPROVAL' || apo.status === 'PENDING_APPROVAL') && (
               <>
-                <Button className="bg-emerald-700 hover:bg-emerald-800" onClick={() => { setApprovalAction('SANCTIONED'); setShowApproval(true) }}>
-                  <CheckCircle className="w-4 h-4 mr-2" /> Approve / Sanction
+                <Button className="bg-blue-600 hover:bg-blue-700" onClick={() => { setApprovalAction('PENDING_HO_APPROVAL'); setShowApproval(true) }}>
+                  <Send className="w-4 h-4 mr-2" /> Forward to Head Office
                 </Button>
                 <Button variant="destructive" onClick={() => { setApprovalAction('REJECTED'); setShowApproval(true) }}>
                   <XCircle className="w-4 h-4 mr-2" /> Reject
                 </Button>
               </>
+            )}
+            
+            {/* ADMIN/HO: Final Sanction or Reject */}
+            {user.role === 'ADMIN' && (apo.status === 'PENDING_HO_APPROVAL' || apo.status === 'PENDING_APPROVAL') && (
+              <>
+                <Button className="bg-emerald-700 hover:bg-emerald-800" onClick={() => { setApprovalAction('SANCTIONED'); setShowApproval(true) }}>
+                  <CheckCircle className="w-4 h-4 mr-2" /> Sanction APO
+                </Button>
+                <Button variant="destructive" onClick={() => { setApprovalAction('REJECTED'); setShowApproval(true) }}>
+                  <XCircle className="w-4 h-4 mr-2" /> Reject
+                </Button>
+              </>
+            )}
+
+            {/* Status indicators */}
+            {apo.status === 'PENDING_DM_APPROVAL' && user.role === 'RO' && (
+              <Badge variant="outline" className="bg-amber-50 text-amber-700">Awaiting DM Review</Badge>
+            )}
+            {apo.status === 'PENDING_HO_APPROVAL' && ['RO', 'DM'].includes(user.role) && (
+              <Badge variant="outline" className="bg-blue-50 text-blue-700">Awaiting HO Sanction</Badge>
+            )}
+            {apo.status === 'SANCTIONED' && (
+              <Badge variant="outline" className="bg-emerald-50 text-emerald-700">✓ APO Sanctioned</Badge>
             )}
           </div>
         </CardContent>
