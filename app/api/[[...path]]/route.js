@@ -833,39 +833,114 @@ async function handleRoute(request, { params }) {
 
     // =================== ESTIMATES ENDPOINTS ===================
     
-    // GET /apo/estimates?plantation_id=xxx - Get items for sanctioned APOs
+    // GET /apo/estimates - Get works from SANCTIONED APOs scoped to user's jurisdiction
+    // ECW sees works from their range/division only
+    // PS sees works from their range/division only
     if (route === '/apo/estimates' && method === 'GET') {
-      const url = new URL(request.url)
-      const plantationId = url.searchParams.get('plantation_id')
-      
-      if (!plantationId) {
-        return handleCORS(NextResponse.json({ error: 'Plantation ID is required' }, { status: 400 }))
+      const user = await getUser(request, db)
+      if (!user) return handleCORS(NextResponse.json({ error: 'Unauthorized' }, { status: 401 }))
+
+      // Only ECW and PS can access estimates
+      if (!['CASE_WORKER_ESTIMATES', 'PLANTATION_SUPERVISOR', 'ADMIN'].includes(user.role)) {
+        return handleCORS(NextResponse.json({ error: 'Access denied. Only Estimates Case Workers and Supervisors can access this.' }, { status: 403 }))
       }
 
-      // Find APOs for this plantation that are SANCTIONED
+      // Get plantations in user's jurisdiction
+      let plantationFilter = {}
+      if (user.role === 'ADMIN') {
+        // Admin sees all
+        plantationFilter = {}
+      } else if (user.range_id) {
+        // ECW/PS at range level - see plantations in their range
+        plantationFilter = { range_id: user.range_id }
+      } else if (user.division_id) {
+        // ECW/PS at division level - see plantations in all ranges of their division
+        const divRanges = await db.collection('ranges').find({ division_id: user.division_id }).toArray()
+        const rangeIds = divRanges.map(r => r.id)
+        plantationFilter = { range_id: { $in: rangeIds } }
+      }
+
+      const plantations = await db.collection('plantations').find(plantationFilter).toArray()
+      const plantationIds = plantations.map(p => p.id)
+      const pltMap = {}
+      plantations.forEach(p => { pltMap[p.id] = p })
+
+      if (plantationIds.length === 0) {
+        return handleCORS(NextResponse.json({ works: [], summary: { total_sanctioned: 0, total_revised: 0, jurisdiction: user.range_id || user.division_id } }))
+      }
+
+      // Find ONLY SANCTIONED APOs for these plantations
       const apos = await db.collection('apo_headers').find({ 
-        plantation_id: plantationId, 
-        status: 'SANCTIONED' 
+        plantation_id: { $in: plantationIds }, 
+        status: 'SANCTIONED'  // CRITICAL: Only sanctioned APOs
       }).toArray()
       
       const apoIds = apos.map(a => a.id)
+      const apoMap = {}
+      apos.forEach(a => { apoMap[a.id] = a })
+
       if (apoIds.length === 0) {
-        return handleCORS(NextResponse.json([]))
+        return handleCORS(NextResponse.json({ 
+          works: [], 
+          summary: { 
+            total_sanctioned: 0, 
+            total_revised: 0, 
+            jurisdiction: user.range_id || user.division_id,
+            message: 'No sanctioned APOs found in your jurisdiction. APOs must be approved before estimates can be managed.'
+          } 
+        }))
       }
 
-      // Find items for these APOs
+      // Find work items for these APOs
       const items = await db.collection('apo_items').find({ 
         apo_id: { $in: apoIds } 
       }).toArray()
 
-      // Ensure estimate_status field exists
-      const enrichedItems = items.map(({ _id, ...item }) => ({
-        ...item,
-        estimate_status: item.estimate_status || 'DRAFT',
-        revised_qty: item.revised_qty !== undefined ? item.revised_qty : null,
-      }))
+      // Enrich items with plantation and APO info
+      const enrichedItems = items.map(({ _id, ...item }) => {
+        const apo = apoMap[item.apo_id]
+        const plantation = pltMap[apo?.plantation_id]
+        return {
+          ...item,
+          estimate_status: item.estimate_status || 'DRAFT',
+          revised_qty: item.revised_qty !== undefined ? item.revised_qty : null,
+          // Add context info
+          plantation_id: apo?.plantation_id,
+          plantation_name: plantation?.name || 'Unknown',
+          range_id: plantation?.range_id,
+          apo_financial_year: apo?.financial_year,
+          apo_sanctioned_date: apo?.updated_at,
+        }
+      })
 
-      return handleCORS(NextResponse.json(enrichedItems))
+      // Calculate summary
+      const totalSanctioned = enrichedItems.reduce((sum, i) => sum + (i.sanctioned_qty * i.sanctioned_rate), 0)
+      const totalRevised = enrichedItems.reduce((sum, i) => {
+        const qty = i.revised_qty !== null ? i.revised_qty : i.sanctioned_qty
+        return sum + (qty * i.sanctioned_rate)
+      }, 0)
+
+      // Get range/division info for display
+      let jurisdictionName = 'All'
+      if (user.range_id) {
+        const range = await db.collection('ranges').findOne({ id: user.range_id })
+        jurisdictionName = range?.name || user.range_id
+      } else if (user.division_id) {
+        const division = await db.collection('divisions').findOne({ id: user.division_id })
+        jurisdictionName = division?.name || user.division_id
+      }
+
+      return handleCORS(NextResponse.json({
+        works: enrichedItems,
+        summary: {
+          total_sanctioned: totalSanctioned,
+          total_revised: totalRevised,
+          work_count: enrichedItems.length,
+          sanctioned_apo_count: apoIds.length,
+          jurisdiction: jurisdictionName,
+          jurisdiction_type: user.range_id ? 'Range' : (user.division_id ? 'Division' : 'All'),
+        }
+      }))
     }
 
     // APO Detail
