@@ -1369,42 +1369,37 @@ function NormsView({ user }) {
 
 // ===================== ESTIMATES VIEW =====================
 function EstimatesView({ user }) {
-  const [plantationId, setPlantationId] = useState('plt-d01')
-  const [items, setItems] = useState([])
-  const [loading, setLoading] = useState(false)
+  const [works, setWorks] = useState([])
+  const [summary, setSummary] = useState(null)
+  const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
-  const [plantations, setPlantations] = useState([])
 
   const isECW = user.role === 'CASE_WORKER_ESTIMATES'
   const isPS = user.role === 'PLANTATION_SUPERVISOR'
 
-  useEffect(() => {
-    // Fetch plantations for dropdown
-    api.get('/plantations').then(setPlantations).catch(console.error)
-  }, [])
-
-  const fetchItems = useCallback(async () => {
-    if (!plantationId) return
+  const fetchWorks = useCallback(async () => {
     setLoading(true)
     setError('')
     try {
-      const data = await api.get(`/apo/estimates?plantation_id=${plantationId}`)
-      setItems(data)
+      const data = await api.get('/apo/estimates')
+      setWorks(data.works || [])
+      setSummary(data.summary || null)
     } catch (e) {
       setError(e.message)
-      setItems([])
+      setWorks([])
+      setSummary(null)
     }
     setLoading(false)
-  }, [plantationId])
+  }, [])
 
   useEffect(() => {
-    fetchItems()
-  }, [fetchItems])
+    fetchWorks()
+  }, [fetchWorks])
 
   const handleUpdateQty = async (itemId, newQty) => {
     try {
       await api.patch(`/apo/items/${itemId}/estimate`, { revised_qty: parseFloat(newQty), user_role: user.role })
-      fetchItems()
+      fetchWorks()
     } catch (e) {
       setError(e.message)
     }
@@ -1413,56 +1408,73 @@ function EstimatesView({ user }) {
   const handleStatusChange = async (itemId, newStatus) => {
     try {
       await api.patch(`/apo/items/${itemId}/status`, { status: newStatus, user_role: user.role })
-      fetchItems()
+      fetchWorks()
     } catch (e) {
       setError(e.message)
     }
   }
 
-  const totalSanctioned = items.reduce((sum, i) => sum + (i.sanctioned_qty * i.sanctioned_rate), 0)
-  const totalRevised = items.reduce((sum, i) => {
-    const qty = i.revised_qty !== null ? i.revised_qty : i.sanctioned_qty
-    return sum + (qty * i.sanctioned_rate)
-  }, 0)
+  // Group works by plantation for better organization
+  const worksByPlantation = works.reduce((acc, work) => {
+    const key = work.plantation_id || 'unknown'
+    if (!acc[key]) {
+      acc[key] = {
+        plantation_name: work.plantation_name,
+        plantation_id: work.plantation_id,
+        items: []
+      }
+    }
+    acc[key].items.push(work)
+    return acc
+  }, {})
 
   return (
     <div className="space-y-6">
+      {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-bold text-foreground">Estimates Management</h1>
-          <p className="text-muted-foreground">View and manage work estimates for sanctioned APOs</p>
+          <h1 className="text-2xl font-bold text-foreground">Estimates Dashboard</h1>
+          <p className="text-muted-foreground">
+            Manage work estimates for <span className="font-medium text-emerald-700">SANCTIONED APOs</span> in your jurisdiction
+          </p>
         </div>
+        <Button onClick={fetchWorks} variant="outline" className="gap-2">
+          <RefreshCw className={`w-4 h-4 ${loading ? 'animate-spin' : ''}`} /> Refresh
+        </Button>
       </div>
 
-      {/* Controls */}
-      <Card>
+      {/* Jurisdiction & Summary Card */}
+      <Card className="bg-gradient-to-r from-emerald-50 to-teal-50 border-emerald-200">
         <CardContent className="pt-6">
-          <div className="flex flex-wrap gap-4 items-end">
-            <div className="flex-1 min-w-[250px]">
-              <Label className="text-xs uppercase tracking-wide text-muted-foreground">Select Plantation</Label>
-              <Select value={plantationId} onValueChange={setPlantationId}>
-                <SelectTrigger className="mt-1">
-                  <SelectValue placeholder="Select a plantation" />
-                </SelectTrigger>
-                <SelectContent>
-                  {plantations.map(p => (
-                    <SelectItem key={p.id} value={p.id}>{p.name} ({p.id})</SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-            <Button onClick={fetchItems} className="bg-emerald-700 hover:bg-emerald-800">
-              <RefreshCw className="w-4 h-4 mr-2" /> Reload
-            </Button>
-            <div className="pl-4 border-l flex gap-6">
-              <div>
-                <div className="text-xs text-muted-foreground">Budget Limit</div>
-                <div className="text-lg font-bold">{formatCurrency(totalSanctioned)}</div>
+          <div className="flex flex-wrap gap-6 items-center justify-between">
+            <div className="flex items-center gap-4">
+              <div className="w-12 h-12 bg-emerald-100 rounded-lg flex items-center justify-center">
+                <MapPin className="w-6 h-6 text-emerald-700" />
               </div>
               <div>
-                <div className="text-xs text-muted-foreground">Revised Total</div>
-                <div className={`text-lg font-bold ${totalRevised > totalSanctioned ? 'text-red-600' : 'text-emerald-600'}`}>
-                  {formatCurrency(totalRevised)}
+                <div className="text-xs uppercase tracking-wide text-emerald-600 font-medium">Your Jurisdiction</div>
+                <div className="text-xl font-bold text-emerald-900">{summary?.jurisdiction || 'Loading...'}</div>
+                <div className="text-xs text-muted-foreground">{summary?.jurisdiction_type || ''} Level Access</div>
+              </div>
+            </div>
+            
+            <div className="flex gap-8">
+              <div className="text-center">
+                <div className="text-xs text-muted-foreground uppercase tracking-wide">Sanctioned APOs</div>
+                <div className="text-2xl font-bold text-emerald-800">{summary?.sanctioned_apo_count || 0}</div>
+              </div>
+              <div className="text-center">
+                <div className="text-xs text-muted-foreground uppercase tracking-wide">Work Items</div>
+                <div className="text-2xl font-bold text-emerald-800">{summary?.work_count || 0}</div>
+              </div>
+              <div className="text-center border-l pl-8">
+                <div className="text-xs text-muted-foreground uppercase tracking-wide">Sanctioned Budget</div>
+                <div className="text-2xl font-bold text-gray-900">{formatCurrency(summary?.total_sanctioned || 0)}</div>
+              </div>
+              <div className="text-center">
+                <div className="text-xs text-muted-foreground uppercase tracking-wide">Revised Estimate</div>
+                <div className={`text-2xl font-bold ${(summary?.total_revised || 0) > (summary?.total_sanctioned || 0) ? 'text-red-600' : 'text-emerald-600'}`}>
+                  {formatCurrency(summary?.total_revised || 0)}
                 </div>
               </div>
             </div>
@@ -1470,109 +1482,153 @@ function EstimatesView({ user }) {
         </CardContent>
       </Card>
 
+      {/* Role Info */}
+      <div className="flex items-center gap-4 p-3 bg-blue-50 rounded-lg border border-blue-200">
+        <User className="w-5 h-5 text-blue-600" />
+        <div className="text-sm">
+          <span className="font-medium text-blue-900">
+            {isECW ? 'Case Worker' : isPS ? 'Supervisor' : 'Admin'} Mode:
+          </span>
+          <span className="text-blue-700 ml-2">
+            {isECW && 'You can edit quantities and submit estimates for approval.'}
+            {isPS && 'You can approve or reject submitted estimates.'}
+            {!isECW && !isPS && 'Full access to all estimates.'}
+          </span>
+        </div>
+      </div>
+
       {error && <div className="bg-red-50 text-red-600 p-4 rounded-lg border border-red-200">{error}</div>}
 
-      {/* Table */}
-      <Card>
-        <CardContent className="p-0">
-          <Table>
-            <TableHeader>
-              <TableRow className="bg-muted/50">
-                <TableHead>Work Name</TableHead>
-                <TableHead>Status</TableHead>
-                <TableHead className="text-right">Sanctioned Qty</TableHead>
-                <TableHead className="text-right">Revised Qty</TableHead>
-                <TableHead className="text-right">Cost (₹)</TableHead>
-                <TableHead className="text-center">Actions</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {loading ? (
-                <TableRow>
-                  <TableCell colSpan={6} className="text-center py-8">
-                    <RefreshCw className="w-6 h-6 animate-spin text-emerald-600 mx-auto" />
-                  </TableCell>
-                </TableRow>
-              ) : items.length === 0 ? (
-                <TableRow>
-                  <TableCell colSpan={6} className="text-center py-12">
-                    <AlertTriangle className="w-10 h-10 text-amber-500 mx-auto mb-3" />
-                    <h3 className="text-lg font-medium">No Sanctioned Works Found</h3>
-                    <p className="text-sm text-muted-foreground mt-1">
-                      Either the plantation has no sanctioned APOs, or the plantation ID is incorrect.
-                    </p>
-                  </TableCell>
-                </TableRow>
-              ) : items.map(item => {
-                const currentQty = item.revised_qty !== null ? item.revised_qty : item.sanctioned_qty
-                const cost = currentQty * item.sanctioned_rate
-                const isEditable = isECW && ['DRAFT', 'REJECTED'].includes(item.estimate_status)
+      {/* Works by Plantation */}
+      {loading ? (
+        <Card>
+          <CardContent className="py-12 text-center">
+            <RefreshCw className="w-8 h-8 animate-spin text-emerald-600 mx-auto mb-3" />
+            <p className="text-muted-foreground">Loading works from sanctioned APOs...</p>
+          </CardContent>
+        </Card>
+      ) : works.length === 0 ? (
+        <Card>
+          <CardContent className="py-12 text-center">
+            <AlertTriangle className="w-12 h-12 text-amber-500 mx-auto mb-4" />
+            <h3 className="text-xl font-semibold text-gray-900 mb-2">No Sanctioned Works Found</h3>
+            <p className="text-muted-foreground max-w-md mx-auto">
+              {summary?.message || 'There are no sanctioned APOs in your jurisdiction yet. APOs must be approved by the Division Manager before work estimates can be managed.'}
+            </p>
+            <div className="mt-4 p-4 bg-amber-50 rounded-lg border border-amber-200 max-w-md mx-auto">
+              <p className="text-sm text-amber-800">
+                <strong>Note:</strong> Only works from <strong>SANCTIONED</strong> (MD-approved) APOs appear here. 
+                Draft or pending APOs are not visible in the Estimates Dashboard.
+              </p>
+            </div>
+          </CardContent>
+        </Card>
+      ) : (
+        <div className="space-y-6">
+          {Object.entries(worksByPlantation).map(([pltId, group]) => (
+            <Card key={pltId}>
+              <CardHeader className="pb-3 bg-muted/30">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-3">
+                    <div className="w-10 h-10 bg-emerald-100 rounded-lg flex items-center justify-center">
+                      <TreePine className="w-5 h-5 text-emerald-700" />
+                    </div>
+                    <div>
+                      <CardTitle className="text-lg">{group.plantation_name}</CardTitle>
+                      <CardDescription>Plantation ID: {group.plantation_id} • {group.items.length} work item(s)</CardDescription>
+                    </div>
+                  </div>
+                  <Badge className="bg-emerald-100 text-emerald-800">SANCTIONED</Badge>
+                </div>
+              </CardHeader>
+              <CardContent className="p-0">
+                <Table>
+                  <TableHeader>
+                    <TableRow className="bg-muted/50">
+                      <TableHead>Activity / Work Item</TableHead>
+                      <TableHead>Estimate Status</TableHead>
+                      <TableHead className="text-right">Sanctioned Qty</TableHead>
+                      <TableHead className="text-right">Revised Qty</TableHead>
+                      <TableHead className="text-right">Est. Cost (₹)</TableHead>
+                      <TableHead className="text-center">Actions</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {group.items.map(item => {
+                      const currentQty = item.revised_qty !== null ? item.revised_qty : item.sanctioned_qty
+                      const cost = currentQty * item.sanctioned_rate
+                      const isEditable = isECW && ['DRAFT', 'REJECTED'].includes(item.estimate_status)
 
-                const statusColors = {
-                  DRAFT: 'bg-gray-100 text-gray-800',
-                  SUBMITTED: 'bg-amber-100 text-amber-800',
-                  APPROVED: 'bg-emerald-100 text-emerald-800',
-                  REJECTED: 'bg-red-100 text-red-800'
-                }
+                      const statusConfig = {
+                        DRAFT: { color: 'bg-gray-100 text-gray-800', icon: Clock },
+                        SUBMITTED: { color: 'bg-amber-100 text-amber-800', icon: Send },
+                        APPROVED: { color: 'bg-emerald-100 text-emerald-800', icon: CheckCircle },
+                        REJECTED: { color: 'bg-red-100 text-red-800', icon: XCircle }
+                      }
+                      const status = statusConfig[item.estimate_status] || statusConfig.DRAFT
+                      const StatusIcon = status.icon
 
-                return (
-                  <TableRow key={item.id} className="hover:bg-muted/30">
-                    <TableCell>
-                      <div className="font-medium">{item.activity_name}</div>
-                      <div className="text-xs text-muted-foreground">{item.unit} @ {formatCurrency(item.sanctioned_rate)}</div>
-                    </TableCell>
-                    <TableCell>
-                      <Badge className={`${statusColors[item.estimate_status]} gap-1`}>
-                        {item.estimate_status === 'DRAFT' && <Clock className="w-3 h-3" />}
-                        {item.estimate_status === 'SUBMITTED' && <AlertTriangle className="w-3 h-3" />}
-                        {item.estimate_status === 'APPROVED' && <CheckCircle className="w-3 h-3" />}
-                        {item.estimate_status === 'REJECTED' && <XCircle className="w-3 h-3" />}
-                        {item.estimate_status}
-                      </Badge>
-                    </TableCell>
-                    <TableCell className="text-right">{item.sanctioned_qty}</TableCell>
-                    <TableCell className="text-right">
-                      {isEditable ? (
-                        <Input 
-                          type="number" 
-                          defaultValue={currentQty} 
-                          className="w-24 text-right"
-                          onBlur={(e) => handleUpdateQty(item.id, e.target.value)}
-                        />
-                      ) : (
-                        <span className="font-medium">{currentQty}</span>
-                      )}
-                    </TableCell>
-                    <TableCell className="text-right font-medium">{formatCurrency(cost)}</TableCell>
-                    <TableCell className="text-center">
-                      <div className="flex justify-center gap-2">
-                        {isECW && ['DRAFT', 'REJECTED'].includes(item.estimate_status) && (
-                          <Button size="sm" onClick={() => handleStatusChange(item.id, 'SUBMITTED')} className="bg-blue-600 hover:bg-blue-700">
-                            <Send className="w-3 h-3 mr-1" /> Submit
-                          </Button>
-                        )}
-                        {isPS && item.estimate_status === 'SUBMITTED' && (
-                          <>
-                            <Button size="sm" onClick={() => handleStatusChange(item.id, 'APPROVED')} className="bg-emerald-600 hover:bg-emerald-700">
-                              <CheckCircle className="w-3 h-3 mr-1" /> Approve
-                            </Button>
-                            <Button size="sm" variant="destructive" onClick={() => handleStatusChange(item.id, 'REJECTED')}>
-                              <XCircle className="w-3 h-3 mr-1" /> Reject
-                            </Button>
-                          </>
-                        )}
-                        {!isEditable && item.estimate_status !== 'SUBMITTED' && (
-                          <span className="text-xs text-muted-foreground">-</span>
-                        )}
-                      </div>
-                    </TableCell>
-                  </TableRow>
-                )
-              })}
-            </TableBody>
-          </Table>
-        </CardContent>
-      </Card>
+                      return (
+                        <TableRow key={item.id} className="hover:bg-muted/30">
+                          <TableCell>
+                            <div className="font-medium">{item.activity_name}</div>
+                            <div className="text-xs text-muted-foreground">{item.unit} @ {formatCurrency(item.sanctioned_rate)}/unit</div>
+                          </TableCell>
+                          <TableCell>
+                            <Badge className={`${status.color} gap-1`}>
+                              <StatusIcon className="w-3 h-3" />
+                              {item.estimate_status}
+                            </Badge>
+                          </TableCell>
+                          <TableCell className="text-right font-mono">{item.sanctioned_qty}</TableCell>
+                          <TableCell className="text-right">
+                            {isEditable ? (
+                              <Input 
+                                type="number" 
+                                defaultValue={currentQty} 
+                                className="w-24 text-right"
+                                onBlur={(e) => handleUpdateQty(item.id, e.target.value)}
+                              />
+                            ) : (
+                              <span className="font-mono font-medium">{currentQty}</span>
+                            )}
+                          </TableCell>
+                          <TableCell className="text-right font-semibold">{formatCurrency(cost)}</TableCell>
+                          <TableCell className="text-center">
+                            <div className="flex justify-center gap-2">
+                              {isECW && ['DRAFT', 'REJECTED'].includes(item.estimate_status) && (
+                                <Button size="sm" onClick={() => handleStatusChange(item.id, 'SUBMITTED')} className="bg-blue-600 hover:bg-blue-700">
+                                  <Send className="w-3 h-3 mr-1" /> Submit
+                                </Button>
+                              )}
+                              {isPS && item.estimate_status === 'SUBMITTED' && (
+                                <>
+                                  <Button size="sm" onClick={() => handleStatusChange(item.id, 'APPROVED')} className="bg-emerald-600 hover:bg-emerald-700">
+                                    <CheckCircle className="w-3 h-3 mr-1" /> Approve
+                                  </Button>
+                                  <Button size="sm" variant="destructive" onClick={() => handleStatusChange(item.id, 'REJECTED')}>
+                                    <XCircle className="w-3 h-3 mr-1" /> Reject
+                                  </Button>
+                                </>
+                              )}
+                              {item.estimate_status === 'APPROVED' && (
+                                <span className="text-xs text-emerald-600 font-medium">✓ Approved</span>
+                              )}
+                              {item.estimate_status === 'SUBMITTED' && isECW && (
+                                <span className="text-xs text-amber-600">Pending Review</span>
+                              )}
+                            </div>
+                          </TableCell>
+                        </TableRow>
+                      )
+                    })}
+                  </TableBody>
+                </Table>
+              </CardContent>
+            </Card>
+          ))}
+        </div>
+      )}
     </div>
   )
 }
