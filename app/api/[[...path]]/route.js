@@ -635,10 +635,10 @@ async function handleRoute(request, { params }) {
       if (user.role !== 'RO') return handleCORS(NextResponse.json({ error: 'Only RO can create APOs' }, { status: 403 }))
 
       const body = await request.json()
-      const { plantation_id, financial_year, items, status } = body
+      const { plantation_id, financial_year, items, status, title } = body
 
       const apoId = uuidv4()
-      const apoItems = items.map(item => ({
+      const apoItems = (items || []).map(item => ({
         id: uuidv4(),
         apo_id: apoId,
         activity_id: item.activity_id,
