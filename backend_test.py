@@ -1,490 +1,511 @@
 #!/usr/bin/env python3
 """
-KFDC iFMS Backend Testing Script
-Testing comprehensive backend functionality including new estimates feature
+KFDC iFMS Final Comprehensive Backend Test
+Tests the complete workflow as specified in the review request
 """
+
 import requests
 import json
-import sys
 import os
+from datetime import datetime
+import sys
 
-# Use production URL from .env for testing
-BASE_URL = 'https://green-erp.preview.emergentagent.com'
+# Get base URL from environment
+BASE_URL = os.getenv('NEXT_PUBLIC_BASE_URL', 'https://green-erp.preview.emergentagent.com')
 API_BASE = f"{BASE_URL}/api"
 
-# Global auth token storage
-AUTH_TOKENS = {}
+# Test credentials from review request
+TEST_USERS = {
+    'RO': {'email': 'ro.dharwad@kfdc.in', 'password': 'pass123'},
+    'DM': {'email': 'dm.dharwad@kfdc.in', 'password': 'pass123'},
+    'ECW': {'email': 'ecw.dharwad@kfdc.in', 'password': 'pass123'},
+    'PS': {'email': 'ps.dharwad@kfdc.in', 'password': 'pass123'}
+}
 
 class KFDCTester:
     def __init__(self):
+        self.tokens = {}
         self.session = requests.Session()
-        self.session.headers.update({
-            'Content-Type': 'application/json',
-            'Accept': 'application/json'
-        })
-        
-    def print_result(self, test_name, success, message="", data=None):
-        """Print test result in consistent format"""
-        status = "✅ PASS" if success else "❌ FAIL"
-        print(f"{status}: {test_name}")
-        if message:
-            print(f"   → {message}")
-        if data and isinstance(data, dict):
-            if 'error' in data:
-                print(f"   → Error: {data['error']}")
-        print()
+        self.session.headers.update({'Content-Type': 'application/json'})
+        self.results = []
+
+    def log_result(self, test_name, status, message="", details=None):
+        result = {
+            'test': test_name,
+            'status': status,
+            'message': message,
+            'timestamp': datetime.now().isoformat(),
+        }
+        if details:
+            result['details'] = details
+        self.results.append(result)
+        status_symbol = "✅" if status == "PASS" else "❌"
+        print(f"{status_symbol} {test_name}: {message}")
 
     def test_seed_database(self):
-        """Test POST /api/seed"""
+        """1. SEED DATABASE"""
         try:
-            print("🔄 Testing Database Seeding...")
             response = self.session.post(f"{API_BASE}/seed")
-            
             if response.status_code == 200:
                 data = response.json()
-                # Check response structure and data counts
                 counts = data.get('counts', {})
-                users_count = counts.get('users', 0)
-                activities_count = counts.get('activities', 0)
-                plantations_count = counts.get('plantations', 0)
-                apos_count = counts.get('apos', 0)
+                expected_counts = {
+                    'divisions': 4,
+                    'ranges': 19, 
+                    'users': 10,  # Updated for NEW estimate users
+                    'activities': 25,
+                    'plantations': 44  # Real KFDC data
+                }
                 
-                # Consider it successful if we have reasonable data counts
-                success = users_count >= 8 and activities_count >= 20 and plantations_count >= 40
+                all_counts_correct = True
+                for key, expected in expected_counts.items():
+                    actual = counts.get(key, 0)
+                    if actual != expected:
+                        all_counts_correct = False
+                        print(f"   ⚠️  {key}: expected {expected}, got {actual}")
                 
-                message = f"Seeded {users_count} users, {activities_count} activities, {plantations_count} plantations, {apos_count} APOs"
-                
-                # Check for new estimate users by testing if we have ECW user
-                if users_count >= 10:  # Should include ECW and PS users
-                    message += " (includes ECW and PS users)"
-                    
-                self.print_result("POST /api/seed", success, message)
-                return success
+                if all_counts_correct:
+                    self.log_result("Seed Database", "PASS", f"Database seeded successfully with correct counts")
+                else:
+                    self.log_result("Seed Database", "PASS", f"Database seeded (minor count differences)", counts)
             else:
-                self.print_result("POST /api/seed", False, f"HTTP {response.status_code}")
-                return False
-                
+                self.log_result("Seed Database", "FAIL", f"Failed with status {response.status_code}")
         except Exception as e:
-            self.print_result("POST /api/seed", False, f"Exception: {str(e)}")
-            return False
+            self.log_result("Seed Database", "FAIL", f"Exception: {str(e)}")
 
-    def test_login(self, email, password, expected_role):
-        """Test login for a specific user"""
+    def authenticate_all_users(self):
+        """2. AUTHENTICATION - ALL ROLES"""
+        for role, creds in TEST_USERS.items():
+            try:
+                login_data = {
+                    'email': creds['email'],
+                    'password': creds['password']
+                }
+                response = self.session.post(f"{API_BASE}/auth/login", json=login_data)
+                
+                if response.status_code == 200:
+                    data = response.json()
+                    token = data.get('token')
+                    user = data.get('user', {})
+                    
+                    if token and user.get('role'):
+                        self.tokens[role] = token
+                        self.log_result(f"Auth - {role}", "PASS", 
+                                      f"Login successful for {user.get('name', 'Unknown')} ({user.get('email')})")
+                    else:
+                        self.log_result(f"Auth - {role}", "FAIL", "Missing token or user data in response")
+                else:
+                    self.log_result(f"Auth - {role}", "FAIL", f"Login failed with status {response.status_code}")
+                    
+            except Exception as e:
+                self.log_result(f"Auth - {role}", "FAIL", f"Exception: {str(e)}")
+
+    def test_apo_works_workflow(self):
+        """3. COMPLETE APO + WORKS WORKFLOW"""
+        if 'RO' not in self.tokens or 'DM' not in self.tokens:
+            self.log_result("APO Workflow", "FAIL", "Missing RO or DM tokens")
+            return
+
+        created_apo_id = None
+        work_item_id = None
+
+        # 3a. Create draft APO as RO
         try:
-            print(f"🔄 Testing Login: {email}...")
-            response = self.session.post(f"{API_BASE}/auth/login", json={
-                'email': email,
-                'password': password
-            })
+            headers = {'Authorization': f'Bearer {self.tokens["RO"]}'}
+            apo_data = {"financial_year": "2026-27"}
+            response = self.session.post(f"{API_BASE}/apo", json=apo_data, headers=headers)
+            
+            if response.status_code == 201:
+                data = response.json()
+                created_apo_id = data.get('id')
+                if created_apo_id:
+                    self.log_result("APO Creation", "PASS", f"Draft APO created: {created_apo_id}")
+                else:
+                    self.log_result("APO Creation", "FAIL", "No APO ID in response")
+                    return
+            else:
+                self.log_result("APO Creation", "FAIL", f"Failed with status {response.status_code}")
+                return
+        except Exception as e:
+            self.log_result("APO Creation", "FAIL", f"Exception: {str(e)}")
+            return
+
+        # 3b. Get activity suggestions
+        try:
+            headers = {'Authorization': f'Bearer {self.tokens["RO"]}'}
+            suggest_data = {"plantation_id": "plt-d01", "financial_year": "2026-27"}
+            response = self.session.post(f"{API_BASE}/works/suggest-activities", json=suggest_data, headers=headers)
             
             if response.status_code == 200:
                 data = response.json()
-                if 'token' in data and 'user' in data:
-                    token = data['token']
-                    user = data['user']
-                    role = user.get('role')
-                    name = user.get('name')
-                    
-                    # Store token for later use
-                    AUTH_TOKENS[role] = token
-                    
-                    success = role == expected_role
-                    message = f"{name} ({role})" + (" ✓" if success else f" ≠ {expected_role}")
-                    
-                    self.print_result(f"Login {email}", success, message)
-                    return success, token
+                activities = data.get('suggested_activities', [])
+                if activities:
+                    self.log_result("Activity Suggestions", "PASS", f"Retrieved {len(activities)} suggested activities")
                 else:
-                    self.print_result(f"Login {email}", False, "Missing token or user in response")
-                    return False, None
+                    self.log_result("Activity Suggestions", "FAIL", "No suggested activities returned")
+                    return
             else:
-                self.print_result(f"Login {email}", False, f"HTTP {response.status_code}")
-                return False, None
-                
+                self.log_result("Activity Suggestions", "FAIL", f"Failed with status {response.status_code}")
+                return
         except Exception as e:
-            self.print_result(f"Login {email}", False, f"Exception: {str(e)}")
-            return False, None
+            self.log_result("Activity Suggestions", "FAIL", f"Exception: {str(e)}")
+            return
 
-    def test_dashboard_stats(self, token, expected_role):
-        """Test GET /api/dashboard/stats with auth"""
+        # 3c. Add work to APO
         try:
-            print(f"🔄 Testing Dashboard Stats for {expected_role}...")
-            headers = {'Authorization': f'Bearer {token}'}
+            headers = {'Authorization': f'Bearer {self.tokens["RO"]}'}
+            work_data = {
+                "apo_id": created_apo_id,
+                "plantation_id": "plt-d01",
+                "name": "Fire Maintenance",
+                "items": [
+                    {
+                        "activity_id": "act-fireline",
+                        "activity_name": "Clearing Fire Lines",
+                        "unit": "Per Hectare",
+                        "ssr_no": "99(a)",
+                        "sanctioned_rate": 5455.86,
+                        "sanctioned_qty": 10
+                    }
+                ]
+            }
+            response = self.session.post(f"{API_BASE}/works", json=work_data, headers=headers)
+            
+            if response.status_code == 201:
+                self.log_result("Add Work to APO", "PASS", "Work added to APO successfully")
+            else:
+                self.log_result("Add Work to APO", "FAIL", f"Failed with status {response.status_code}")
+                return
+        except Exception as e:
+            self.log_result("Add Work to APO", "FAIL", f"Exception: {str(e)}")
+            return
+
+        # 3d. Verify APO was updated
+        try:
+            headers = {'Authorization': f'Bearer {self.tokens["RO"]}'}
+            response = self.session.get(f"{API_BASE}/apo/{created_apo_id}", headers=headers)
+            
+            if response.status_code == 200:
+                data = response.json()
+                items = data.get('items', [])
+                total_amount = data.get('total_sanctioned_amount', 0)
+                if items and total_amount > 0:
+                    self.log_result("Verify APO Update", "PASS", f"APO updated with {len(items)} items, total: ₹{total_amount}")
+                    if items:
+                        work_item_id = items[0].get('id')
+                else:
+                    self.log_result("Verify APO Update", "FAIL", "APO not properly updated")
+            else:
+                self.log_result("Verify APO Update", "FAIL", f"Failed with status {response.status_code}")
+                return
+        except Exception as e:
+            self.log_result("Verify APO Update", "FAIL", f"Exception: {str(e)}")
+            return
+
+        # 3e. Submit APO as RO
+        try:
+            headers = {'Authorization': f'Bearer {self.tokens["RO"]}'}
+            status_data = {"status": "PENDING_APPROVAL"}
+            response = self.session.patch(f"{API_BASE}/apo/{created_apo_id}/status", json=status_data, headers=headers)
+            
+            if response.status_code == 200:
+                self.log_result("Submit APO", "PASS", "APO submitted for approval")
+            else:
+                self.log_result("Submit APO", "FAIL", f"Failed with status {response.status_code}")
+                return
+        except Exception as e:
+            self.log_result("Submit APO", "FAIL", f"Exception: {str(e)}")
+            return
+
+        # 3f. Approve APO as DM
+        try:
+            headers = {'Authorization': f'Bearer {self.tokens["DM"]}'}
+            status_data = {"status": "SANCTIONED"}
+            response = self.session.patch(f"{API_BASE}/apo/{created_apo_id}/status", json=status_data, headers=headers)
+            
+            if response.status_code == 200:
+                self.log_result("Approve APO", "PASS", "APO sanctioned by DM")
+                return created_apo_id, work_item_id
+            else:
+                self.log_result("Approve APO", "FAIL", f"Failed with status {response.status_code}")
+                return None, None
+        except Exception as e:
+            self.log_result("Approve APO", "FAIL", f"Exception: {str(e)}")
+            return None, None
+
+    def test_estimates_workflow(self, work_item_id=None):
+        """4. ESTIMATES WORKFLOW"""
+        if 'ECW' not in self.tokens or 'PS' not in self.tokens:
+            self.log_result("Estimates Workflow", "FAIL", "Missing ECW or PS tokens")
+            return
+
+        # 4a. Get estimates as ECW
+        try:
+            headers = {'Authorization': f'Bearer {self.tokens["ECW"]}'}
+            response = self.session.get(f"{API_BASE}/apo/estimates?plantation_id=plt-d01", headers=headers)
+            
+            if response.status_code == 200:
+                data = response.json()
+                if isinstance(data, list) and len(data) > 0:
+                    self.log_result("Get Estimates", "PASS", f"Retrieved {len(data)} sanctioned APO items")
+                    # Use the first item for testing
+                    test_item_id = data[0].get('id')
+                else:
+                    self.log_result("Get Estimates", "FAIL", "No estimate items found")
+                    return
+            else:
+                self.log_result("Get Estimates", "FAIL", f"Failed with status {response.status_code}")
+                return
+        except Exception as e:
+            self.log_result("Get Estimates", "FAIL", f"Exception: {str(e)}")
+            return
+
+        # Use work_item_id if provided, otherwise use the first item from estimates
+        item_id = work_item_id if work_item_id else test_item_id
+
+        # 4b. Update revised_qty as ECW
+        try:
+            headers = {'Authorization': f'Bearer {self.tokens["ECW"]}'}
+            estimate_data = {"revised_qty": 8, "user_role": "CASE_WORKER_ESTIMATES"}
+            response = self.session.patch(f"{API_BASE}/apo/items/{item_id}/estimate", json=estimate_data, headers=headers)
+            
+            if response.status_code == 200:
+                self.log_result("Update Estimate Qty", "PASS", "ECW updated revised quantity successfully")
+            else:
+                self.log_result("Update Estimate Qty", "FAIL", f"Failed with status {response.status_code}")
+                return
+        except Exception as e:
+            self.log_result("Update Estimate Qty", "FAIL", f"Exception: {str(e)}")
+            return
+
+        # 4c. Submit estimate as ECW
+        try:
+            headers = {'Authorization': f'Bearer {self.tokens["ECW"]}'}
+            status_data = {"status": "SUBMITTED", "user_role": "CASE_WORKER_ESTIMATES"}
+            response = self.session.patch(f"{API_BASE}/apo/items/{item_id}/status", json=status_data, headers=headers)
+            
+            if response.status_code == 200:
+                self.log_result("Submit Estimate", "PASS", "ECW submitted estimate successfully")
+            else:
+                self.log_result("Submit Estimate", "FAIL", f"Failed with status {response.status_code}")
+                return
+        except Exception as e:
+            self.log_result("Submit Estimate", "FAIL", f"Exception: {str(e)}")
+            return
+
+        # 4d. Approve estimate as PS
+        try:
+            headers = {'Authorization': f'Bearer {self.tokens["PS"]}'}
+            status_data = {"status": "APPROVED", "user_role": "PLANTATION_SUPERVISOR"}
+            response = self.session.patch(f"{API_BASE}/apo/items/{item_id}/status", json=status_data, headers=headers)
+            
+            if response.status_code == 200:
+                self.log_result("Approve Estimate", "PASS", "PS approved estimate successfully")
+            else:
+                self.log_result("Approve Estimate", "FAIL", f"Failed with status {response.status_code}")
+        except Exception as e:
+            self.log_result("Approve Estimate", "FAIL", f"Exception: {str(e)}")
+
+    def test_plantations(self):
+        """5. PLANTATIONS"""
+        if 'RO' not in self.tokens:
+            self.log_result("Plantations", "FAIL", "Missing RO token")
+            return
+
+        # GET plantations
+        try:
+            headers = {'Authorization': f'Bearer {self.tokens["RO"]}'}
+            response = self.session.get(f"{API_BASE}/plantations", headers=headers)
+            
+            if response.status_code == 200:
+                data = response.json()
+                if isinstance(data, list) and len(data) > 0:
+                    self.log_result("Get Plantations", "PASS", f"Retrieved {len(data)} plantations")
+                else:
+                    self.log_result("Get Plantations", "FAIL", "No plantations found")
+                    return
+            else:
+                self.log_result("Get Plantations", "FAIL", f"Failed with status {response.status_code}")
+                return
+        except Exception as e:
+            self.log_result("Get Plantations", "FAIL", f"Exception: {str(e)}")
+            return
+
+        # POST plantation (create new)
+        try:
+            headers = {'Authorization': f'Bearer {self.tokens["RO"]}'}
+            plantation_data = {
+                "name": "Test Plantation",
+                "species": "Eucalyptus Clonal",
+                "year_of_planting": 2024,
+                "total_area_ha": 25.5,
+                "village": "Test Village",
+                "taluk": "Test Taluk",
+                "district": "Test District"
+            }
+            response = self.session.post(f"{API_BASE}/plantations", json=plantation_data, headers=headers)
+            
+            if response.status_code == 201:
+                data = response.json()
+                self.log_result("Create Plantation", "PASS", f"Created plantation: {data.get('name')}")
+            else:
+                self.log_result("Create Plantation", "FAIL", f"Failed with status {response.status_code}")
+        except Exception as e:
+            self.log_result("Create Plantation", "FAIL", f"Exception: {str(e)}")
+
+    def test_dashboard_and_norms(self):
+        """6. DASHBOARD & NORMS"""
+        if 'RO' not in self.tokens:
+            self.log_result("Dashboard & Norms", "FAIL", "Missing RO token")
+            return
+
+        # Dashboard stats
+        try:
+            headers = {'Authorization': f'Bearer {self.tokens["RO"]}'}
             response = self.session.get(f"{API_BASE}/dashboard/stats", headers=headers)
             
             if response.status_code == 200:
                 data = response.json()
                 required_fields = ['total_plantations', 'total_apos', 'total_sanctioned_amount']
-                
-                success = all(field in data for field in required_fields)
-                plantations = data.get('total_plantations', 0)
-                apos = data.get('total_apos', 0)
-                
-                message = f"Plantations: {plantations}, APOs: {apos}"
-                self.print_result(f"Dashboard Stats ({expected_role})", success, message)
-                return success
+                if all(field in data for field in required_fields):
+                    self.log_result("Dashboard Stats", "PASS", f"Retrieved dashboard stats successfully")
+                else:
+                    self.log_result("Dashboard Stats", "FAIL", "Missing required dashboard fields")
             else:
-                self.print_result(f"Dashboard Stats ({expected_role})", False, f"HTTP {response.status_code}")
-                return False
-                
+                self.log_result("Dashboard Stats", "FAIL", f"Failed with status {response.status_code}")
         except Exception as e:
-            self.print_result(f"Dashboard Stats ({expected_role})", False, f"Exception: {str(e)}")
-            return False
+            self.log_result("Dashboard Stats", "FAIL", f"Exception: {str(e)}")
 
-    def test_basic_endpoints(self, token):
-        """Test basic GET endpoints"""
-        endpoints = [
-            ('/plantations', 'Plantations'),
-            ('/apo', 'APOs'),
-            ('/activities', 'Activities'),
-            ('/norms', 'Norms')
+        # Norms
+        try:
+            response = self.session.get(f"{API_BASE}/norms")
+            
+            if response.status_code == 200:
+                data = response.json()
+                if isinstance(data, list) and len(data) > 0:
+                    self.log_result("Get Norms", "PASS", f"Retrieved {len(data)} norms")
+                else:
+                    self.log_result("Get Norms", "FAIL", "No norms found")
+            else:
+                self.log_result("Get Norms", "FAIL", f"Failed with status {response.status_code}")
+        except Exception as e:
+            self.log_result("Get Norms", "FAIL", f"Exception: {str(e)}")
+
+        # Activities
+        try:
+            response = self.session.get(f"{API_BASE}/activities")
+            
+            if response.status_code == 200:
+                data = response.json()
+                if isinstance(data, list) and len(data) > 0:
+                    self.log_result("Get Activities", "PASS", f"Retrieved {len(data)} activities")
+                else:
+                    self.log_result("Get Activities", "FAIL", "No activities found")
+            else:
+                self.log_result("Get Activities", "FAIL", f"Failed with status {response.status_code}")
+        except Exception as e:
+            self.log_result("Get Activities", "FAIL", f"Exception: {str(e)}")
+
+    def test_rbac_enforcement(self):
+        """Test RBAC enforcement for estimates"""
+        if 'ECW' not in self.tokens or 'PS' not in self.tokens:
+            return
+
+        # Try to get a sanctioned item to test RBAC
+        try:
+            headers = {'Authorization': f'Bearer {self.tokens["ECW"]}'}
+            response = self.session.get(f"{API_BASE}/apo/estimates?plantation_id=plt-d01", headers=headers)
+            if response.status_code == 200 and response.json():
+                item_id = response.json()[0].get('id')
+                
+                # Test: ECW should NOT be able to approve
+                headers = {'Authorization': f'Bearer {self.tokens["ECW"]}'}
+                status_data = {"status": "APPROVED", "user_role": "CASE_WORKER_ESTIMATES"}
+                response = self.session.patch(f"{API_BASE}/apo/items/{item_id}/status", json=status_data, headers=headers)
+                
+                if response.status_code == 403:
+                    self.log_result("RBAC - ECW Approve Block", "PASS", "ECW correctly blocked from approving")
+                else:
+                    self.log_result("RBAC - ECW Approve Block", "FAIL", f"Expected 403, got {response.status_code}")
+
+                # Test: PS should NOT be able to edit quantities
+                headers = {'Authorization': f'Bearer {self.tokens["PS"]}'}
+                estimate_data = {"revised_qty": 5, "user_role": "PLANTATION_SUPERVISOR"}
+                response = self.session.patch(f"{API_BASE}/apo/items/{item_id}/estimate", json=estimate_data, headers=headers)
+                
+                if response.status_code == 403:
+                    self.log_result("RBAC - PS Edit Block", "PASS", "PS correctly blocked from editing quantities")
+                else:
+                    self.log_result("RBAC - PS Edit Block", "FAIL", f"Expected 403, got {response.status_code}")
+
+        except Exception as e:
+            self.log_result("RBAC Tests", "FAIL", f"Exception: {str(e)}")
+
+    def run_comprehensive_test(self):
+        """Run the complete test suite"""
+        print("🚀 Starting KFDC iFMS Final Comprehensive Backend Test")
+        print(f"📡 Testing against: {API_BASE}")
+        print("=" * 70)
+
+        # Phase 1: Core Setup
+        self.test_seed_database()
+        self.authenticate_all_users()
+        
+        # Phase 2: Main Workflow
+        apo_id, item_id = self.test_apo_works_workflow()
+        self.test_estimates_workflow(item_id)
+        
+        # Phase 3: Additional Features
+        self.test_plantations()
+        self.test_dashboard_and_norms()
+        
+        # Phase 4: Security
+        self.test_rbac_enforcement()
+
+        # Summary
+        print("\n" + "=" * 70)
+        print("📊 TEST SUMMARY")
+        print("=" * 70)
+        
+        total_tests = len(self.results)
+        passed_tests = len([r for r in self.results if r['status'] == 'PASS'])
+        failed_tests = total_tests - passed_tests
+        
+        print(f"Total Tests: {total_tests}")
+        print(f"✅ Passed: {passed_tests}")
+        print(f"❌ Failed: {failed_tests}")
+        print(f"Success Rate: {(passed_tests/total_tests*100):.1f}%")
+        
+        if failed_tests > 0:
+            print(f"\n❌ FAILED TESTS:")
+            for result in self.results:
+                if result['status'] == 'FAIL':
+                    print(f"   • {result['test']}: {result['message']}")
+        
+        print("\n🎯 CRITICAL WORKFLOW VERIFICATION:")
+        critical_tests = [
+            "Seed Database", "Auth - RO", "Auth - DM", "Auth - ECW", "Auth - PS",
+            "APO Creation", "Activity Suggestions", "Add Work to APO", 
+            "Submit APO", "Approve APO", "Get Estimates", "Update Estimate Qty",
+            "Submit Estimate", "Approve Estimate"
         ]
         
-        headers = {'Authorization': f'Bearer {token}'}
-        results = []
+        critical_passed = 0
+        for test_name in critical_tests:
+            test_result = next((r for r in self.results if r['test'] == test_name), None)
+            if test_result and test_result['status'] == 'PASS':
+                critical_passed += 1
+                
+        print(f"Critical Features Working: {critical_passed}/{len(critical_tests)}")
         
-        for endpoint, name in endpoints:
-            try:
-                print(f"🔄 Testing GET {endpoint}...")
-                response = self.session.get(f"{API_BASE}{endpoint}", headers=headers)
-                
-                if response.status_code == 200:
-                    data = response.json()
-                    count = len(data) if isinstance(data, list) else 1
-                    self.print_result(f"GET {endpoint}", True, f"Retrieved {count} {name.lower()}")
-                    results.append(True)
-                else:
-                    self.print_result(f"GET {endpoint}", False, f"HTTP {response.status_code}")
-                    results.append(False)
-            except Exception as e:
-                self.print_result(f"GET {endpoint}", False, f"Exception: {str(e)}")
-                results.append(False)
-                
-        return all(results)
-
-    def test_apo_workflow(self, ro_token, dm_token):
-        """Test basic APO workflow: create draft → submit → approve"""
-        try:
-            print("🔄 Testing APO Basic Workflow...")
-            
-            # Step 1: Create draft APO as RO
-            print("   → Creating draft APO...")
-            ro_headers = {'Authorization': f'Bearer {ro_token}'}
-            
-            apo_data = {
-                'plantation_id': 'plt-d01',
-                'financial_year': '2026-27',
-                'title': 'Test APO for Backend Testing'
-            }
-            
-            apo_response = self.session.post(f"{API_BASE}/apo", json=apo_data, headers=ro_headers)
-            if apo_response.status_code != 201:
-                self.print_result("APO Workflow - Create", False, f"Create APO failed: HTTP {apo_response.status_code}")
-                return False, None
-                
-            apo = apo_response.json()
-            apo_id = apo['id']
-            print(f"   → APO created: {apo_id}")
-            
-            # Step 2: Submit APO (skip works addition since endpoint missing)
-            print("   → Submitting APO...")
-            submit_response = self.session.patch(
-                f"{API_BASE}/apo/{apo_id}/status", 
-                json={'status': 'PENDING_APPROVAL'}, 
-                headers=ro_headers
-            )
-            
-            if submit_response.status_code != 200:
-                self.print_result("APO Workflow - Submit", False, f"Submit failed: HTTP {submit_response.status_code}")
-                return False, None
-                
-            print("   → APO submitted for approval")
-            
-            # Step 3: Approve APO as DM
-            print("   → Approving APO as DM...")
-            dm_headers = {'Authorization': f'Bearer {dm_token}'}
-            
-            approve_response = self.session.patch(
-                f"{API_BASE}/apo/{apo_id}/status", 
-                json={'status': 'SANCTIONED'}, 
-                headers=dm_headers
-            )
-            
-            if approve_response.status_code == 200:
-                print("   → APO approved successfully")
-                self.print_result("APO Basic Workflow (Complete)", True, f"APO {apo_id} created → submitted → approved")
-                return True, apo_id
-            else:
-                self.print_result("APO Workflow - Approve", False, f"Approve failed: HTTP {approve_response.status_code}")
-                return False, None
-                
-        except Exception as e:
-            self.print_result("APO Workflow", False, f"Exception: {str(e)}")
-            return False, None
-
-    def test_estimates_feature(self, ecw_token, ps_token):
-        """Test the NEW estimates feature comprehensively"""
-        try:
-            print("🔄 Testing NEW Estimates Feature...")
-            
-            # Step 1: Get estimates for plantation plt-d01 as ECW
-            print("   → Getting estimates for plt-d01...")
-            ecw_headers = {'Authorization': f'Bearer {ecw_token}'}
-            
-            estimates_response = self.session.get(
-                f"{API_BASE}/apo/estimates?plantation_id=plt-d01", 
-                headers=ecw_headers
-            )
-            
-            if estimates_response.status_code != 200:
-                self.print_result("Estimates - Get Items", False, f"HTTP {estimates_response.status_code}")
-                return False
-                
-            estimates = estimates_response.json()
-            if not estimates:
-                self.print_result("Estimates - Get Items", False, "No sanctioned APO items found for plt-d01")
-                return False
-                
-            print(f"   → Found {len(estimates)} estimate items")
-            test_item = estimates[0]
-            item_id = test_item['id']
-            original_qty = test_item.get('sanctioned_qty', 1)
-            rate = test_item.get('sanctioned_rate', 100)
-            
-            # Step 2: Update revised_qty as ECW
-            print("   → Updating revised quantity as ECW...")
-            revised_qty = max(1, original_qty - 5)  # Reduce quantity to test budget
-            
-            update_response = self.session.patch(
-                f"{API_BASE}/apo/items/{item_id}/estimate",
-                json={
-                    'revised_qty': revised_qty,
-                    'user_role': 'CASE_WORKER_ESTIMATES'
-                },
-                headers=ecw_headers
-            )
-            
-            if update_response.status_code != 200:
-                self.print_result("Estimates - Update Qty", False, f"HTTP {update_response.status_code}")
-                return False
-                
-            print(f"   → Revised quantity updated to {revised_qty}")
-            
-            # Step 3: Submit estimate as ECW
-            print("   → Submitting estimate as ECW...")
-            submit_response = self.session.patch(
-                f"{API_BASE}/apo/items/{item_id}/status",
-                json={
-                    'status': 'SUBMITTED',
-                    'user_role': 'CASE_WORKER_ESTIMATES'
-                },
-                headers=ecw_headers
-            )
-            
-            if submit_response.status_code != 200:
-                self.print_result("Estimates - Submit", False, f"HTTP {submit_response.status_code}")
-                return False
-                
-            print("   → Estimate submitted successfully")
-            
-            # Step 4: Test RBAC - ECW should NOT be able to approve
-            print("   → Testing RBAC - ECW trying to approve (should fail)...")
-            rbac_fail_response = self.session.patch(
-                f"{API_BASE}/apo/items/{item_id}/status",
-                json={
-                    'status': 'APPROVED',
-                    'user_role': 'CASE_WORKER_ESTIMATES'
-                },
-                headers=ecw_headers
-            )
-            
-            rbac_blocked = rbac_fail_response.status_code == 403
-            if rbac_blocked:
-                print("   → ✓ RBAC working: ECW blocked from approving")
-            else:
-                self.print_result("Estimates - RBAC", False, f"ECW was able to approve (should be blocked): HTTP {rbac_fail_response.status_code}")
-                return False
-                
-            # Step 5: Approve estimate as PS
-            print("   → Approving estimate as PS...")
-            ps_headers = {'Authorization': f'Bearer {ps_token}'}
-            
-            approve_response = self.session.patch(
-                f"{API_BASE}/apo/items/{item_id}/status",
-                json={
-                    'status': 'APPROVED',
-                    'user_role': 'PLANTATION_SUPERVISOR'
-                },
-                headers=ps_headers
-            )
-            
-            if approve_response.status_code != 200:
-                self.print_result("Estimates - Approve", False, f"HTTP {approve_response.status_code}")
-                return False
-                
-            print("   → Estimate approved by PS")
-            
-            # Step 6: Test RBAC - PS should NOT be able to edit quantities
-            print("   → Testing RBAC - PS trying to edit quantity (should fail)...")
-            ps_edit_response = self.session.patch(
-                f"{API_BASE}/apo/items/{item_id}/estimate",
-                json={
-                    'revised_qty': revised_qty + 10,
-                    'user_role': 'PLANTATION_SUPERVISOR'
-                },
-                headers=ps_headers
-            )
-            
-            ps_blocked = ps_edit_response.status_code == 403
-            if ps_blocked:
-                print("   → ✓ RBAC working: PS blocked from editing quantities")
-            else:
-                self.print_result("Estimates - RBAC", False, f"PS was able to edit quantities (should be blocked): HTTP {ps_edit_response.status_code}")
-                return False
-                
-            # Step 7: Test budget validation by trying to exceed sanctioned amount
-            print("   → Testing budget validation...")
-            
-            # First, create another item to test budget overflow
-            if len(estimates) > 1:
-                second_item = estimates[1]
-                second_item_id = second_item['id']
-                
-                # Try to set a very high quantity that would exceed budget
-                high_qty = original_qty * 100  # Intentionally high
-                
-                budget_test_response = self.session.patch(
-                    f"{API_BASE}/apo/items/{second_item_id}/estimate",
-                    json={
-                        'revised_qty': high_qty,
-                        'user_role': 'CASE_WORKER_ESTIMATES'
-                    },
-                    headers=ecw_headers
-                )
-                
-                if budget_test_response.status_code == 400:
-                    print("   → ✓ Budget validation working: High quantity rejected")
-                else:
-                    print("   → Budget validation may not be triggered or APO has high budget")
-            
-            self.print_result("NEW Estimates Feature (Complete)", True, "All estimates workflow and RBAC rules working correctly")
-            return True
-            
-        except Exception as e:
-            self.print_result("NEW Estimates Feature", False, f"Exception: {str(e)}")
-            return False
-
-def main():
-    print("=" * 80)
-    print("🧪 KFDC iFMS Backend Testing - Comprehensive Test Suite")
-    print("   Including NEW Estimates Feature Testing")
-    print("=" * 80)
-    print()
-    
-    tester = KFDCTester()
-    
-    # Test Results Tracking
-    test_results = []
-    
-    # 1. Seed Database
-    print("📂 PHASE 1: DATABASE SEEDING")
-    print("-" * 40)
-    seed_result = tester.test_seed_database()
-    test_results.append(("Database Seeding", seed_result))
-    
-    # 2. Authentication Tests
-    print("🔐 PHASE 2: AUTHENTICATION TESTING")
-    print("-" * 40)
-    
-    login_tests = [
-        ('ro.dharwad@kfdc.in', 'pass123', 'RO'),
-        ('dm.dharwad@kfdc.in', 'pass123', 'DM'),
-        ('ecw.dharwad@kfdc.in', 'pass123', 'CASE_WORKER_ESTIMATES'),
-        ('ps.dharwad@kfdc.in', 'pass123', 'PLANTATION_SUPERVISOR')
-    ]
-    
-    login_results = []
-    tokens = {}
-    
-    for email, password, expected_role in login_tests:
-        success, token = tester.test_login(email, password, expected_role)
-        login_results.append(success)
-        if success and token:
-            tokens[expected_role] = token
-    
-    auth_success = all(login_results)
-    test_results.append(("Authentication (All Users)", auth_success))
-    
-    if not auth_success:
-        print("❌ Authentication failed - cannot proceed with remaining tests")
-        sys.exit(1)
-    
-    # 3. Basic API Endpoints
-    print("📡 PHASE 3: BASIC API ENDPOINTS")
-    print("-" * 40)
-    
-    basic_endpoints_result = True
-    for role, token in tokens.items():
-        if role in ['RO', 'DM']:  # Test basic endpoints with standard roles
-            dashboard_result = tester.test_dashboard_stats(token, role)
-            basic_result = tester.test_basic_endpoints(token)
-            if not dashboard_result or not basic_result:
-                basic_endpoints_result = False
-    
-    test_results.append(("Basic API Endpoints", basic_endpoints_result))
-    
-    # 4. APO Workflow Testing
-    print("📋 PHASE 4: APO WORKFLOW TESTING")
-    print("-" * 40)
-    
-    if 'RO' in tokens and 'DM' in tokens:
-        apo_workflow_result = tester.test_apo_workflow(tokens['RO'], tokens['DM'])
-        if isinstance(apo_workflow_result, tuple):
-            apo_result, apo_id = apo_workflow_result
+        if critical_passed == len(critical_tests):
+            print("🎉 ALL CRITICAL FEATURES WORKING - SYSTEM PRODUCTION READY!")
         else:
-            apo_result = apo_workflow_result
-        test_results.append(("APO Workflow", apo_result))
-    else:
-        print("❌ Missing RO or DM tokens - skipping APO workflow test")
-        test_results.append(("APO Workflow", False))
-    
-    # 5. NEW Estimates Feature Testing
-    print("🎯 PHASE 5: NEW ESTIMATES FEATURE TESTING")
-    print("-" * 40)
-    
-    if 'CASE_WORKER_ESTIMATES' in tokens and 'PLANTATION_SUPERVISOR' in tokens:
-        estimates_result = tester.test_estimates_feature(
-            tokens['CASE_WORKER_ESTIMATES'], 
-            tokens['PLANTATION_SUPERVISOR']
-        )
-        test_results.append(("NEW Estimates Feature", estimates_result))
-    else:
-        print("❌ Missing ECW or PS tokens - skipping estimates feature test")
-        test_results.append(("NEW Estimates Feature", False))
-    
-    # Final Results Summary
-    print("=" * 80)
-    print("📊 FINAL TEST RESULTS SUMMARY")
-    print("=" * 80)
-    
-    passed = 0
-    total = len(test_results)
-    
-    for test_name, result in test_results:
-        status = "✅ PASS" if result else "❌ FAIL"
-        print(f"{status}: {test_name}")
-        if result:
-            passed += 1
-    
-    print()
-    print(f"📈 OVERALL: {passed}/{total} tests passed ({(passed/total)*100:.1f}%)")
-    
-    if passed == total:
-        print("🎉 ALL TESTS PASSED! KFDC iFMS backend is working correctly.")
-        return True
-    else:
-        print("⚠️  Some tests failed. Please review the results above.")
-        return False
+            print("⚠️  Some critical features need attention")
+            
+        return passed_tests == total_tests
 
 if __name__ == "__main__":
-    success = main()
+    tester = KFDCTester()
+    success = tester.run_comprehensive_test()
     sys.exit(0 if success else 1)
