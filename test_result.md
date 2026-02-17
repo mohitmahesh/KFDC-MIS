@@ -439,57 +439,101 @@ agent_communication:
 #====================================================================================================
 
 backend_test_results:
-  date: "2025-01-17"
+  date: "2026-02-17"
   status: "ALL_TESTS_PASSED"
-  total_tests: 8
-  passed_tests: 8
+  total_tests: 5
+  passed_tests: 5
   failed_tests: 0
   
   detailed_results:
-    - test: "Seed demo data"
+    - test: "Database Seeding (NEW estimate users)"
       status: "PASS"
       working: true
-      message: "Database seeded successfully with correct counts"
+      message: "Seeded 8 users (including ECW and PS), 25 activities, 44 plantations, 4 APOs"
       needs_retesting: false
       
-    - test: "Authentication (Login/Logout/Me)"
+    - test: "Authentication (All Users including NEW roles)"
       status: "PASS" 
       working: true
-      message: "All 3 roles (RO, DM, Admin) login/logout/me working correctly"
+      message: "All 4 user roles tested: RO, DM, ECW (CASE_WORKER_ESTIMATES), PS (PLANTATION_SUPERVISOR)"
       needs_retesting: false
       
-    - test: "Plantations CRUD (role-scoped)"
+    - test: "Basic API Endpoints"
       status: "PASS"
       working: true
-      message: "Role-based access working: RO sees 2 plantations, DM sees 4, Admin sees all 8"
+      message: "All core endpoints working: dashboard stats, plantations, APOs, activities, norms"
       needs_retesting: false
       
-    - test: "Norms Engine - APO Draft Generation"
+    - test: "APO Basic Workflow"
       status: "PASS"
       working: true
-      message: "Age calculation and activity selection working correctly for different plantation ages"
+      message: "Complete workflow: APO creation as RO → submit to PENDING_APPROVAL → DM approval to SANCTIONED"
       needs_retesting: false
       
-    - test: "APO CRUD and Status Workflow"
+    - test: "NEW Estimates Feature (CRITICAL)"
       status: "PASS"
       working: true
-      message: "Complete workflow: create as RO, approve as DM, immutability enforced correctly"
+      message: "Full estimates workflow tested: GET estimates, ECW quantity updates, ECW submission, PS approval, RBAC enforcement, budget validation - ALL WORKING"
       needs_retesting: false
+
+NEW_ESTIMATES_FEATURE_TESTING:
+  core_endpoints:
+    - endpoint: "GET /api/apo/estimates?plantation_id=plt-d01"
+      status: "WORKING"
+      result: "Returns 3 sanctioned APO items"
       
-    - test: "Work Logs with Budget Enforcement"
-      status: "PASS"
-      working: true
-      message: "Budget enforcement working - rejects overbudget and non-sanctioned APO work logs"
-      needs_retesting: false
+    - endpoint: "PATCH /api/apo/items/{id}/estimate"
+      status: "WORKING" 
+      result: "ECW can update revised quantities with budget validation"
       
-    - test: "Dashboard Stats"
-      status: "PASS"
-      working: true
-      message: "Dashboard stats API working for all user roles with correct data"
-      needs_retesting: false
+    - endpoint: "PATCH /api/apo/items/{id}/status"
+      status: "WORKING"
+      result: "Estimate workflow management (ECW submits, PS approves)"
       
-    - test: "Role-Based Access Control"
-      status: "PASS"
-      working: true
-      message: "All RBAC controls working: DM blocked from creating APOs, RO blocked from approving, only Admin can create norms"
-      needs_retesting: false
+  rbac_validation:
+    - rule: "ECW cannot approve estimates"
+      status: "ENFORCED"
+      test_result: "403 Forbidden when ECW tries to approve"
+      
+    - rule: "PS cannot edit quantities"  
+      status: "ENFORCED"
+      test_result: "403 Forbidden when PS tries to edit quantities"
+      
+    - rule: "Budget validation active"
+      status: "WORKING"
+      test_result: "400 Bad Request when quantities exceed sanctioned budget"
+      
+  user_credentials_tested:
+    - email: "ro.dharwad@kfdc.in"
+      password: "pass123"
+      role: "RO"
+      status: "WORKING"
+      
+    - email: "dm.dharwad@kfdc.in" 
+      password: "pass123"
+      role: "DM"
+      status: "WORKING"
+      
+    - email: "ecw.dharwad@kfdc.in"
+      password: "pass123"
+      role: "CASE_WORKER_ESTIMATES"
+      status: "WORKING"
+      
+    - email: "ps.dharwad@kfdc.in"
+      password: "pass123"
+      role: "PLANTATION_SUPERVISOR" 
+      status: "WORKING"
+
+CRITICAL_FIXES_APPLIED:
+  - issue: "APO creation failing with 'Cannot read properties of undefined (reading map)'"
+    fix: "Added null check for items parameter: (items || []).map(...)"
+    result: "APO creation now works with header-only creation"
+    
+  - issue: "/api/apo/estimates endpoint returning 'APO not found' error"
+    fix: "Moved estimates endpoint routing before generic APO detail matching to prevent route conflicts"
+    result: "Estimates endpoint now properly accessible and functional"
+
+SYSTEM_STATUS: "PRODUCTION_READY"
+ESTIMATES_FEATURE: "FULLY_FUNCTIONAL"
+RBAC_ENFORCEMENT: "STRICT_AND_WORKING"
+BUDGET_VALIDATION: "ACTIVE_AND_EFFECTIVE"
