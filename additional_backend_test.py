@@ -55,13 +55,13 @@ class AdditionalTester:
         try:
             print("🔄 Testing Plantations CRUD...")
             
-            # Login as Admin to have full access
-            admin_success, admin_token = self.login_user('admin@kfdc.in', 'pass123', 'ADMIN')
-            if not admin_success:
-                self.print_result("Plantation CRUD - Login", False, "Admin login failed")
+            # Login as RO (only RO can create plantations based on code analysis)
+            ro_success, ro_token = self.login_user('ro.dharwad@kfdc.in', 'pass123', 'RO')
+            if not ro_success:
+                self.print_result("Plantation CRUD - Login", False, "RO login failed")
                 return False
             
-            headers = {'Authorization': f'Bearer {admin_token}'}
+            headers = {'Authorization': f'Bearer {ro_token}'}
             
             # Test GET /api/plantations
             plantations_response = self.session.get(f"{API_BASE}/plantations", headers=headers)
@@ -76,7 +76,7 @@ class AdditionalTester:
                 
             print(f"   → Retrieved {len(plantations)} plantations")
             
-            # Test POST /api/plantations (create new plantation)
+            # Test POST /api/plantations (create new plantation as RO)
             new_plantation = {
                 "name": "Test Plantation Backend",
                 "species": "Eucalyptus",
@@ -93,7 +93,7 @@ class AdditionalTester:
             
             create_response = self.session.post(f"{API_BASE}/plantations", json=new_plantation, headers=headers)
             if create_response.status_code not in [200, 201]:
-                self.print_result("Plantation CRUD - POST", False, f"HTTP {create_response.status_code}")
+                self.print_result("Plantation CRUD - POST", False, f"HTTP {create_response.status_code} - {create_response.text}")
                 return False
                 
             created_plantation = create_response.json()
