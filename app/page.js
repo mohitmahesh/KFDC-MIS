@@ -1611,7 +1611,15 @@ function App() {
   }
 
   if (!user) {
-    return <LoginPage onLogin={(u) => { setUser(u); setView('dashboard') }} />
+    return <LoginPage onLogin={(u) => { 
+      setUser(u)
+      // Set default view based on role
+      if (u.role === 'CASE_WORKER_ESTIMATES' || u.role === 'PLANTATION_SUPERVISOR') {
+        setView('estimates')
+      } else {
+        setView('dashboard')
+      }
+    }} />
   }
 
   const renderView = () => {
@@ -1623,7 +1631,13 @@ function App() {
       case 'apo-list': return <ApoList user={user} setView={setView} setSelectedApo={setSelectedApo} />
       case 'apo-detail': return selectedApo ? <ApoDetail apoId={selectedApo} user={user} setView={setView} /> : null
       case 'norms': return <NormsView user={user} />
-      default: return <Dashboard user={user} />
+      case 'estimates': return <EstimatesView user={user} />
+      default: 
+        // Default to estimates for ECW/PS users, dashboard for others
+        if (user.role === 'CASE_WORKER_ESTIMATES' || user.role === 'PLANTATION_SUPERVISOR') {
+          return <EstimatesView user={user} />
+        }
+        return <Dashboard user={user} />
     }
   }
 
