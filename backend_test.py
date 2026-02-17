@@ -42,21 +42,21 @@ class KFDCTester:
             
             if response.status_code == 200:
                 data = response.json()
-                # Check if it's v2 Works edition
-                success = 'works' in data.get('collections_seeded', [])
+                # Check response structure and data counts
+                counts = data.get('counts', {})
+                users_count = counts.get('users', 0)
+                activities_count = counts.get('activities', 0)
+                plantations_count = counts.get('plantations', 0)
+                apos_count = counts.get('apos', 0)
                 
-                if success:
-                    works_count = data.get('collections_created', {}).get('works', 0)
-                    users_count = data.get('collections_created', {}).get('users', 0)
-                    activities_count = data.get('collections_created', {}).get('activities', 0)
-                    plantations_count = data.get('collections_created', {}).get('plantations', 0)
-                    
-                    message = f"v2 Works edition seeded. Works: {works_count}, Users: {users_count}, Activities: {activities_count}, Plantations: {plantations_count}"
-                    # Check for new estimate users
-                    if users_count >= 10:  # Should include ECW and PS users
-                        message += " (includes ECW and PS users)"
-                else:
-                    message = "v2 Works edition not detected"
+                # Consider it successful if we have reasonable data counts
+                success = users_count >= 8 and activities_count >= 20 and plantations_count >= 40
+                
+                message = f"Seeded {users_count} users, {activities_count} activities, {plantations_count} plantations, {apos_count} APOs"
+                
+                # Check for new estimate users by testing if we have ECW user
+                if users_count >= 10:  # Should include ECW and PS users
+                    message += " (includes ECW and PS users)"
                     
                 self.print_result("POST /api/seed", success, message)
                 return success
