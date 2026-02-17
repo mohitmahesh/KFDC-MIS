@@ -943,12 +943,12 @@ function ApoList({ user, setView, setSelectedApo }) {
         )}
       </div>
 
-      <div className="flex gap-2">
-        {['all', 'DRAFT', 'PENDING_APPROVAL', 'SANCTIONED', 'REJECTED'].map(f => (
+      <div className="flex gap-2 flex-wrap">
+        {['all', 'DRAFT', 'PENDING_DM_APPROVAL', 'PENDING_HO_APPROVAL', 'SANCTIONED', 'REJECTED'].map(f => (
           <Button key={f} variant={filter === f ? 'default' : 'outline'} size="sm"
             className={filter === f ? 'bg-emerald-700 hover:bg-emerald-800' : ''}
             onClick={() => setFilter(f)}>
-            {f === 'all' ? 'All' : STATUS_LABELS[f]}
+            {f === 'all' ? 'All' : STATUS_LABELS[f] || f}
           </Button>
         ))}
       </div>
