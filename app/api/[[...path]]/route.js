@@ -284,8 +284,8 @@ const SEED_DATA = {
 
 // ===================== ROUTE HANDLER =====================
 async function handleRoute(request, { params }) {
-  const { path = [] } = params
-  const route = `/${path.join('/')}`
+  const { path: pathSegments = [] } = params
+  const route = `/${pathSegments.join('/')}`
   const method = request.method
 
   try {
