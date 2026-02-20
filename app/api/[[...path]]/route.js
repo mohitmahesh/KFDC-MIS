@@ -943,6 +943,58 @@ async function handleRoute(request, { params }) {
       }))
     }
 
+    // POST /fund-indent/upload-fnb - RFO: Upload FNB PDF file
+    if (route === '/fund-indent/upload-fnb' && method === 'POST') {
+      const user = await getUser(request, db)
+      if (!user) return handleCORS(NextResponse.json({ error: 'Unauthorized' }, { status: 401 }))
+
+      if (user.role !== 'RFO') {
+        return handleCORS(NextResponse.json({ error: 'Only RFO can upload FNB documents' }, { status: 403 }))
+      }
+
+      try {
+        const formData = await request.formData()
+        const file = formData.get('file')
+        const itemId = formData.get('item_id')
+        
+        if (!file) {
+          return handleCORS(NextResponse.json({ error: 'No file uploaded' }, { status: 400 }))
+        }
+
+        if (!file.name.toLowerCase().endsWith('.pdf')) {
+          return handleCORS(NextResponse.json({ error: 'Only PDF files are allowed' }, { status: 400 }))
+        }
+
+        // Ensure uploads directory exists
+        const uploadsDir = path.join(process.cwd(), 'public', 'uploads', 'fnb')
+        await mkdir(uploadsDir, { recursive: true })
+
+        // Create unique filename
+        const timestamp = Date.now()
+        const sanitizedName = file.name.replace(/[^a-zA-Z0-9.-]/g, '_')
+        const fileName = `fnb_${timestamp}_${sanitizedName}`
+        const filePath = path.join(uploadsDir, fileName)
+
+        // Write file
+        const bytes = await file.arrayBuffer()
+        const buffer = Buffer.from(bytes)
+        await writeFile(filePath, buffer)
+
+        // Return the URL path
+        const fileUrl = `/uploads/fnb/${fileName}`
+
+        return handleCORS(NextResponse.json({
+          message: 'FNB PDF uploaded successfully',
+          file_url: fileUrl,
+          file_name: fileName,
+          item_id: itemId
+        }))
+      } catch (error) {
+        console.error('File upload error:', error)
+        return handleCORS(NextResponse.json({ error: 'File upload failed: ' + error.message }, { status: 500 }))
+      }
+    }
+
     // POST /fund-indent/generate - RFO: Generate Fund Indent (GFI)
     if (route === '/fund-indent/generate' && method === 'POST') {
       const user = await getUser(request, db)
