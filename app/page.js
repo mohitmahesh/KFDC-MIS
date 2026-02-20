@@ -1423,10 +1423,13 @@ function NormsView({ user }) {
 // ===================== FUND INDENT - RFO VIEW (Generate Fund Indent) =====================
 function FundIndentRFOView({ user, setView, setSelectedWork }) {
   const [works, setWorks] = useState([])
+  const [myIndents, setMyIndents] = useState([])
   const [years, setYears] = useState([])
   const [selectedYear, setSelectedYear] = useState('2026-27')
   const [loading, setLoading] = useState(true)
+  const [loadingIndents, setLoadingIndents] = useState(true)
   const [error, setError] = useState('')
+  const [activeTab, setActiveTab] = useState('generate')
 
   const fetchWorks = useCallback(async () => {
     setLoading(true)
@@ -1441,83 +1444,210 @@ function FundIndentRFOView({ user, setView, setSelectedWork }) {
     setLoading(false)
   }, [selectedYear])
 
+  const fetchMyIndents = useCallback(async () => {
+    setLoadingIndents(true)
+    try {
+      const data = await api.get('/fund-indent/pending')
+      setMyIndents(data.indents || [])
+    } catch (e) {
+      console.error(e)
+    }
+    setLoadingIndents(false)
+  }, [])
+
   useEffect(() => {
     fetchWorks()
-  }, [fetchWorks])
+    fetchMyIndents()
+  }, [fetchWorks, fetchMyIndents])
+
+  const statusColors = {
+    PENDING_DCF: 'bg-orange-100 text-orange-800',
+    PENDING_ED: 'bg-indigo-100 text-indigo-800',
+    PENDING_MD: 'bg-rose-100 text-rose-800',
+    APPROVED: 'bg-emerald-100 text-emerald-800',
+    FULLY_REJECTED: 'bg-red-100 text-red-800',
+  }
+
+  const statusLabels = {
+    PENDING_DCF: 'Pending DCF Review',
+    PENDING_ED: 'Pending ED Review',
+    PENDING_MD: 'Pending MD Approval',
+    APPROVED: 'Approved',
+    FULLY_REJECTED: 'Rejected',
+  }
 
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-bold text-foreground">Generate Fund Indent (GFI)</h1>
-          <p className="text-muted-foreground">Select works from sanctioned APOs to generate Fund Indent</p>
+          <h1 className="text-2xl font-bold text-foreground">Fund Indent Management</h1>
+          <p className="text-muted-foreground">Generate and track fund indents for sanctioned APO works</p>
         </div>
-        <Button onClick={fetchWorks} variant="outline" className="gap-2">
-          <RefreshCw className={`w-4 h-4 ${loading ? 'animate-spin' : ''}`} /> Refresh
-        </Button>
       </div>
 
-      {/* Year Filter */}
-      <Card>
-        <CardContent className="pt-6">
-          <div className="flex items-center gap-4">
-            <Label className="text-sm font-medium">Financial Year</Label>
-            <Select value={selectedYear} onValueChange={setSelectedYear}>
-              <SelectTrigger className="w-[180px]">
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                {years.map(y => <SelectItem key={y} value={y}>{y}</SelectItem>)}
-              </SelectContent>
-            </Select>
-          </div>
-        </CardContent>
-      </Card>
+      {/* Tabs */}
+      <Tabs value={activeTab} onValueChange={setActiveTab}>
+        <TabsList className="grid w-full grid-cols-2 max-w-md">
+          <TabsTrigger value="generate" className="gap-2"><Plus className="w-4 h-4" /> Generate GFI</TabsTrigger>
+          <TabsTrigger value="my-indents" className="gap-2"><FileText className="w-4 h-4" /> My Fund Indents ({myIndents.length})</TabsTrigger>
+        </TabsList>
 
-      {error && <div className="bg-red-50 text-red-600 p-4 rounded-lg border border-red-200">{error}</div>}
+        {/* Generate GFI Tab */}
+        <TabsContent value="generate" className="space-y-4">
+          {/* Year Filter */}
+          <Card>
+            <CardContent className="pt-6">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-4">
+                  <Label className="text-sm font-medium">Financial Year</Label>
+                  <Select value={selectedYear} onValueChange={setSelectedYear}>
+                    <SelectTrigger className="w-[180px]">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {years.map(y => <SelectItem key={y} value={y}>{y}</SelectItem>)}
+                    </SelectContent>
+                  </Select>
+                </div>
+                <Button onClick={fetchWorks} variant="outline" className="gap-2">
+                  <RefreshCw className={`w-4 h-4 ${loading ? 'animate-spin' : ''}`} /> Refresh
+                </Button>
+              </div>
+            </CardContent>
+          </Card>
 
-      {/* Works Table */}
-      <Card>
-        <CardHeader>
-          <CardTitle className="text-lg">Available Works for Fund Indent</CardTitle>
-          <CardDescription>Select a work to generate Fund Indent</CardDescription>
-        </CardHeader>
-        <CardContent className="p-0">
-          <Table>
-            <TableHeader>
-              <TableRow className="bg-muted/50">
-                <TableHead>APO ID</TableHead>
-                <TableHead>Plantation</TableHead>
-                <TableHead>Financial Year</TableHead>
-                <TableHead className="text-right">Work Items</TableHead>
-                <TableHead className="text-right">Total Amount (₹)</TableHead>
-                <TableHead className="text-center">GFI</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {loading ? (
-                <TableRow><TableCell colSpan={6} className="text-center py-8"><RefreshCw className="w-6 h-6 animate-spin text-emerald-600 mx-auto" /></TableCell></TableRow>
-              ) : works.length === 0 ? (
-                <TableRow><TableCell colSpan={6} className="text-center py-12">
-                  <AlertTriangle className="w-10 h-10 text-amber-500 mx-auto mb-3" />
-                  <h3 className="text-lg font-medium">No Works Available</h3>
-                  <p className="text-sm text-muted-foreground">No sanctioned APO works found for {selectedYear}</p>
-                </TableCell></TableRow>
-              ) : works.map(work => (
-                <TableRow key={work.apo_id} className="hover:bg-muted/30">
-                  <TableCell className="font-mono text-sm">{work.apo_id.slice(0, 8)}...</TableCell>
-                  <TableCell className="font-medium">{work.plantation_name}</TableCell>
-                  <TableCell>{work.financial_year}</TableCell>
-                  <TableCell className="text-right">{work.work_count}</TableCell>
-                  <TableCell className="text-right font-semibold">{formatCurrency(work.total_amount)}</TableCell>
-                  <TableCell className="text-center">
-                    <Button size="sm" className="bg-emerald-700 hover:bg-emerald-800" onClick={() => { setSelectedWork(work.apo_id); setView('fund-indent-items') }}>
-                      <FileText className="w-3 h-3 mr-1" /> Generate
-                    </Button>
-                  </TableCell>
-                </TableRow>
-              ))}
-            </TableBody>
+          {error && <div className="bg-red-50 text-red-600 p-4 rounded-lg border border-red-200">{error}</div>}
+
+          {/* Works Table */}
+          <Card>
+            <CardHeader>
+              <CardTitle className="text-lg">Available Works for Fund Indent</CardTitle>
+              <CardDescription>Select a work to generate Fund Indent</CardDescription>
+            </CardHeader>
+            <CardContent className="p-0">
+              <Table>
+                <TableHeader>
+                  <TableRow className="bg-muted/50">
+                    <TableHead>APO ID</TableHead>
+                    <TableHead>Work ID</TableHead>
+                    <TableHead>Plantation</TableHead>
+                    <TableHead>Year</TableHead>
+                    <TableHead className="text-right">Items</TableHead>
+                    <TableHead className="text-right">Amount (₹)</TableHead>
+                    <TableHead className="text-center">Action</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {loading ? (
+                    <TableRow><TableCell colSpan={7} className="text-center py-8"><RefreshCw className="w-6 h-6 animate-spin text-emerald-600 mx-auto" /></TableCell></TableRow>
+                  ) : works.length === 0 ? (
+                    <TableRow><TableCell colSpan={7} className="text-center py-12">
+                      <AlertTriangle className="w-10 h-10 text-amber-500 mx-auto mb-3" />
+                      <h3 className="text-lg font-medium">No Works Available</h3>
+                      <p className="text-sm text-muted-foreground">No sanctioned APO works found for {selectedYear}</p>
+                    </TableCell></TableRow>
+                  ) : works.map((work, idx) => (
+                    <TableRow key={work.apo_id} className="hover:bg-muted/30">
+                      <TableCell className="font-mono text-xs">{work.apo_id}</TableCell>
+                      <TableCell className="font-mono text-xs">WRK-{String(idx + 1).padStart(3, '0')}</TableCell>
+                      <TableCell className="font-medium">{work.plantation_name}</TableCell>
+                      <TableCell>{work.financial_year}</TableCell>
+                      <TableCell className="text-right">{work.work_count}</TableCell>
+                      <TableCell className="text-right font-semibold">{formatCurrency(work.total_amount)}</TableCell>
+                      <TableCell className="text-center">
+                        <Button size="sm" className="bg-emerald-700 hover:bg-emerald-800" onClick={() => { setSelectedWork(work.apo_id); setView('fund-indent-items') }}>
+                          <FileText className="w-3 h-3 mr-1" /> GFI
+                        </Button>
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            </CardContent>
+          </Card>
+        </TabsContent>
+
+        {/* My Fund Indents Tab */}
+        <TabsContent value="my-indents" className="space-y-4">
+          <Card>
+            <CardHeader>
+              <div className="flex items-center justify-between">
+                <div>
+                  <CardTitle className="text-lg">My Generated Fund Indents</CardTitle>
+                  <CardDescription>Track the status of your fund indent requests</CardDescription>
+                </div>
+                <Button onClick={fetchMyIndents} variant="outline" size="sm" className="gap-2">
+                  <RefreshCw className={`w-4 h-4 ${loadingIndents ? 'animate-spin' : ''}`} /> Refresh
+                </Button>
+              </div>
+            </CardHeader>
+            <CardContent className="p-0">
+              <Table>
+                <TableHeader>
+                  <TableRow className="bg-muted/50">
+                    <TableHead>EST ID</TableHead>
+                    <TableHead>Plantation</TableHead>
+                    <TableHead>Year</TableHead>
+                    <TableHead className="text-right">Items</TableHead>
+                    <TableHead className="text-right">Amount (₹)</TableHead>
+                    <TableHead>Status</TableHead>
+                    <TableHead>Created</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {loadingIndents ? (
+                    <TableRow><TableCell colSpan={7} className="text-center py-8"><RefreshCw className="w-6 h-6 animate-spin text-emerald-600 mx-auto" /></TableCell></TableRow>
+                  ) : myIndents.length === 0 ? (
+                    <TableRow><TableCell colSpan={7} className="text-center py-12">
+                      <FileText className="w-10 h-10 text-gray-400 mx-auto mb-3" />
+                      <h3 className="text-lg font-medium">No Fund Indents Yet</h3>
+                      <p className="text-sm text-muted-foreground">Generate your first fund indent from the "Generate GFI" tab</p>
+                    </TableCell></TableRow>
+                  ) : myIndents.map(indent => (
+                    <TableRow key={indent.id} className="hover:bg-muted/30">
+                      <TableCell className="font-mono font-medium text-emerald-700">{indent.id}</TableCell>
+                      <TableCell>{indent.plantation_name}</TableCell>
+                      <TableCell>{indent.financial_year}</TableCell>
+                      <TableCell className="text-right">{indent.item_count}</TableCell>
+                      <TableCell className="text-right font-semibold">{formatCurrency(indent.total_amount)}</TableCell>
+                      <TableCell>
+                        <Badge className={statusColors[indent.status] || 'bg-gray-100'}>
+                          {statusLabels[indent.status] || indent.status}
+                        </Badge>
+                      </TableCell>
+                      <TableCell className="text-xs text-muted-foreground">
+                        {new Date(indent.created_at).toLocaleDateString('en-IN')}
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            </CardContent>
+          </Card>
+
+          {/* Approval Chain Legend */}
+          <Card>
+            <CardContent className="pt-6">
+              <div className="flex items-center gap-8">
+                <span className="text-sm font-medium text-muted-foreground">Approval Flow:</span>
+                <div className="flex items-center gap-2">
+                  <Badge className="bg-cyan-100 text-cyan-800">RFO (You)</Badge>
+                  <ArrowLeft className="w-4 h-4 rotate-180 text-muted-foreground" />
+                  <Badge className="bg-orange-100 text-orange-800">DCF</Badge>
+                  <ArrowLeft className="w-4 h-4 rotate-180 text-muted-foreground" />
+                  <Badge className="bg-indigo-100 text-indigo-800">ED</Badge>
+                  <ArrowLeft className="w-4 h-4 rotate-180 text-muted-foreground" />
+                  <Badge className="bg-rose-100 text-rose-800">MD</Badge>
+                  <ArrowLeft className="w-4 h-4 rotate-180 text-muted-foreground" />
+                  <Badge className="bg-emerald-100 text-emerald-800">Approved</Badge>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        </TabsContent>
+      </Tabs>
+    </div>
+  )
           </Table>
         </CardContent>
       </Card>
