@@ -17,8 +17,8 @@ import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, Responsive
 import {
   TreePine, LogIn, LogOut, LayoutDashboard, FileText, TreesIcon, Settings, ChevronRight,
   Plus, Eye, CheckCircle, XCircle, Clock, AlertTriangle, Leaf, MapPin, Calendar,
-  IndianRupee, TrendingUp, ClipboardList, Send, ArrowLeft, RefreshCw, ChevronDown,
-  User, Shield, Building2, Layers, BookOpen
+  IndianRupee, TrendingUp, ClipboardList, Send, ArrowLeft, RefreshCw, ChevronDown, ChevronUp,
+  User, Shield, Building2, Layers, BookOpen, Trash2
 } from 'lucide-react'
 
 // ===================== API HELPER =====================
