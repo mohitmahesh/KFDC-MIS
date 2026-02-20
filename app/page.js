@@ -94,9 +94,11 @@ const formatCurrency = (n) => {
 function LoginPage({ onLogin }) {
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
+  const [rememberMe, setRememberMe] = useState(false)
   const [error, setError] = useState('')
   const [loading, setLoading] = useState(false)
   const [seeding, setSeeding] = useState(false)
+  const [showDemoAccounts, setShowDemoAccounts] = useState(false)
 
   const handleSeed = async () => {
     setSeeding(true)
@@ -137,93 +139,159 @@ function LoginPage({ onLogin }) {
     { email: 'md@kfdc.in', role: 'Managing Director', division: 'All' },
   ]
 
+  // Decorative Leaf SVG Component
+  const LeafDecoration = () => (
+    <svg className="absolute -z-10" viewBox="0 0 400 400" width="400" height="400" style={{ left: '-50px', top: '50%', transform: 'translateY(-50%)' }}>
+      {/* Large teal leaf */}
+      <ellipse cx="120" cy="200" rx="80" ry="140" fill="#0d9488" transform="rotate(-30 120 200)" opacity="0.9" />
+      {/* Dark green leaf */}
+      <ellipse cx="180" cy="180" rx="60" ry="120" fill="#166534" transform="rotate(-15 180 180)" opacity="0.85" />
+      {/* Light green leaf */}
+      <ellipse cx="100" cy="280" rx="50" ry="100" fill="#22c55e" transform="rotate(-45 100 280)" opacity="0.7" />
+      {/* Orange accent leaf */}
+      <ellipse cx="150" cy="330" rx="30" ry="60" fill="#f97316" transform="rotate(-60 150 330)" opacity="0.8" />
+      {/* Yellow accent leaf */}
+      <ellipse cx="120" cy="360" rx="25" ry="50" fill="#fbbf24" transform="rotate(-70 120 360)" opacity="0.8" />
+      {/* Small teal dots */}
+      <circle cx="250" cy="120" r="4" fill="#0d9488" />
+      <circle cx="280" cy="140" r="3" fill="#166534" />
+      <circle cx="260" cy="160" r="2" fill="#22c55e" />
+      <circle cx="300" cy="300" r="4" fill="#f97316" />
+      <circle cx="280" cy="320" r="3" fill="#fbbf24" />
+      <circle cx="310" cy="340" r="2" fill="#0d9488" />
+    </svg>
+  )
+
   return (
-    <div className="min-h-screen bg-gradient-to-br from-emerald-900 via-green-800 to-emerald-950 flex items-center justify-center p-4">
-      <div className="w-full max-w-5xl grid md:grid-cols-2 gap-8 items-center">
-        {/* Left - Branding */}
-        <div className="text-white space-y-6 p-8">
-          <div className="flex items-center gap-3">
-            <div className="w-14 h-14 bg-white/10 rounded-xl flex items-center justify-center backdrop-blur-sm border border-white/20">
-              <TreePine className="w-8 h-8 text-emerald-300" />
-            </div>
-            <div>
-              <h1 className="text-2xl font-bold">KFDC iFMS</h1>
-              <p className="text-emerald-300 text-sm">Integrated Forestry Management</p>
-            </div>
+    <div className="min-h-screen bg-[#e8f5f0] relative overflow-hidden">
+      {/* Header */}
+      <header className="bg-[#115e59] py-3 px-6 flex items-center justify-between relative z-20">
+        <div className="flex items-center gap-2">
+          <div className="w-8 h-8 bg-white/20 rounded-full flex items-center justify-center">
+            <TreePine className="w-5 h-5 text-white" />
           </div>
-          <h2 className="text-4xl font-bold leading-tight">
-            Stump to Sale<br />
-            <span className="text-emerald-300">Digital Platform</span>
-          </h2>
-          <p className="text-emerald-100/80 text-lg leading-relaxed">
-            Centralized norms-driven platform managing the entire lifecycle of plantations.
-            From APO generation to budget enforcement.
-          </p>
-          <div className="grid grid-cols-3 gap-4 pt-4">
-            <div className="text-center p-3 bg-white/5 rounded-lg border border-white/10">
-              <div className="text-2xl font-bold text-emerald-300">45+</div>
-              <div className="text-xs text-emerald-200/70">Plantations</div>
-            </div>
-            <div className="text-center p-3 bg-white/5 rounded-lg border border-white/10">
-              <div className="text-2xl font-bold text-emerald-300">19</div>
-              <div className="text-xs text-emerald-200/70">Ranges</div>
-            </div>
-            <div className="text-center p-3 bg-white/5 rounded-lg border border-white/10">
-              <div className="text-2xl font-bold text-emerald-300">4</div>
-              <div className="text-xs text-emerald-200/70">Divisions</div>
-            </div>
-          </div>
+          <span className="text-white font-semibold text-lg">KFDC <span className="font-normal">iFMS</span></span>
+        </div>
+        <Button 
+          variant="outline" 
+          size="sm" 
+          className="text-white border-white/30 hover:bg-white/10 hover:text-white"
+          onClick={handleSeed}
+          disabled={seeding}
+        >
+          {seeding ? <RefreshCw className="w-4 h-4 mr-2 animate-spin" /> : null}
+          {seeding ? 'Initializing...' : 'Initialize Demo Data'}
+        </Button>
+      </header>
+
+      {/* Main Content */}
+      <div className="flex items-center justify-center min-h-[calc(100vh-56px)] relative">
+        {/* Decorative Elements */}
+        <LeafDecoration />
+        
+        {/* Small scattered decorations on right */}
+        <div className="absolute right-20 top-1/4">
+          <div className="w-3 h-3 bg-teal-500 rounded-full opacity-60" />
+        </div>
+        <div className="absolute right-32 top-1/3">
+          <div className="w-2 h-2 bg-orange-400 rounded-full opacity-70" />
+        </div>
+        <div className="absolute right-16 bottom-1/3">
+          <div className="w-4 h-4 bg-green-500 rounded-full opacity-50" />
+        </div>
+        <div className="absolute right-40 bottom-1/4">
+          <div className="w-2 h-2 bg-yellow-400 rounded-full opacity-60" />
         </div>
 
-        {/* Right - Login Form */}
-        <Card className="shadow-2xl border-0">
-          <CardHeader className="space-y-1 pb-4">
-            <CardTitle className="text-2xl">Sign In</CardTitle>
-            <CardDescription>Enter your KFDC credentials to access the system</CardDescription>
+        {/* Login Card */}
+        <Card className="w-full max-w-md shadow-xl border-0 bg-white relative z-10 mx-4">
+          <CardHeader className="text-center pb-2 pt-8">
+            <CardTitle className="text-2xl font-medium text-gray-800">Log in</CardTitle>
           </CardHeader>
-          <CardContent>
+          <CardContent className="px-8 pb-8">
             <form onSubmit={handleLogin} className="space-y-4">
               <div className="space-y-2">
-                <Label htmlFor="email">Email</Label>
-                <Input id="email" type="email" placeholder="your.name@kfdc.in" value={email} onChange={e => setEmail(e.target.value)} required />
+                <Input 
+                  type="email" 
+                  placeholder="Your email" 
+                  value={email} 
+                  onChange={e => setEmail(e.target.value)} 
+                  required 
+                  className="h-12 bg-gray-50 border-gray-200 rounded-lg focus:ring-2 focus:ring-teal-500 focus:border-transparent"
+                />
               </div>
               <div className="space-y-2">
-                <Label htmlFor="password">Password</Label>
-                <Input id="password" type="password" placeholder="Enter password" value={password} onChange={e => setPassword(e.target.value)} required />
+                <Input 
+                  type="password" 
+                  placeholder="Your password" 
+                  value={password} 
+                  onChange={e => setPassword(e.target.value)} 
+                  required 
+                  className="h-12 bg-gray-50 border-gray-200 rounded-lg focus:ring-2 focus:ring-teal-500 focus:border-transparent"
+                />
               </div>
-              {error && <p className="text-sm text-red-600 bg-red-50 p-2 rounded">{error}</p>}
-              <Button type="submit" className="w-full bg-emerald-700 hover:bg-emerald-800" disabled={loading}>
-                {loading ? 'Signing in...' : 'Sign In'}
-                <LogIn className="w-4 h-4 ml-2" />
+              
+              <div className="flex items-center space-x-2">
+                <Checkbox 
+                  id="remember" 
+                  checked={rememberMe}
+                  onCheckedChange={setRememberMe}
+                  className="border-gray-300 data-[state=checked]:bg-teal-600 data-[state=checked]:border-teal-600"
+                />
+                <label htmlFor="remember" className="text-sm text-gray-600 cursor-pointer">
+                  Remember me
+                </label>
+              </div>
+
+              {error && <p className="text-sm text-red-600 bg-red-50 p-3 rounded-lg">{error}</p>}
+              
+              <Button 
+                type="submit" 
+                className="w-full h-12 bg-[#115e59] hover:bg-[#0d4f4a] rounded-full text-base font-medium mt-4" 
+                disabled={loading}
+              >
+                {loading ? 'Logging in...' : 'Log in'}
               </Button>
+              
+              <p className="text-center text-sm text-teal-700 hover:text-teal-800 cursor-pointer mt-2">
+                Forgot password?
+              </p>
             </form>
 
-            <div className="mt-6">
-              <Separator className="my-4" />
-              <p className="text-xs text-muted-foreground mb-3">Demo Accounts (password: pass123)</p>
-              <div className="space-y-2">
-                {demoAccounts.map(acc => (
-                  <button key={acc.email} onClick={() => { setEmail(acc.email); setPassword('pass123') }}
-                    className="w-full flex items-center justify-between p-2.5 rounded-lg border border-border hover:bg-accent transition-colors text-left">
-                    <div className="flex items-center gap-2">
-                      <User className="w-4 h-4 text-emerald-700" />
-                      <div>
-                        <div className="text-sm font-medium">{acc.role}</div>
-                        <div className="text-xs text-muted-foreground">{acc.email}</div>
+            {/* Demo Accounts Toggle */}
+            <div className="mt-6 pt-4 border-t border-gray-100">
+              <button 
+                onClick={() => setShowDemoAccounts(!showDemoAccounts)}
+                className="w-full flex items-center justify-between text-sm text-gray-500 hover:text-gray-700"
+              >
+                <span>Demo Accounts (password: pass123)</span>
+                {showDemoAccounts ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
+              </button>
+              
+              {showDemoAccounts && (
+                <div className="mt-3 max-h-60 overflow-y-auto space-y-1.5">
+                  {demoAccounts.map(acc => (
+                    <button 
+                      key={acc.email} 
+                      onClick={() => { setEmail(acc.email); setPassword('pass123') }}
+                      className="w-full flex items-center justify-between p-2.5 rounded-lg border border-gray-100 hover:bg-gray-50 hover:border-teal-200 transition-colors text-left group"
+                    >
+                      <div className="flex items-center gap-2">
+                        <div className="w-7 h-7 bg-teal-50 rounded-full flex items-center justify-center group-hover:bg-teal-100">
+                          <User className="w-3.5 h-3.5 text-teal-600" />
+                        </div>
+                        <div>
+                          <div className="text-sm font-medium text-gray-700">{acc.role}</div>
+                          <div className="text-xs text-gray-400">{acc.email}</div>
+                        </div>
                       </div>
-                    </div>
-                    <Badge variant="outline" className="text-xs">{acc.division}</Badge>
-                  </button>
-                ))}
-              </div>
+                      <Badge variant="outline" className="text-xs bg-gray-50 text-gray-600 border-gray-200">{acc.division}</Badge>
+                    </button>
+                  ))}
+                </div>
+              )}
             </div>
           </CardContent>
-          <CardFooter>
-            <Button variant="outline" className="w-full" onClick={handleSeed} disabled={seeding}>
-              <RefreshCw className={`w-4 h-4 mr-2 ${seeding ? 'animate-spin' : ''}`} />
-              {seeding ? 'Seeding...' : 'Initialize Demo Data'}
-            </Button>
-          </CardFooter>
         </Card>
       </div>
     </div>
