@@ -19,7 +19,7 @@ import {
   TreePine, LogIn, LogOut, LayoutDashboard, FileText, TreesIcon, Settings, ChevronRight,
   Plus, Eye, CheckCircle, XCircle, Clock, AlertTriangle, Leaf, MapPin, Calendar,
   IndianRupee, TrendingUp, ClipboardList, Send, ArrowLeft, RefreshCw, ChevronDown, ChevronUp,
-  User, Shield, Building2, Layers, BookOpen, Trash2
+  User, Shield, Building2, Layers, BookOpen, Trash2, Upload, File, X
 } from 'lucide-react'
 
 // ===================== API HELPER =====================
