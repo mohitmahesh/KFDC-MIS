@@ -80,9 +80,11 @@ const SEED_DATA = {
     { id: 'usr-dm2', email: 'dm.bangalore@kfdc.in', password: 'pass123', name: 'Priya Hegde', role: 'DM', division_id: 'div-bangalore', range_id: null },
     { id: 'usr-dm3', email: 'dm.shimoga@kfdc.in', password: 'pass123', name: 'Nagaraj Rao', role: 'DM', division_id: 'div-shimoga', range_id: null },
     { id: 'usr-admin1', email: 'admin@kfdc.in', password: 'pass123', name: 'Dr. Venkatesh Rao', role: 'ADMIN', division_id: null, range_id: null },
-    // New Estimates RBAC Users
-    { id: 'usr-ecw1', email: 'ecw.dharwad@kfdc.in', password: 'pass123', name: 'Ravi HW', role: 'CASE_WORKER_ESTIMATES', division_id: 'div-dharwad', range_id: 'rng-dharwad' },
-    { id: 'usr-ps1', email: 'ps.dharwad@kfdc.in', password: 'pass123', name: 'Sunil PS', role: 'PLANTATION_SUPERVISOR', division_id: 'div-dharwad', range_id: 'rng-dharwad' },
+    // Fund Indent Hierarchy: RFO → DCF → ED → MD
+    { id: 'usr-rfo1', email: 'rfo.dharwad@kfdc.in', password: 'pass123', name: 'Anil Kumar RFO', role: 'RFO', division_id: 'div-dharwad', range_id: 'rng-dharwad' },
+    { id: 'usr-dcf1', email: 'dcf.dharwad@kfdc.in', password: 'pass123', name: 'Suresh Patil DCF', role: 'DCF', division_id: 'div-dharwad', range_id: null },
+    { id: 'usr-ed1', email: 'ed@kfdc.in', password: 'pass123', name: 'Rajesh Naik ED', role: 'ED', division_id: null, range_id: null },
+    { id: 'usr-md1', email: 'md@kfdc.in', password: 'pass123', name: 'Dr. Shivakumar MD', role: 'MD', division_id: null, range_id: null },
   ],
   // Real KFDC Activities with SSR Numbers from Masters Excel
   activities: [
