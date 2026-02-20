@@ -300,6 +300,8 @@ function LoginPage({ onLogin }) {
 
 // ===================== SIDEBAR =====================
 function Sidebar({ user, currentView, setView, onLogout }) {
+  const [expandedMenu, setExpandedMenu] = useState(null)
+  
   const navItems = [
     { id: 'dashboard', label: 'Dashboard', icon: LayoutDashboard, roles: ['RO', 'DM', 'ADMIN'] },
     { id: 'plantations', label: 'Plantations', icon: TreePine, roles: ['RO', 'DM', 'ADMIN'] },
@@ -320,59 +322,71 @@ function Sidebar({ user, currentView, setView, onLogout }) {
     ED: 'Executive Director',
     MD: 'Managing Director'
   }
+  
   const roleColors = { 
-    RO: 'bg-blue-100 text-blue-800', 
-    DM: 'bg-purple-100 text-purple-800', 
-    ADMIN: 'bg-amber-100 text-amber-800',
-    RFO: 'bg-cyan-100 text-cyan-800',
-    DCF: 'bg-orange-100 text-orange-800',
-    ED: 'bg-indigo-100 text-indigo-800',
-    MD: 'bg-rose-100 text-rose-800'
+    RO: 'bg-blue-500/20 text-blue-300', 
+    DM: 'bg-purple-500/20 text-purple-300', 
+    ADMIN: 'bg-amber-500/20 text-amber-300',
+    RFO: 'bg-cyan-500/20 text-cyan-300',
+    DCF: 'bg-orange-500/20 text-orange-300',
+    ED: 'bg-indigo-500/20 text-indigo-300',
+    MD: 'bg-rose-500/20 text-rose-300'
   }
 
   return (
-    <div className="w-64 bg-white border-r border-border h-screen flex flex-col shadow-sm">
+    <div className="w-64 bg-[#1e293b] h-screen flex flex-col">
       {/* Logo */}
-      <div className="p-4 border-b border-border">
-        <div className="flex items-center gap-2.5">
-          <div className="w-10 h-10 bg-emerald-700 rounded-lg flex items-center justify-center">
-            <TreePine className="w-5 h-5 text-white" />
+      <div className="p-5 border-b border-slate-700/50">
+        <div className="flex items-center gap-3">
+          <div className="w-10 h-10 bg-teal-500 rounded-lg flex items-center justify-center">
+            <TreePine className="w-6 h-6 text-white" />
           </div>
           <div>
-            <h1 className="font-bold text-sm text-foreground">KFDC iFMS</h1>
-            <p className="text-[10px] text-muted-foreground">The Green ERP</p>
+            <h1 className="font-bold text-white">KFDC iFMS</h1>
+            <p className="text-[11px] text-slate-400">Integrated Forestry Management</p>
           </div>
         </div>
       </div>
 
       {/* Navigation */}
-      <nav className="flex-1 p-3 space-y-1">
+      <nav className="flex-1 p-3 space-y-1 overflow-y-auto">
         {navItems.filter(n => n.roles.includes(user.role)).map(item => (
-          <button key={item.id} onClick={() => setView(item.id)}
-            className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm transition-all ${currentView === item.id
-                ? 'bg-emerald-50 text-emerald-800 font-medium shadow-sm border border-emerald-200'
-                : 'text-muted-foreground hover:bg-accent hover:text-foreground'
-              }`}>
-            <item.icon className="w-4 h-4" />
+          <button 
+            key={item.id} 
+            onClick={() => setView(item.id)}
+            className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm transition-all ${
+              currentView === item.id
+                ? 'bg-teal-500 text-white font-medium'
+                : 'text-slate-300 hover:bg-slate-700/50 hover:text-white'
+            }`}
+          >
+            <item.icon className="w-5 h-5" />
             {item.label}
           </button>
         ))}
       </nav>
 
-      {/* User Info */}
-      <div className="p-4 border-t border-border">
+      {/* User Profile */}
+      <div className="p-4 border-t border-slate-700/50">
         <div className="flex items-center gap-3 mb-3">
-          <div className="w-9 h-9 bg-emerald-100 rounded-full flex items-center justify-center">
-            <User className="w-4 h-4 text-emerald-700" />
+          <div className="w-10 h-10 bg-gradient-to-br from-teal-400 to-emerald-500 rounded-full flex items-center justify-center text-white font-semibold">
+            {user.name?.charAt(0) || 'U'}
           </div>
           <div className="flex-1 min-w-0">
-            <p className="text-sm font-medium truncate">{user.name}</p>
-            <Badge className={`text-[10px] ${roleColors[user.role]}`}>{roleLabels[user.role]}</Badge>
+            <p className="text-sm font-medium text-white truncate">{user.name}</p>
+            <Badge className={`text-[10px] ${roleColors[user.role]} border-0`}>
+              {roleLabels[user.role]}
+            </Badge>
           </div>
+          <ChevronUp className="w-4 h-4 text-slate-400" />
         </div>
-        <Button variant="outline" size="sm" className="w-full" onClick={onLogout}>
-          <LogOut className="w-3.5 h-3.5 mr-2" /> Sign Out
-        </Button>
+        <button 
+          onClick={onLogout}
+          className="w-full flex items-center justify-center gap-2 px-3 py-2 rounded-lg text-slate-400 hover:text-white hover:bg-slate-700/50 transition-colors text-sm"
+        >
+          <LogOut className="w-4 h-4" />
+          <span>Log out</span>
+        </button>
       </div>
     </div>
   )
