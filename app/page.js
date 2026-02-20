@@ -1923,7 +1923,7 @@ function App() {
       case 'fund-indent-approve': return <FundIndentApprovalView user={user} />
       default: 
         // Default based on role
-        if (u.role === 'RFO') return <FundIndentRFOView user={user} setView={setView} setSelectedWork={setSelectedWork} />
+        if (user.role === 'RFO') return <FundIndentRFOView user={user} setView={setView} setSelectedWork={setSelectedWork} />
         if (['DCF', 'ED', 'MD'].includes(user.role)) return <FundIndentApprovalView user={user} />
         return <Dashboard user={user} />
     }
