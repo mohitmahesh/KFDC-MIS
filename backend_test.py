@@ -11,7 +11,7 @@ import sys
 from typing import Dict, Any, Optional
 
 # Base URL from environment
-BASE_URL = "https://green-erp.preview.emergentagent.com/api"
+BASE_URL = "https://kfdc-fund-mgmt.preview.emergentagent.com/api"
 
 class BackendTester:
     def __init__(self):
