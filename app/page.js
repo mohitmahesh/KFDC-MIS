@@ -1648,11 +1648,6 @@ function FundIndentRFOView({ user, setView, setSelectedWork }) {
       </Tabs>
     </div>
   )
-          </Table>
-        </CardContent>
-      </Card>
-    </div>
-  )
 }
 
 // ===================== FUND INDENT - LINE ITEMS VIEW =====================
@@ -1664,6 +1659,7 @@ function FundIndentItemsView({ user, apoId, setView }) {
   const [loading, setLoading] = useState(true)
   const [submitting, setSubmitting] = useState(false)
   const [error, setError] = useState('')
+  const [generatedIndent, setGeneratedIndent] = useState(null) // For confirmation page
 
   useEffect(() => {
     if (!apoId) return
