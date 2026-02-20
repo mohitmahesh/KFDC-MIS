@@ -833,33 +833,27 @@ async function handleRoute(request, { params }) {
       return handleCORS(NextResponse.json({ message: 'Work deleted successfully' }))
     }
 
-    // =================== ESTIMATES ENDPOINTS ===================
-    
-    // GET /apo/estimates - Get works from SANCTIONED APOs scoped to user's jurisdiction
-    // ECW sees works from their range/division only
-    // PS sees works from their range/division only
-    if (route === '/apo/estimates' && method === 'GET') {
+    // =================== FUND INDENT ENDPOINTS ===================
+    // Fund Indent Hierarchy: RFO → DCF → ED → MD
+    // Phase 1: RFO generates Fund Indent (GFI)
+    // Phase 2: DCF, ED, MD approve Fund Indent (AFI)
+
+    // GET /fund-indent/works - RFO: Get works available for Fund Indent generation
+    if (route === '/fund-indent/works' && method === 'GET') {
       const user = await getUser(request, db)
       if (!user) return handleCORS(NextResponse.json({ error: 'Unauthorized' }, { status: 401 }))
 
-      // Only ECW and PS can access estimates
-      if (!['CASE_WORKER_ESTIMATES', 'PLANTATION_SUPERVISOR', 'ADMIN'].includes(user.role)) {
-        return handleCORS(NextResponse.json({ error: 'Access denied. Only Estimates Case Workers and Supervisors can access this.' }, { status: 403 }))
+      if (!['RFO', 'ADMIN'].includes(user.role)) {
+        return handleCORS(NextResponse.json({ error: 'Access denied. Only RFO can access this.' }, { status: 403 }))
       }
 
-      // Get plantations in user's jurisdiction
+      const url = new URL(request.url)
+      const year = url.searchParams.get('year') || '2026-27'
+
+      // Get plantations in RFO's jurisdiction
       let plantationFilter = {}
-      if (user.role === 'ADMIN') {
-        // Admin sees all
-        plantationFilter = {}
-      } else if (user.range_id) {
-        // ECW/PS at range level - see plantations in their range
+      if (user.role === 'RFO' && user.range_id) {
         plantationFilter = { range_id: user.range_id }
-      } else if (user.division_id) {
-        // ECW/PS at division level - see plantations in all ranges of their division
-        const divRanges = await db.collection('ranges').find({ division_id: user.division_id }).toArray()
-        const rangeIds = divRanges.map(r => r.id)
-        plantationFilter = { range_id: { $in: rangeIds } }
       }
 
       const plantations = await db.collection('plantations').find(plantationFilter).toArray()
@@ -867,81 +861,311 @@ async function handleRoute(request, { params }) {
       const pltMap = {}
       plantations.forEach(p => { pltMap[p.id] = p })
 
-      if (plantationIds.length === 0) {
-        return handleCORS(NextResponse.json({ works: [], summary: { total_sanctioned: 0, total_revised: 0, jurisdiction: user.range_id || user.division_id } }))
-      }
-
-      // Find ONLY SANCTIONED APOs for these plantations
-      const apos = await db.collection('apo_headers').find({ 
-        plantation_id: { $in: plantationIds }, 
-        status: 'SANCTIONED'  // CRITICAL: Only sanctioned APOs
+      // Find SANCTIONED APOs
+      const apos = await db.collection('apo_headers').find({
+        plantation_id: { $in: plantationIds },
+        status: 'SANCTIONED',
+        financial_year: year
       }).toArray()
-      
+
       const apoIds = apos.map(a => a.id)
       const apoMap = {}
       apos.forEach(a => { apoMap[a.id] = a })
 
-      if (apoIds.length === 0) {
-        return handleCORS(NextResponse.json({ 
-          works: [], 
-          summary: { 
-            total_sanctioned: 0, 
-            total_revised: 0, 
-            jurisdiction: user.range_id || user.division_id,
-            message: 'No sanctioned APOs found in your jurisdiction. APOs must be approved before estimates can be managed.'
-          } 
-        }))
-      }
-
-      // Find work items for these APOs
-      const items = await db.collection('apo_items').find({ 
-        apo_id: { $in: apoIds } 
+      // Get work items that don't have a fund indent yet
+      const items = await db.collection('apo_items').find({
+        apo_id: { $in: apoIds },
+        fund_indent_id: { $exists: false }
       }).toArray()
 
-      // Enrich items with plantation and APO info
-      const enrichedItems = items.map(({ _id, ...item }) => {
-        const apo = apoMap[item.apo_id]
-        const plantation = pltMap[apo?.plantation_id]
-        return {
-          ...item,
-          estimate_status: item.estimate_status || 'DRAFT',
-          revised_qty: item.revised_qty !== undefined ? item.revised_qty : null,
-          // Add context info
-          plantation_id: apo?.plantation_id,
-          plantation_name: plantation?.name || 'Unknown',
-          range_id: plantation?.range_id,
-          apo_financial_year: apo?.financial_year,
-          apo_sanctioned_date: apo?.updated_at,
+      // Group by APO for display
+      const worksByApo = items.reduce((acc, item) => {
+        if (!acc[item.apo_id]) {
+          const apo = apoMap[item.apo_id]
+          const plt = pltMap[apo?.plantation_id]
+          acc[item.apo_id] = {
+            apo_id: item.apo_id,
+            plantation_name: plt?.name || 'Unknown',
+            financial_year: apo?.financial_year,
+            work_count: 0,
+            total_amount: 0,
+          }
         }
-      })
+        acc[item.apo_id].work_count++
+        acc[item.apo_id].total_amount += item.total_cost || 0
+        return acc
+      }, {})
 
-      // Calculate summary
-      const totalSanctioned = enrichedItems.reduce((sum, i) => sum + (i.sanctioned_qty * i.sanctioned_rate), 0)
-      const totalRevised = enrichedItems.reduce((sum, i) => {
-        const qty = i.revised_qty !== null ? i.revised_qty : i.sanctioned_qty
-        return sum + (qty * i.sanctioned_rate)
-      }, 0)
+      return handleCORS(NextResponse.json({
+        works: Object.values(worksByApo),
+        years: ['2024-25', '2025-26', '2026-27'],
+        selected_year: year,
+      }))
+    }
 
-      // Get range/division info for display
-      let jurisdictionName = 'All'
-      if (user.range_id) {
-        const range = await db.collection('ranges').findOne({ id: user.range_id })
-        jurisdictionName = range?.name || user.range_id
-      } else if (user.division_id) {
-        const division = await db.collection('divisions').findOne({ id: user.division_id })
-        jurisdictionName = division?.name || user.division_id
+    // GET /fund-indent/work-items/:apoId - RFO: Get line items for Fund Indent
+    const workItemsMatch = route.match(/^\/fund-indent\/work-items\/([^/]+)$/)
+    if (workItemsMatch && method === 'GET') {
+      const user = await getUser(request, db)
+      if (!user) return handleCORS(NextResponse.json({ error: 'Unauthorized' }, { status: 401 }))
+
+      if (!['RFO', 'ADMIN'].includes(user.role)) {
+        return handleCORS(NextResponse.json({ error: 'Access denied' }, { status: 403 }))
+      }
+
+      const apoId = workItemsMatch[1]
+      const apo = await db.collection('apo_headers').findOne({ id: apoId })
+      if (!apo) return handleCORS(NextResponse.json({ error: 'APO not found' }, { status: 404 }))
+
+      const items = await db.collection('apo_items').find({
+        apo_id: apoId,
+        fund_indent_id: { $exists: false }
+      }).toArray()
+
+      const plantation = await db.collection('plantations').findOne({ id: apo.plantation_id })
+
+      return handleCORS(NextResponse.json({
+        apo_id: apoId,
+        plantation_name: plantation?.name,
+        financial_year: apo.financial_year,
+        items: items.map(({ _id, ...item }) => ({
+          ...item,
+          period_from: item.period_from || null,
+          period_to: item.period_to || null,
+          cm_date: item.cm_date || null,
+          cm_by: item.cm_by || null,
+          fnb_book_no: item.fnb_book_no || null,
+          fnb_page_no: item.fnb_page_no || null,
+          fnb_pdf_url: item.fnb_pdf_url || null,
+        }))
+      }))
+    }
+
+    // POST /fund-indent/generate - RFO: Generate Fund Indent (GFI)
+    if (route === '/fund-indent/generate' && method === 'POST') {
+      const user = await getUser(request, db)
+      if (!user) return handleCORS(NextResponse.json({ error: 'Unauthorized' }, { status: 401 }))
+
+      if (user.role !== 'RFO') {
+        return handleCORS(NextResponse.json({ error: 'Only RFO can generate Fund Indent' }, { status: 403 }))
+      }
+
+      const body = await request.json()
+      const { apo_id, items } = body
+
+      if (!apo_id || !items || items.length === 0) {
+        return handleCORS(NextResponse.json({ error: 'APO ID and items are required' }, { status: 400 }))
+      }
+
+      const estId = `EST-${Date.now().toString(36).toUpperCase()}`
+
+      const fundIndent = {
+        id: estId,
+        apo_id,
+        created_by: user.id,
+        created_at: new Date(),
+        status: 'PENDING_DCF',
+        approval_chain: [{
+          role: 'RFO',
+          user_id: user.id,
+          user_name: user.name,
+          action: 'GENERATED',
+          timestamp: new Date()
+        }],
+        total_amount: 0,
+        item_ids: [],
+      }
+
+      let totalAmount = 0
+      for (const item of items) {
+        const updateData = {
+          fund_indent_id: estId,
+          fund_indent_status: 'PENDING_DCF',
+          period_from: item.period_from,
+          period_to: item.period_to,
+          cm_date: item.cm_date,
+          cm_by: item.cm_by,
+          fnb_book_no: item.fnb_book_no,
+          fnb_page_no: item.fnb_page_no,
+          fnb_pdf_url: item.fnb_pdf_url,
+        }
+
+        await db.collection('apo_items').updateOne({ id: item.id }, { $set: updateData })
+        const itemData = await db.collection('apo_items').findOne({ id: item.id })
+        totalAmount += itemData?.total_cost || 0
+        fundIndent.item_ids.push(item.id)
+      }
+
+      fundIndent.total_amount = totalAmount
+      await db.collection('fund_indents').insertOne(fundIndent)
+
+      return handleCORS(NextResponse.json({
+        message: 'Fund Indent generated successfully',
+        est_id: estId,
+        total_amount: totalAmount,
+        item_count: items.length,
+        next_approver: 'DCF'
+      }, { status: 201 }))
+    }
+
+    // GET /fund-indent/pending - DCF/ED/MD: Get pending Fund Indents
+    if (route === '/fund-indent/pending' && method === 'GET') {
+      const user = await getUser(request, db)
+      if (!user) return handleCORS(NextResponse.json({ error: 'Unauthorized' }, { status: 401 }))
+
+      const roleStatusMap = {
+        'RFO': null, // RFO sees their generated ones
+        'DCF': 'PENDING_DCF',
+        'ED': 'PENDING_ED',
+        'MD': 'PENDING_MD',
+        'ADMIN': null
+      }
+
+      if (!roleStatusMap.hasOwnProperty(user.role)) {
+        return handleCORS(NextResponse.json({ error: 'Access denied' }, { status: 403 }))
+      }
+
+      let filter = {}
+      if (user.role === 'RFO') {
+        filter.created_by = user.id
+      } else if (user.role !== 'ADMIN' && roleStatusMap[user.role]) {
+        filter.status = roleStatusMap[user.role]
+      }
+
+      const indents = await db.collection('fund_indents').find(filter).toArray()
+
+      const enrichedIndents = []
+      for (const indent of indents) {
+        const items = await db.collection('apo_items').find({ fund_indent_id: indent.id }).toArray()
+        const apo = await db.collection('apo_headers').findOne({ id: indent.apo_id })
+        const plantation = apo ? await db.collection('plantations').findOne({ id: apo.plantation_id }) : null
+        const creator = await db.collection('users').findOne({ id: indent.created_by })
+
+        enrichedIndents.push({
+          ...indent,
+          _id: undefined,
+          plantation_name: plantation?.name || 'Unknown',
+          financial_year: apo?.financial_year,
+          created_by_name: creator?.name,
+          items: items.map(({ _id, ...item }) => item),
+          item_count: items.length,
+        })
       }
 
       return handleCORS(NextResponse.json({
-        works: enrichedItems,
-        summary: {
-          total_sanctioned: totalSanctioned,
-          total_revised: totalRevised,
-          work_count: enrichedItems.length,
-          sanctioned_apo_count: apoIds.length,
-          jurisdiction: jurisdictionName,
-          jurisdiction_type: user.range_id ? 'Range' : (user.division_id ? 'Division' : 'All'),
+        indents: enrichedIndents,
+        pending_count: enrichedIndents.length,
+        role: user.role,
+      }))
+    }
+
+    // GET /fund-indent/:id - Get Fund Indent details
+    const fundIndentDetailMatch = route.match(/^\/fund-indent\/([^/]+)$/)
+    if (fundIndentDetailMatch && method === 'GET') {
+      const user = await getUser(request, db)
+      if (!user) return handleCORS(NextResponse.json({ error: 'Unauthorized' }, { status: 401 }))
+
+      const estId = fundIndentDetailMatch[1]
+      const indent = await db.collection('fund_indents').findOne({ id: estId })
+      if (!indent) return handleCORS(NextResponse.json({ error: 'Fund Indent not found' }, { status: 404 }))
+
+      const items = await db.collection('apo_items').find({ fund_indent_id: estId }).toArray()
+      const apo = await db.collection('apo_headers').findOne({ id: indent.apo_id })
+      const plantation = apo ? await db.collection('plantations').findOne({ id: apo.plantation_id }) : null
+
+      const { _id, ...indentData } = indent
+      return handleCORS(NextResponse.json({
+        ...indentData,
+        plantation_name: plantation?.name,
+        financial_year: apo?.financial_year,
+        items: items.map(({ _id, ...item }) => item),
+      }))
+    }
+
+    // POST /fund-indent/:id/approve - DCF/ED/MD: Approve Fund Indent (AFI)
+    const fundIndentApproveMatch = route.match(/^\/fund-indent\/([^/]+)\/approve$/)
+    if (fundIndentApproveMatch && method === 'POST') {
+      const user = await getUser(request, db)
+      if (!user) return handleCORS(NextResponse.json({ error: 'Unauthorized' }, { status: 401 }))
+
+      const estId = fundIndentApproveMatch[1]
+      const body = await request.json()
+      const { approved_items, rejected_items, comment } = body
+
+      const indent = await db.collection('fund_indents').findOne({ id: estId })
+      if (!indent) return handleCORS(NextResponse.json({ error: 'Fund Indent not found' }, { status: 404 }))
+
+      const expectedRoleForStatus = {
+        'PENDING_DCF': 'DCF',
+        'PENDING_ED': 'ED',
+        'PENDING_MD': 'MD'
+      }
+
+      if (expectedRoleForStatus[indent.status] !== user.role && user.role !== 'ADMIN') {
+        return handleCORS(NextResponse.json({ 
+          error: `This indent requires ${expectedRoleForStatus[indent.status]} approval` 
+        }, { status: 403 }))
+      }
+
+      const nextStatusMap = {
+        'PENDING_DCF': 'PENDING_ED',
+        'PENDING_ED': 'PENDING_MD',
+        'PENDING_MD': 'APPROVED'
+      }
+      const nextStatus = nextStatusMap[indent.status]
+
+      if (approved_items && approved_items.length > 0) {
+        await db.collection('apo_items').updateMany(
+          { id: { $in: approved_items } },
+          { $set: { fund_indent_status: nextStatus } }
+        )
+      }
+
+      if (rejected_items && rejected_items.length > 0) {
+        await db.collection('apo_items').updateMany(
+          { id: { $in: rejected_items } },
+          { $set: { fund_indent_status: 'REJECTED', fund_indent_rejection_comment: comment } }
+        )
+      }
+
+      const approvalEntry = {
+        role: user.role,
+        user_id: user.id,
+        user_name: user.name,
+        action: 'APPROVED',
+        approved_count: approved_items?.length || 0,
+        rejected_count: rejected_items?.length || 0,
+        comment,
+        timestamp: new Date()
+      }
+
+      const remainingItems = await db.collection('apo_items').countDocuments({
+        fund_indent_id: estId,
+        fund_indent_status: { $ne: 'REJECTED' }
+      })
+
+      const finalStatus = remainingItems > 0 ? nextStatus : 'FULLY_REJECTED'
+
+      await db.collection('fund_indents').updateOne(
+        { id: estId },
+        {
+          $set: { status: finalStatus, updated_at: new Date() },
+          $push: { approval_chain: approvalEntry }
         }
+      )
+
+      const statusMessages = {
+        'PENDING_ED': 'Fund Indent approved and forwarded to ED',
+        'PENDING_MD': 'Fund Indent approved and forwarded to MD',
+        'APPROVED': 'Fund Indent fully approved by MD',
+        'FULLY_REJECTED': 'All items rejected'
+      }
+
+      return handleCORS(NextResponse.json({
+        message: statusMessages[finalStatus] || `Status updated`,
+        est_id: estId,
+        new_status: finalStatus,
+        approved_by: user.name,
       }))
     }
 
