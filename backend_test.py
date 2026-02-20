@@ -1,19 +1,21 @@
 #!/usr/bin/env python3
 
 """
-KFDC iFMS - Backend Test Suite for Approval Hierarchies
-Testing APO workflow: RO → DM → HO (Admin) and Estimates workflow: ECW → PS
+KFDC iFMS - FNB PDF Upload Testing Suite
+Testing FNB PDF Upload functionality for Fund Indent workflow
 """
 
 import requests
 import json
 import sys
+import os
+import io
 from typing import Dict, Any, Optional
 
 # Base URL from environment
 BASE_URL = "https://kfdc-fund-mgmt.preview.emergentagent.com/api"
 
-class BackendTester:
+class FNBUploadTester:
     def __init__(self):
         self.session = requests.Session()
         self.tokens: Dict[str, str] = {}
@@ -48,7 +50,7 @@ class BackendTester:
             self.log(f"❌ Login error for {role_name}: {str(e)}", "ERROR")
             return None
 
-    def make_request(self, method: str, endpoint: str, token: str, data: Dict = None) -> Dict[str, Any]:
+    def make_request(self, method: str, endpoint: str, token: str, data: Dict = None, files: Dict = None) -> Dict[str, Any]:
         """Make authenticated API request"""
         try:
             headers = {"Authorization": f"Bearer {token}"}
@@ -57,7 +59,11 @@ class BackendTester:
             if method.upper() == "GET":
                 response = self.session.get(url, headers=headers)
             elif method.upper() == "POST":
-                response = self.session.post(url, headers=headers, json=data)
+                if files:
+                    # For file uploads, don't set Content-Type header, let requests handle it
+                    response = self.session.post(url, headers=headers, files=files, data=data)
+                else:
+                    response = self.session.post(url, headers=headers, json=data)
             elif method.upper() == "PATCH":
                 response = self.session.patch(url, headers=headers, json=data)
             elif method.upper() == "PUT":
@@ -91,6 +97,64 @@ class BackendTester:
             self.log(f"❌ FAIL: {test_name} {details}", "ERROR")
         return condition
 
+    def create_test_pdf(self, filename: str = "test_fnb.pdf") -> bytes:
+        """Create a simple test PDF content"""
+        # Simple PDF content for testing
+        pdf_content = b"""%PDF-1.4
+1 0 obj
+<<
+/Type /Catalog
+/Pages 2 0 R
+>>
+endobj
+
+2 0 obj
+<<
+/Type /Pages
+/Kids [3 0 R]
+/Count 1
+>>
+endobj
+
+3 0 obj
+<<
+/Type /Page
+/Parent 2 0 R
+/MediaBox [0 0 612 792]
+/Contents 4 0 R
+>>
+endobj
+
+4 0 obj
+<<
+/Length 44
+>>
+stream
+BT
+/F1 12 Tf
+100 700 Td
+(FNB Test Document) Tj
+ET
+endstream
+endobj
+
+xref
+0 5
+0000000000 65535 f 
+0000000009 00000 n 
+0000000058 00000 n 
+0000000115 00000 n 
+0000000204 00000 n 
+trailer
+<<
+/Size 5
+/Root 1 0 R
+>>
+startxref
+298
+%%EOF"""
+        return pdf_content
+
     def run_test_1_seed_database(self):
         """Test 1: Seed Database"""
         self.log("\n=== TEST 1: SEED DATABASE ===")
@@ -110,361 +174,300 @@ class BackendTester:
             self.log(f"APOs seeded: {data.get('apos_count', 'N/A')}")
             self.log(f"Plantations seeded: {data.get('plantations_count', 'N/A')}")
 
-    def run_test_2_authentication_all_roles(self):
-        """Test 2: Authentication for all roles"""
-        self.log("\n=== TEST 2: AUTHENTICATION - ALL ROLES ===")
+    def run_test_2_authentication_fund_roles(self):
+        """Test 2: Authentication for Fund Indent roles"""
+        self.log("\n=== TEST 2: AUTHENTICATION - FUND INDENT ROLES ===")
         
         users_to_test = [
-            ("ro.dharwad@kfdc.in", "pass123", "RO"),
-            ("dm.dharwad@kfdc.in", "pass123", "DM"), 
-            ("admin@kfdc.in", "pass123", "ADMIN"),
-            ("ecw.dharwad@kfdc.in", "pass123", "ECW"),
-            ("ps.dharwad@kfdc.in", "pass123", "PS")
+            ("rfo.dharwad@kfdc.in", "pass123", "RFO"),
+            ("dcf.dharwad@kfdc.in", "pass123", "DCF"),
+            ("ro.dharwad@kfdc.in", "pass123", "RO"),  # For negative testing
+            ("ed@kfdc.in", "pass123", "ED"),
+            ("md@kfdc.in", "pass123", "MD")
         ]
         
         for email, password, role in users_to_test:
             token = self.login(email, password, role)
             self.test_assertion(token is not None, f"Authentication for {role}", f"Email: {email}")
 
-    def run_test_3_apo_approval_hierarchy(self):
-        """Test 3: Complete APO Approval Flow - RO → DM → HO"""
-        self.log("\n=== TEST 3: APO APPROVAL HIERARCHY (RO → DM → HO) ===")
+    def run_test_3_fnb_upload_rfo_auth(self):
+        """Test 3: FNB Upload - RFO Authentication Tests"""
+        self.log("\n=== TEST 3: FNB UPLOAD - RFO AUTHENTICATION TESTS ===")
         
-        if "RO" not in self.tokens or "DM" not in self.tokens or "ADMIN" not in self.tokens:
-            self.log("❌ Missing required tokens for APO workflow test", "ERROR")
+        if "RFO" not in self.tokens:
+            self.log("❌ Missing RFO token for upload test", "ERROR")
             return
 
-        # Step A: RO Creates and Submits APO
-        self.log("\n--- Step A: RO Creates and Submits APO ---")
+        # Create test PDF file
+        pdf_content = self.create_test_pdf()
         
-        # Create draft APO as RO
-        apo_response = self.make_request("POST", "/apo", self.tokens["RO"], {
-            "financial_year": "2026-27",
-            "plantation_id": "plt-d01"
-        })
+        # Test 3a: RFO can upload FNB PDF
+        self.log("\n--- Test 3a: RFO uploads FNB PDF successfully ---")
+        files = {
+            'file': ('test_fnb.pdf', io.BytesIO(pdf_content), 'application/pdf')
+        }
+        data = {
+            'item_id': 'test-item-123'
+        }
         
-        apo_created = self.test_assertion(
-            apo_response["success"],
-            "RO creates draft APO",
-            f"Status: {apo_response['status_code']}"
+        upload_response = self.make_request("POST", "/fund-indent/upload-fnb", self.tokens["RFO"], data=data, files=files)
+        
+        upload_success = self.test_assertion(
+            upload_response["success"],
+            "RFO FNB PDF upload",
+            f"Status: {upload_response['status_code']}"
         )
         
-        if not apo_created:
-            self.log(f"APO creation failed: {apo_response['data']}", "ERROR")
-            return
-            
-        apo_id = apo_response["data"].get("id")
-        self.test_data["apo_id"] = apo_id
-        self.log(f"APO created with ID: {apo_id}")
-
-        # Add work to APO to make it substantial
-        self.log("\n--- Adding work to APO ---")
-        work_response = self.make_request("POST", "/works", self.tokens["RO"], {
-            "apo_id": apo_id,
-            "plantation_id": "plt-d01",
-            "items": [
-                {
-                    "activity_id": "act-firelines",
-                    "activity_name": "Fire Lines",
-                    "quantity": 10.0,
-                    "rate": 5455.86,
-                    "unit": "Per Km"
-                }
-            ]
-        })
-        
-        work_added = self.test_assertion(
-            work_response["success"],
-            "Add work to APO",
-            f"Status: {work_response['status_code']}"
-        )
-
-        # RO submits to DM (should work)
-        self.log("\n--- RO submits to DM ---")
-        submit_response = self.make_request("PATCH", f"/apo/{apo_id}/status", self.tokens["RO"], {
-            "status": "PENDING_DM_APPROVAL"
-        })
-        
-        self.test_assertion(
-            submit_response["success"],
-            "RO submits APO to DM",
-            f"Status: {submit_response['status_code']}"
-        )
-
-        # RO tries to forward directly to HO (should fail)
-        self.log("\n--- RO tries to forward directly to HO (should fail) ---")
-        direct_ho_response = self.make_request("PATCH", f"/apo/{apo_id}/status", self.tokens["RO"], {
-            "status": "PENDING_HO_APPROVAL"
-        })
-        
-        self.test_assertion(
-            not direct_ho_response["success"] and direct_ho_response["status_code"] == 403,
-            "RO blocked from forwarding directly to HO",
-            f"Status: {direct_ho_response['status_code']}, Expected: 403 (Only DM can forward to HO)"
-        )
-
-        # Step B: DM Reviews and Forwards to HO
-        self.log("\n--- Step B: DM Reviews and Forwards to HO ---")
-        
-        # DM forwards to HO (should work)
-        dm_forward_response = self.make_request("PATCH", f"/apo/{apo_id}/status", self.tokens["DM"], {
-            "status": "PENDING_HO_APPROVAL"
-        })
-        
-        self.test_assertion(
-            dm_forward_response["success"],
-            "DM forwards APO to HO",
-            f"Status: {dm_forward_response['status_code']}"
-        )
-
-        # DM tries to sanction directly (should fail)
-        self.log("\n--- DM tries to sanction directly (should fail) ---")
-        dm_sanction_response = self.make_request("PATCH", f"/apo/{apo_id}/status", self.tokens["DM"], {
-            "status": "SANCTIONED"
-        })
-        
-        self.test_assertion(
-            not dm_sanction_response["success"] and dm_sanction_response["status_code"] == 403,
-            "DM blocked from sanctioning directly",
-            f"Status: {dm_sanction_response['status_code']}, Expected: 403"
-        )
-
-        # Step C: HO (Admin) Sanctions
-        self.log("\n--- Step C: HO (Admin) Sanctions ---")
-        
-        # Admin sanctions (should work)
-        admin_sanction_response = self.make_request("PATCH", f"/apo/{apo_id}/status", self.tokens["ADMIN"], {
-            "status": "SANCTIONED"
-        })
-        
-        self.test_assertion(
-            admin_sanction_response["success"],
-            "ADMIN (HO) sanctions APO",
-            f"Status: {admin_sanction_response['status_code']}"
-        )
-
-        # Verify APO is now SANCTIONED
-        apo_detail_response = self.make_request("GET", f"/apo/{apo_id}", self.tokens["ADMIN"])
-        
-        if apo_detail_response["success"]:
-            final_status = apo_detail_response["data"].get("status")
+        if upload_success:
+            response_data = upload_response["data"]
             self.test_assertion(
-                final_status == "SANCTIONED",
-                "APO final status verification",
-                f"Status: {final_status}, Expected: SANCTIONED"
+                "file_url" in response_data,
+                "Response contains file_url",
+                f"file_url: {response_data.get('file_url', 'N/A')}"
+            )
+            self.test_assertion(
+                "file_name" in response_data,
+                "Response contains file_name",
+                f"file_name: {response_data.get('file_name', 'N/A')}"
+            )
+            self.test_assertion(
+                response_data.get("item_id") == "test-item-123",
+                "Response contains correct item_id",
+                f"item_id: {response_data.get('item_id', 'N/A')}"
+            )
+            # Store the uploaded file URL for verification
+            self.test_data["uploaded_file_url"] = response_data.get("file_url")
+
+    def run_test_4_fnb_upload_access_control(self):
+        """Test 4: FNB Upload - Access Control Tests"""
+        self.log("\n=== TEST 4: FNB UPLOAD - ACCESS CONTROL TESTS ===")
+        
+        # Test 4a: Non-RFO user cannot upload (403 Forbidden)
+        if "RO" in self.tokens:
+            self.log("\n--- Test 4a: RO user blocked from uploading FNB PDF ---")
+            
+            pdf_content = self.create_test_pdf()
+            files = {
+                'file': ('test_fnb_ro.pdf', io.BytesIO(pdf_content), 'application/pdf')
+            }
+            data = {
+                'item_id': 'test-item-ro'
+            }
+            
+            ro_upload_response = self.make_request("POST", "/fund-indent/upload-fnb", self.tokens["RO"], data=data, files=files)
+            
+            self.test_assertion(
+                not ro_upload_response["success"] and ro_upload_response["status_code"] == 403,
+                "RO blocked from FNB upload",
+                f"Status: {ro_upload_response['status_code']}, Expected: 403 (Only RFO can upload FNB documents)"
+            )
+        
+        # Test 4b: DCF user cannot upload (403 Forbidden)
+        if "DCF" in self.tokens:
+            self.log("\n--- Test 4b: DCF user blocked from uploading FNB PDF ---")
+            
+            pdf_content = self.create_test_pdf()
+            files = {
+                'file': ('test_fnb_dcf.pdf', io.BytesIO(pdf_content), 'application/pdf')
+            }
+            data = {
+                'item_id': 'test-item-dcf'
+            }
+            
+            dcf_upload_response = self.make_request("POST", "/fund-indent/upload-fnb", self.tokens["DCF"], data=data, files=files)
+            
+            self.test_assertion(
+                not dcf_upload_response["success"] and dcf_upload_response["status_code"] == 403,
+                "DCF blocked from FNB upload",
+                f"Status: {dcf_upload_response['status_code']}, Expected: 403 (Only RFO can upload FNB documents)"
             )
 
-    def run_test_4_apo_rejection_flow(self):
-        """Test 4: APO Rejection Flow"""
-        self.log("\n=== TEST 4: APO REJECTION FLOW ===")
+    def run_test_5_file_validation(self):
+        """Test 5: File Validation Tests"""
+        self.log("\n=== TEST 5: FILE VALIDATION TESTS ===")
         
-        if "RO" not in self.tokens or "DM" not in self.tokens:
-            self.log("❌ Missing required tokens for rejection flow test", "ERROR")
+        if "RFO" not in self.tokens:
+            self.log("❌ Missing RFO token for file validation test", "ERROR")
             return
 
-        # Create another APO
-        apo_response = self.make_request("POST", "/apo", self.tokens["RO"], {
-            "financial_year": "2026-27",
-            "plantation_id": "plt-d02"
-        })
+        # Test 5a: Only PDF files accepted - reject non-PDF
+        self.log("\n--- Test 5a: Reject non-PDF files ---")
         
-        if not apo_response["success"]:
-            self.log("❌ Failed to create APO for rejection test", "ERROR")
+        # Create a text file
+        text_content = b"This is not a PDF file"
+        files = {
+            'file': ('test_document.txt', io.BytesIO(text_content), 'text/plain')
+        }
+        data = {
+            'item_id': 'test-item-txt'
+        }
+        
+        txt_upload_response = self.make_request("POST", "/fund-indent/upload-fnb", self.tokens["RFO"], data=data, files=files)
+        
+        self.test_assertion(
+            not txt_upload_response["success"] and txt_upload_response["status_code"] == 400,
+            "Non-PDF file rejected",
+            f"Status: {txt_upload_response['status_code']}, Expected: 400 (Only PDF files allowed)"
+        )
+
+        # Test 5b: No file uploaded
+        self.log("\n--- Test 5b: No file uploaded error ---")
+        
+        data = {
+            'item_id': 'test-item-nofile'
+        }
+        
+        no_file_response = self.make_request("POST", "/fund-indent/upload-fnb", self.tokens["RFO"], data=data)
+        
+        self.test_assertion(
+            not no_file_response["success"] and no_file_response["status_code"] == 400,
+            "No file uploaded error",
+            f"Status: {no_file_response['status_code']}, Expected: 400 (No file uploaded)"
+        )
+
+    def run_test_6_file_accessibility(self):
+        """Test 6: Verify uploaded file accessibility"""
+        self.log("\n=== TEST 6: FILE ACCESSIBILITY TEST ===")
+        
+        if "uploaded_file_url" not in self.test_data:
+            self.log("❌ No uploaded file URL found, skipping accessibility test", "ERROR")
             return
             
-        apo_id = apo_response["data"].get("id")
+        file_url = self.test_data["uploaded_file_url"]
+        self.log(f"Testing file accessibility for: {file_url}")
         
-        # Add work to APO
-        work_response = self.make_request("POST", "/works", self.tokens["RO"], {
+        # Test file accessibility through public URL
+        try:
+            # Convert to full URL for testing
+            full_url = f"https://kfdc-fund-mgmt.preview.emergentagent.com{file_url}"
+            response = requests.get(full_url)
+            
+            self.test_assertion(
+                response.status_code == 200,
+                "Uploaded file is accessible",
+                f"URL: {file_url}, Status: {response.status_code}"
+            )
+            
+            # Verify it's a PDF by checking content type or content
+            content_type = response.headers.get('content-type', '').lower()
+            is_pdf = 'pdf' in content_type or response.content.startswith(b'%PDF')
+            
+            self.test_assertion(
+                is_pdf,
+                "Uploaded file is valid PDF",
+                f"Content-Type: {content_type}"
+            )
+            
+        except Exception as e:
+            self.log(f"❌ File accessibility test failed: {str(e)}", "ERROR")
+            self.tests_failed += 1
+
+    def run_test_7_fund_indent_with_fnb(self):
+        """Test 7: Fund Indent Generation with FNB PDF URL"""
+        self.log("\n=== TEST 7: FUND INDENT GENERATION WITH FNB PDF ===")
+        
+        if "RFO" not in self.tokens:
+            self.log("❌ Missing RFO token for Fund Indent generation test", "ERROR")
+            return
+        
+        if "uploaded_file_url" not in self.test_data:
+            self.log("❌ No uploaded FNB file URL found, skipping Fund Indent test", "ERROR")
+            return
+
+        # First, get available works for Fund Indent generation
+        self.log("\n--- Getting available works for Fund Indent ---")
+        works_response = self.make_request("GET", "/fund-indent/works", self.tokens["RFO"])
+        
+        if not works_response["success"]:
+            self.log("❌ Failed to get available works for Fund Indent", "ERROR")
+            return
+            
+        works_data = works_response["data"]
+        works = works_data.get("works", [])
+        
+        if not works:
+            self.log("❌ No works available for Fund Indent generation", "ERROR")
+            return
+            
+        # Use first work for testing
+        work = works[0]
+        apo_id = work.get("apo_id")
+        self.log(f"Using work from APO: {apo_id}")
+        
+        # Get line items for the APO
+        self.log(f"\n--- Getting line items for APO {apo_id} ---")
+        items_response = self.make_request("GET", f"/fund-indent/work-items/{apo_id}", self.tokens["RFO"])
+        
+        if not items_response["success"]:
+            self.log("❌ Failed to get work items for Fund Indent", "ERROR")
+            return
+            
+        items_data = items_response["data"]
+        items = items_data.get("items", [])
+        
+        if not items:
+            self.log("❌ No items found for Fund Indent generation", "ERROR")
+            return
+            
+        # Prepare Fund Indent with FNB PDF URL
+        fnb_pdf_url = self.test_data["uploaded_file_url"]
+        fund_indent_items = []
+        
+        for item in items[:2]:  # Use first 2 items for testing
+            fund_indent_item = {
+                "id": item["id"],
+                "period_from": "2026-01-01",
+                "period_to": "2026-03-31",
+                "cm_date": "2026-01-15",
+                "cm_by": "Range Officer",
+                "fnb_book_no": "FNB-001",
+                "fnb_page_no": "Page-1",
+                "fnb_pdf_url": fnb_pdf_url  # Include the uploaded FNB PDF URL
+            }
+            fund_indent_items.append(fund_indent_item)
+        
+        self.log(f"\n--- Generating Fund Indent with FNB PDF URL: {fnb_pdf_url} ---")
+        
+        generate_response = self.make_request("POST", "/fund-indent/generate", self.tokens["RFO"], {
             "apo_id": apo_id,
-            "plantation_id": "plt-d02",
-            "items": [
-                {
-                    "activity_id": "act-planting",
-                    "activity_name": "Planting of Seedlings",
-                    "quantity": 1000.0,
-                    "rate": 25.0,
-                    "unit": "Per 1000 Sdls"
-                }
-            ]
-        })
-
-        # Submit to DM
-        self.make_request("PATCH", f"/apo/{apo_id}/status", self.tokens["RO"], {
-            "status": "PENDING_DM_APPROVAL"
-        })
-
-        # DM rejects
-        reject_response = self.make_request("PATCH", f"/apo/{apo_id}/status", self.tokens["DM"], {
-            "status": "REJECTED",
-            "comment": "Needs revision"
+            "items": fund_indent_items
         })
         
-        self.test_assertion(
-            reject_response["success"],
-            "DM rejects APO",
-            f"Status: {reject_response['status_code']}"
+        fund_indent_success = self.test_assertion(
+            generate_response["success"],
+            "Fund Indent generation with FNB PDF",
+            f"Status: {generate_response['status_code']}"
         )
-
-        # RO revises (back to DRAFT)
-        revise_response = self.make_request("PATCH", f"/apo/{apo_id}/status", self.tokens["RO"], {
-            "status": "DRAFT"
-        })
         
-        self.test_assertion(
-            revise_response["success"],
-            "RO revises APO (REJECTED → DRAFT)",
-            f"Status: {revise_response['status_code']}"
-        )
-
-        # RO resubmits to DM
-        resubmit_response = self.make_request("PATCH", f"/apo/{apo_id}/status", self.tokens["RO"], {
-            "status": "PENDING_DM_APPROVAL"
-        })
-        
-        self.test_assertion(
-            resubmit_response["success"],
-            "RO resubmits APO to DM",
-            f"Status: {resubmit_response['status_code']}"
-        )
-
-    def run_test_5_estimates_workflow(self):
-        """Test 5: Verify Estimates Workflow Still Works (ECW → PS)"""
-        self.log("\n=== TEST 5: ESTIMATES WORKFLOW (ECW → PS) ===")
-        
-        if "ECW" not in self.tokens or "PS" not in self.tokens:
-            self.log("❌ Missing required tokens for estimates workflow test", "ERROR")
-            return
-
-        # Get estimates as ECW
-        self.log("\n--- ECW gets estimates ---")
-        estimates_response = self.make_request("GET", "/apo/estimates", self.tokens["ECW"])
-        
-        estimates_found = self.test_assertion(
-            estimates_response["success"],
-            "ECW gets estimates",
-            f"Status: {estimates_response['status_code']}"
-        )
-
-        if not estimates_found:
-            self.log("❌ No estimates found, skipping estimates workflow test", "ERROR")
-            return
-
-        estimates_data = estimates_response["data"]
-        works = estimates_data.get("works", [])
-        
-        if not works:
-            self.log("❌ No work items found in estimates", "ERROR")
-            return
-
-        # Use first work item for testing
-        item = works[0]
-        item_id = item["id"]
-        self.log(f"Testing with work item: {item_id} ({item.get('activity_name', 'Unknown')})")
-
-        # ECW updates revised quantity
-        self.log("\n--- ECW updates revised quantity ---")
-        original_qty = item.get("sanctioned_qty", 10)
-        revised_qty = max(1, original_qty - 2)  # Reduce quantity by 2
-        
-        update_response = self.make_request("PATCH", f"/apo/items/{item_id}/estimate", self.tokens["ECW"], {
-            "revised_qty": revised_qty,
-            "user_role": "CASE_WORKER_ESTIMATES"
-        })
-        
-        self.test_assertion(
-            update_response["success"],
-            "ECW updates revised quantity",
-            f"Status: {update_response['status_code']}, Qty: {original_qty} → {revised_qty}"
-        )
-
-        # ECW submits estimate
-        self.log("\n--- ECW submits estimate ---")
-        submit_response = self.make_request("PATCH", f"/apo/items/{item_id}/status", self.tokens["ECW"], {
-            "status": "SUBMITTED",
-            "user_role": "CASE_WORKER_ESTIMATES"
-        })
-        
-        self.test_assertion(
-            submit_response["success"],
-            "ECW submits estimate",
-            f"Status: {submit_response['status_code']}"
-        )
-
-        # PS approves estimate
-        self.log("\n--- PS approves estimate ---")
-        approve_response = self.make_request("PATCH", f"/apo/items/{item_id}/status", self.tokens["PS"], {
-            "status": "APPROVED",
-            "user_role": "PLANTATION_SUPERVISOR"
-        })
-        
-        self.test_assertion(
-            approve_response["success"],
-            "PS approves estimate",
-            f"Status: {approve_response['status_code']}"
-        )
-
-    def run_test_6_rbac_enforcement(self):
-        """Test 6: RBAC Enforcement"""
-        self.log("\n=== TEST 6: RBAC ENFORCEMENT ===")
-        
-        if "ECW" not in self.tokens or "PS" not in self.tokens:
-            self.log("❌ Missing required tokens for RBAC test", "ERROR")
-            return
-
-        # Get any estimate item for testing
-        estimates_response = self.make_request("GET", "/apo/estimates", self.tokens["ECW"])
-        
-        if not estimates_response["success"]:
-            self.log("❌ Cannot get estimates for RBAC test", "ERROR")
-            return
-
-        works = estimates_response["data"].get("works", [])
-        if not works:
-            self.log("❌ No work items for RBAC test", "ERROR")
-            return
-
-        item_id = works[0]["id"]
-
-        # Test ECW blocked from approval
-        self.log("\n--- Testing ECW blocked from approval ---")
-        ecw_approve_response = self.make_request("PATCH", f"/apo/items/{item_id}/status", self.tokens["ECW"], {
-            "status": "APPROVED",
-            "user_role": "CASE_WORKER_ESTIMATES"
-        })
-        
-        self.test_assertion(
-            not ecw_approve_response["success"] and ecw_approve_response["status_code"] == 403,
-            "ECW blocked from approval",
-            f"Status: {ecw_approve_response['status_code']}, Expected: 403"
-        )
-
-        # Test PS blocked from quantity edit
-        self.log("\n--- Testing PS blocked from quantity edit ---")
-        ps_edit_response = self.make_request("PATCH", f"/apo/items/{item_id}/estimate", self.tokens["PS"], {
-            "revised_qty": 5,
-            "user_role": "PLANTATION_SUPERVISOR"
-        })
-        
-        self.test_assertion(
-            not ps_edit_response["success"] and ps_edit_response["status_code"] == 403,
-            "PS blocked from quantity edit",
-            f"Status: {ps_edit_response['status_code']}, Expected: 403"
-        )
+        if fund_indent_success:
+            response_data = generate_response["data"]
+            est_id = response_data.get("est_id")
+            self.log(f"Fund Indent generated with EST_ID: {est_id}")
+            
+            self.test_assertion(
+                est_id is not None,
+                "Fund Indent EST_ID generated",
+                f"EST_ID: {est_id}"
+            )
+            
+            # Store EST_ID for potential verification
+            self.test_data["fund_indent_id"] = est_id
 
     def run_all_tests(self):
-        """Run all tests in sequence"""
-        self.log("🚀 STARTING KFDC iFMS APPROVAL HIERARCHIES TESTING")
+        """Run all FNB upload tests in sequence"""
+        self.log("🚀 STARTING KFDC iFMS FNB PDF UPLOAD TESTING")
         self.log(f"Base URL: {BASE_URL}")
+        self.log("Testing FNB PDF Upload functionality for Fund Indent workflow")
         
         try:
             # Run all test phases
             self.run_test_1_seed_database()
-            self.run_test_2_authentication_all_roles()
-            self.run_test_3_apo_approval_hierarchy()
-            self.run_test_4_apo_rejection_flow()
-            self.run_test_5_estimates_workflow()
-            self.run_test_6_rbac_enforcement()
+            self.run_test_2_authentication_fund_roles()
+            self.run_test_3_fnb_upload_rfo_auth()
+            self.run_test_4_fnb_upload_access_control()
+            self.run_test_5_file_validation()
+            self.run_test_6_file_accessibility()
+            self.run_test_7_fund_indent_with_fnb()
             
         except Exception as e:
             self.log(f"❌ Critical error during testing: {str(e)}", "ERROR")
@@ -475,7 +478,7 @@ class BackendTester:
         success_rate = (self.tests_passed / total_tests * 100) if total_tests > 0 else 0
         
         self.log("\n" + "="*60)
-        self.log("🎯 FINAL TEST RESULTS")
+        self.log("🎯 FINAL FNB UPLOAD TEST RESULTS")
         self.log("="*60)
         self.log(f"✅ Tests Passed: {self.tests_passed}")
         self.log(f"❌ Tests Failed: {self.tests_failed}")
@@ -483,13 +486,13 @@ class BackendTester:
         self.log(f"🎯 Success Rate: {success_rate:.1f}%")
         
         if self.tests_failed == 0:
-            self.log("🎉 ALL TESTS PASSED! Approval hierarchies working correctly.")
+            self.log("🎉 ALL FNB UPLOAD TESTS PASSED! FNB PDF Upload functionality working correctly.")
         else:
-            self.log("⚠️  Some tests failed. Please review the errors above.")
+            self.log("⚠️  Some FNB upload tests failed. Please review the errors above.")
             
         return self.tests_failed == 0
 
 if __name__ == "__main__":
-    tester = BackendTester()
+    tester = FNBUploadTester()
     success = tester.run_all_tests()
     sys.exit(0 if success else 1)
