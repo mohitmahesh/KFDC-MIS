@@ -361,6 +361,7 @@ metadata:
 
 test_plan:
   current_focus:
+    - "Fund Indent Workflow (RFO → DCF → ED → MD)"
     - "Complete UI Testing - 8 Test Scenarios"
     - "RO Login & Dashboard UI"
     - "Plantations View UI"
