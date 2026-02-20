@@ -1670,6 +1670,7 @@ function FundIndentItemsView({ user, apoId, setView }) {
   const [submitting, setSubmitting] = useState(false)
   const [error, setError] = useState('')
   const [generatedIndent, setGeneratedIndent] = useState(null) // For confirmation page
+  const [uploadingItem, setUploadingItem] = useState(null) // Track which item is uploading
 
   useEffect(() => {
     if (!apoId) return
@@ -1688,6 +1689,8 @@ function FundIndentItemsView({ user, apoId, setView }) {
             cm_by: user.name,
             fnb_book_no: '',
             fnb_page_no: '',
+            fnb_pdf_url: '',
+            fnb_pdf_name: '',
           }
         })
         setItemData(initData)
@@ -1707,6 +1710,52 @@ function FundIndentItemsView({ user, apoId, setView }) {
     const newSelected = {}
     items.forEach(item => { newSelected[item.id] = checked })
     setSelectedItems(newSelected)
+  }
+
+  // Handle FNB PDF file upload
+  const handleFileUpload = async (itemId, file) => {
+    if (!file) return
+    if (!file.name.toLowerCase().endsWith('.pdf')) {
+      setError('Only PDF files are allowed for FNB upload')
+      return
+    }
+    
+    setUploadingItem(itemId)
+    setError('')
+    
+    try {
+      const formData = new FormData()
+      formData.append('file', file)
+      formData.append('item_id', itemId)
+      
+      const result = await api.uploadFile('/fund-indent/upload-fnb', formData)
+      
+      // Update item data with the uploaded file URL
+      setItemData(prev => ({
+        ...prev,
+        [itemId]: { 
+          ...prev[itemId], 
+          fnb_pdf_url: result.file_url,
+          fnb_pdf_name: file.name
+        }
+      }))
+    } catch (e) {
+      setError('Failed to upload FNB PDF: ' + e.message)
+    } finally {
+      setUploadingItem(null)
+    }
+  }
+
+  // Remove uploaded file
+  const handleRemoveFile = (itemId) => {
+    setItemData(prev => ({
+      ...prev,
+      [itemId]: { 
+        ...prev[itemId], 
+        fnb_pdf_url: '',
+        fnb_pdf_name: ''
+      }
+    }))
   }
 
   const handleGenerate = async () => {
