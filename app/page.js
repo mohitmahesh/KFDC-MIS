@@ -1419,264 +1419,439 @@ function NormsView({ user }) {
   )
 }
 
-// ===================== ESTIMATES VIEW =====================
-function EstimatesView({ user }) {
+// ===================== FUND INDENT - RFO VIEW (Generate Fund Indent) =====================
+function FundIndentRFOView({ user, setView, setSelectedWork }) {
   const [works, setWorks] = useState([])
-  const [summary, setSummary] = useState(null)
+  const [years, setYears] = useState([])
+  const [selectedYear, setSelectedYear] = useState('2026-27')
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
-
-  const isECW = user.role === 'CASE_WORKER_ESTIMATES'
-  const isPS = user.role === 'PLANTATION_SUPERVISOR'
 
   const fetchWorks = useCallback(async () => {
     setLoading(true)
     setError('')
     try {
-      const data = await api.get('/apo/estimates')
+      const data = await api.get(`/fund-indent/works?year=${selectedYear}`)
       setWorks(data.works || [])
-      setSummary(data.summary || null)
+      setYears(data.years || [])
     } catch (e) {
       setError(e.message)
-      setWorks([])
-      setSummary(null)
     }
     setLoading(false)
-  }, [])
+  }, [selectedYear])
 
   useEffect(() => {
     fetchWorks()
   }, [fetchWorks])
 
-  const handleUpdateQty = async (itemId, newQty) => {
-    try {
-      await api.patch(`/apo/items/${itemId}/estimate`, { revised_qty: parseFloat(newQty), user_role: user.role })
-      fetchWorks()
-    } catch (e) {
-      setError(e.message)
-    }
-  }
-
-  const handleStatusChange = async (itemId, newStatus) => {
-    try {
-      await api.patch(`/apo/items/${itemId}/status`, { status: newStatus, user_role: user.role })
-      fetchWorks()
-    } catch (e) {
-      setError(e.message)
-    }
-  }
-
-  // Group works by plantation for better organization
-  const worksByPlantation = works.reduce((acc, work) => {
-    const key = work.plantation_id || 'unknown'
-    if (!acc[key]) {
-      acc[key] = {
-        plantation_name: work.plantation_name,
-        plantation_id: work.plantation_id,
-        items: []
-      }
-    }
-    acc[key].items.push(work)
-    return acc
-  }, {})
-
   return (
     <div className="space-y-6">
-      {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-bold text-foreground">Estimates Dashboard</h1>
-          <p className="text-muted-foreground">
-            Manage work estimates for <span className="font-medium text-emerald-700">SANCTIONED APOs</span> in your jurisdiction
-          </p>
+          <h1 className="text-2xl font-bold text-foreground">Generate Fund Indent (GFI)</h1>
+          <p className="text-muted-foreground">Select works from sanctioned APOs to generate Fund Indent</p>
         </div>
         <Button onClick={fetchWorks} variant="outline" className="gap-2">
           <RefreshCw className={`w-4 h-4 ${loading ? 'animate-spin' : ''}`} /> Refresh
         </Button>
       </div>
 
-      {/* Jurisdiction & Summary Card */}
-      <Card className="bg-gradient-to-r from-emerald-50 to-teal-50 border-emerald-200">
+      {/* Year Filter */}
+      <Card>
         <CardContent className="pt-6">
-          <div className="flex flex-wrap gap-6 items-center justify-between">
-            <div className="flex items-center gap-4">
-              <div className="w-12 h-12 bg-emerald-100 rounded-lg flex items-center justify-center">
-                <MapPin className="w-6 h-6 text-emerald-700" />
-              </div>
-              <div>
-                <div className="text-xs uppercase tracking-wide text-emerald-600 font-medium">Your Jurisdiction</div>
-                <div className="text-xl font-bold text-emerald-900">{summary?.jurisdiction || 'Loading...'}</div>
-                <div className="text-xs text-muted-foreground">{summary?.jurisdiction_type || ''} Level Access</div>
-              </div>
-            </div>
-            
-            <div className="flex gap-8">
-              <div className="text-center">
-                <div className="text-xs text-muted-foreground uppercase tracking-wide">Sanctioned APOs</div>
-                <div className="text-2xl font-bold text-emerald-800">{summary?.sanctioned_apo_count || 0}</div>
-              </div>
-              <div className="text-center">
-                <div className="text-xs text-muted-foreground uppercase tracking-wide">Work Items</div>
-                <div className="text-2xl font-bold text-emerald-800">{summary?.work_count || 0}</div>
-              </div>
-              <div className="text-center border-l pl-8">
-                <div className="text-xs text-muted-foreground uppercase tracking-wide">Sanctioned Budget</div>
-                <div className="text-2xl font-bold text-gray-900">{formatCurrency(summary?.total_sanctioned || 0)}</div>
-              </div>
-              <div className="text-center">
-                <div className="text-xs text-muted-foreground uppercase tracking-wide">Revised Estimate</div>
-                <div className={`text-2xl font-bold ${(summary?.total_revised || 0) > (summary?.total_sanctioned || 0) ? 'text-red-600' : 'text-emerald-600'}`}>
-                  {formatCurrency(summary?.total_revised || 0)}
-                </div>
-              </div>
-            </div>
+          <div className="flex items-center gap-4">
+            <Label className="text-sm font-medium">Financial Year</Label>
+            <Select value={selectedYear} onValueChange={setSelectedYear}>
+              <SelectTrigger className="w-[180px]">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                {years.map(y => <SelectItem key={y} value={y}>{y}</SelectItem>)}
+              </SelectContent>
+            </Select>
           </div>
         </CardContent>
       </Card>
 
-      {/* Role Info */}
-      <div className="flex items-center gap-4 p-3 bg-blue-50 rounded-lg border border-blue-200">
-        <User className="w-5 h-5 text-blue-600" />
-        <div className="text-sm">
-          <span className="font-medium text-blue-900">
-            {isECW ? 'Case Worker' : isPS ? 'Supervisor' : 'Admin'} Mode:
-          </span>
-          <span className="text-blue-700 ml-2">
-            {isECW && 'You can edit quantities and submit estimates for approval.'}
-            {isPS && 'You can approve or reject submitted estimates.'}
-            {!isECW && !isPS && 'Full access to all estimates.'}
-          </span>
+      {error && <div className="bg-red-50 text-red-600 p-4 rounded-lg border border-red-200">{error}</div>}
+
+      {/* Works Table */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="text-lg">Available Works for Fund Indent</CardTitle>
+          <CardDescription>Select a work to generate Fund Indent</CardDescription>
+        </CardHeader>
+        <CardContent className="p-0">
+          <Table>
+            <TableHeader>
+              <TableRow className="bg-muted/50">
+                <TableHead>APO ID</TableHead>
+                <TableHead>Plantation</TableHead>
+                <TableHead>Financial Year</TableHead>
+                <TableHead className="text-right">Work Items</TableHead>
+                <TableHead className="text-right">Total Amount (₹)</TableHead>
+                <TableHead className="text-center">GFI</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {loading ? (
+                <TableRow><TableCell colSpan={6} className="text-center py-8"><RefreshCw className="w-6 h-6 animate-spin text-emerald-600 mx-auto" /></TableCell></TableRow>
+              ) : works.length === 0 ? (
+                <TableRow><TableCell colSpan={6} className="text-center py-12">
+                  <AlertTriangle className="w-10 h-10 text-amber-500 mx-auto mb-3" />
+                  <h3 className="text-lg font-medium">No Works Available</h3>
+                  <p className="text-sm text-muted-foreground">No sanctioned APO works found for {selectedYear}</p>
+                </TableCell></TableRow>
+              ) : works.map(work => (
+                <TableRow key={work.apo_id} className="hover:bg-muted/30">
+                  <TableCell className="font-mono text-sm">{work.apo_id.slice(0, 8)}...</TableCell>
+                  <TableCell className="font-medium">{work.plantation_name}</TableCell>
+                  <TableCell>{work.financial_year}</TableCell>
+                  <TableCell className="text-right">{work.work_count}</TableCell>
+                  <TableCell className="text-right font-semibold">{formatCurrency(work.total_amount)}</TableCell>
+                  <TableCell className="text-center">
+                    <Button size="sm" className="bg-emerald-700 hover:bg-emerald-800" onClick={() => { setSelectedWork(work.apo_id); setView('fund-indent-items') }}>
+                      <FileText className="w-3 h-3 mr-1" /> Generate
+                    </Button>
+                  </TableCell>
+                </TableRow>
+              ))}
+            </TableBody>
+          </Table>
+        </CardContent>
+      </Card>
+    </div>
+  )
+}
+
+// ===================== FUND INDENT - LINE ITEMS VIEW =====================
+function FundIndentItemsView({ user, apoId, setView }) {
+  const [items, setItems] = useState([])
+  const [apoInfo, setApoInfo] = useState({})
+  const [selectedItems, setSelectedItems] = useState({})
+  const [itemData, setItemData] = useState({})
+  const [loading, setLoading] = useState(true)
+  const [submitting, setSubmitting] = useState(false)
+  const [error, setError] = useState('')
+
+  useEffect(() => {
+    if (!apoId) return
+    setLoading(true)
+    api.get(`/fund-indent/work-items/${apoId}`)
+      .then(data => {
+        setItems(data.items || [])
+        setApoInfo(data)
+        // Initialize item data
+        const initData = {}
+        data.items?.forEach(item => {
+          initData[item.id] = {
+            period_from: '',
+            period_to: '',
+            cm_date: '',
+            cm_by: user.name,
+            fnb_book_no: '',
+            fnb_page_no: '',
+          }
+        })
+        setItemData(initData)
+      })
+      .catch(e => setError(e.message))
+      .finally(() => setLoading(false))
+  }, [apoId, user.name])
+
+  const handleItemChange = (itemId, field, value) => {
+    setItemData(prev => ({
+      ...prev,
+      [itemId]: { ...prev[itemId], [field]: value }
+    }))
+  }
+
+  const handleSelectAll = (checked) => {
+    const newSelected = {}
+    items.forEach(item => { newSelected[item.id] = checked })
+    setSelectedItems(newSelected)
+  }
+
+  const handleGenerate = async () => {
+    const selected = items.filter(item => selectedItems[item.id])
+    if (selected.length === 0) {
+      setError('Please select at least one item')
+      return
+    }
+
+    setSubmitting(true)
+    setError('')
+    try {
+      const payload = {
+        apo_id: apoId,
+        items: selected.map(item => ({
+          id: item.id,
+          ...itemData[item.id]
+        }))
+      }
+      await api.post('/fund-indent/generate', payload)
+      setView('fund-indent')
+    } catch (e) {
+      setError(e.message)
+    }
+    setSubmitting(false)
+  }
+
+  const selectedCount = Object.values(selectedItems).filter(Boolean).length
+  const totalAmount = items.filter(item => selectedItems[item.id]).reduce((sum, item) => sum + (item.total_cost || 0), 0)
+
+  return (
+    <div className="space-y-6">
+      <div className="flex items-center justify-between">
+        <div>
+          <Button variant="outline" size="sm" onClick={() => setView('fund-indent')} className="mb-2">
+            <ArrowLeft className="w-4 h-4 mr-2" /> Back to Works
+          </Button>
+          <h1 className="text-2xl font-bold text-foreground">Select Line Items</h1>
+          <p className="text-muted-foreground">{apoInfo.plantation_name} • {apoInfo.financial_year}</p>
         </div>
       </div>
 
       {error && <div className="bg-red-50 text-red-600 p-4 rounded-lg border border-red-200">{error}</div>}
 
-      {/* Works by Plantation */}
-      {loading ? (
-        <Card>
-          <CardContent className="py-12 text-center">
-            <RefreshCw className="w-8 h-8 animate-spin text-emerald-600 mx-auto mb-3" />
-            <p className="text-muted-foreground">Loading works from sanctioned APOs...</p>
-          </CardContent>
-        </Card>
-      ) : works.length === 0 ? (
-        <Card>
-          <CardContent className="py-12 text-center">
-            <AlertTriangle className="w-12 h-12 text-amber-500 mx-auto mb-4" />
-            <h3 className="text-xl font-semibold text-gray-900 mb-2">No Sanctioned Works Found</h3>
-            <p className="text-muted-foreground max-w-md mx-auto">
-              {summary?.message || 'There are no sanctioned APOs in your jurisdiction yet. APOs must be approved by the Division Manager before work estimates can be managed.'}
-            </p>
-            <div className="mt-4 p-4 bg-amber-50 rounded-lg border border-amber-200 max-w-md mx-auto">
-              <p className="text-sm text-amber-800">
-                <strong>Note:</strong> Only works from <strong>SANCTIONED</strong> (MD-approved) APOs appear here. 
-                Draft or pending APOs are not visible in the Estimates Dashboard.
-              </p>
+      {/* Summary Card */}
+      <Card className="bg-emerald-50 border-emerald-200">
+        <CardContent className="py-4">
+          <div className="flex justify-between items-center">
+            <div className="flex gap-6">
+              <div>
+                <div className="text-xs text-emerald-600 uppercase">Selected Items</div>
+                <div className="text-2xl font-bold text-emerald-800">{selectedCount} / {items.length}</div>
+              </div>
+              <div>
+                <div className="text-xs text-emerald-600 uppercase">Total Amount</div>
+                <div className="text-2xl font-bold text-emerald-800">{formatCurrency(totalAmount)}</div>
+              </div>
             </div>
-          </CardContent>
-        </Card>
+            <Button className="bg-emerald-700 hover:bg-emerald-800" onClick={handleGenerate} disabled={submitting || selectedCount === 0}>
+              {submitting ? <><RefreshCw className="w-4 h-4 mr-2 animate-spin" /> Generating...</> : <><Send className="w-4 h-4 mr-2" /> Generate Fund Indent (GFI)</>}
+            </Button>
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* Items Table */}
+      <Card>
+        <CardContent className="p-0">
+          <Table>
+            <TableHeader>
+              <TableRow className="bg-muted/50">
+                <TableHead className="w-10">
+                  <Checkbox checked={selectedCount === items.length && items.length > 0} onCheckedChange={handleSelectAll} />
+                </TableHead>
+                <TableHead>SSR</TableHead>
+                <TableHead>Particulars</TableHead>
+                <TableHead className="text-right">Qty</TableHead>
+                <TableHead className="text-right">Rate (₹)</TableHead>
+                <TableHead className="text-right">Amt (₹)</TableHead>
+                <TableHead>Period From</TableHead>
+                <TableHead>Period To</TableHead>
+                <TableHead>CM Date</TableHead>
+                <TableHead>CM By</TableHead>
+                <TableHead>FNB Book</TableHead>
+                <TableHead>FNB Page</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {loading ? (
+                <TableRow><TableCell colSpan={12} className="text-center py-8"><RefreshCw className="w-6 h-6 animate-spin text-emerald-600 mx-auto" /></TableCell></TableRow>
+              ) : items.map(item => (
+                <TableRow key={item.id} className={selectedItems[item.id] ? 'bg-emerald-50/50' : ''}>
+                  <TableCell>
+                    <Checkbox checked={!!selectedItems[item.id]} onCheckedChange={(v) => setSelectedItems(prev => ({ ...prev, [item.id]: v }))} />
+                  </TableCell>
+                  <TableCell className="font-mono text-xs">{item.ssr_no}</TableCell>
+                  <TableCell className="font-medium text-sm">{item.activity_name}</TableCell>
+                  <TableCell className="text-right">{item.sanctioned_qty}</TableCell>
+                  <TableCell className="text-right">{item.sanctioned_rate?.toLocaleString('en-IN')}</TableCell>
+                  <TableCell className="text-right font-semibold">{formatCurrency(item.total_cost)}</TableCell>
+                  <TableCell><Input type="date" className="w-32 text-xs" value={itemData[item.id]?.period_from || ''} onChange={e => handleItemChange(item.id, 'period_from', e.target.value)} disabled={!selectedItems[item.id]} /></TableCell>
+                  <TableCell><Input type="date" className="w-32 text-xs" value={itemData[item.id]?.period_to || ''} onChange={e => handleItemChange(item.id, 'period_to', e.target.value)} disabled={!selectedItems[item.id]} /></TableCell>
+                  <TableCell><Input type="date" className="w-32 text-xs" value={itemData[item.id]?.cm_date || ''} onChange={e => handleItemChange(item.id, 'cm_date', e.target.value)} disabled={!selectedItems[item.id]} /></TableCell>
+                  <TableCell><Input className="w-24 text-xs" value={itemData[item.id]?.cm_by || ''} onChange={e => handleItemChange(item.id, 'cm_by', e.target.value)} disabled={!selectedItems[item.id]} /></TableCell>
+                  <TableCell><Input className="w-16 text-xs" value={itemData[item.id]?.fnb_book_no || ''} onChange={e => handleItemChange(item.id, 'fnb_book_no', e.target.value)} disabled={!selectedItems[item.id]} /></TableCell>
+                  <TableCell><Input className="w-16 text-xs" value={itemData[item.id]?.fnb_page_no || ''} onChange={e => handleItemChange(item.id, 'fnb_page_no', e.target.value)} disabled={!selectedItems[item.id]} /></TableCell>
+                </TableRow>
+              ))}
+            </TableBody>
+          </Table>
+        </CardContent>
+      </Card>
+    </div>
+  )
+}
+
+// ===================== FUND INDENT - APPROVAL VIEW (DCF/ED/MD) =====================
+function FundIndentApprovalView({ user }) {
+  const [indents, setIndents] = useState([])
+  const [loading, setLoading] = useState(true)
+  const [error, setError] = useState('')
+  const [expandedIndent, setExpandedIndent] = useState(null)
+  const [selectedItems, setSelectedItems] = useState({})
+  const [submitting, setSubmitting] = useState(false)
+
+  const fetchIndents = useCallback(async () => {
+    setLoading(true)
+    setError('')
+    try {
+      const data = await api.get('/fund-indent/pending')
+      setIndents(data.indents || [])
+    } catch (e) {
+      setError(e.message)
+    }
+    setLoading(false)
+  }, [])
+
+  useEffect(() => {
+    fetchIndents()
+  }, [fetchIndents])
+
+  const handleApprove = async (estId) => {
+    const indent = indents.find(i => i.id === estId)
+    if (!indent) return
+
+    const approved = indent.items.filter(item => selectedItems[item.id] !== false).map(i => i.id)
+    const rejected = indent.items.filter(item => selectedItems[item.id] === false).map(i => i.id)
+
+    setSubmitting(true)
+    try {
+      await api.post(`/fund-indent/${estId}/approve`, { approved_items: approved, rejected_items: rejected })
+      fetchIndents()
+      setSelectedItems({})
+      setExpandedIndent(null)
+    } catch (e) {
+      setError(e.message)
+    }
+    setSubmitting(false)
+  }
+
+  const roleHierarchy = {
+    DCF: { label: 'Forward to ED', next: 'ED' },
+    ED: { label: 'Forward to MD', next: 'MD' },
+    MD: { label: 'Final Approval', next: null }
+  }
+  const currentRole = roleHierarchy[user.role] || { label: 'Approve', next: null }
+
+  const statusColors = {
+    PENDING_DCF: 'bg-orange-100 text-orange-800',
+    PENDING_ED: 'bg-indigo-100 text-indigo-800',
+    PENDING_MD: 'bg-rose-100 text-rose-800',
+    APPROVED: 'bg-emerald-100 text-emerald-800',
+  }
+
+  return (
+    <div className="space-y-6">
+      <div className="flex items-center justify-between">
+        <div>
+          <h1 className="text-2xl font-bold text-foreground">Approve Fund Indent (AFI)</h1>
+          <p className="text-muted-foreground">Review and approve fund indents from {user.role === 'DCF' ? 'RFO' : user.role === 'ED' ? 'DCF' : 'ED'}</p>
+        </div>
+        <Button onClick={fetchIndents} variant="outline" className="gap-2">
+          <RefreshCw className={`w-4 h-4 ${loading ? 'animate-spin' : ''}`} /> Refresh
+        </Button>
+      </div>
+
+      {/* Role Info */}
+      <Card className="bg-gradient-to-r from-blue-50 to-indigo-50 border-blue-200">
+        <CardContent className="py-4">
+          <div className="flex items-center gap-4">
+            <div className="w-12 h-12 bg-blue-100 rounded-lg flex items-center justify-center">
+              <User className="w-6 h-6 text-blue-700" />
+            </div>
+            <div>
+              <div className="text-xs text-blue-600 uppercase font-medium">Your Role</div>
+              <div className="text-lg font-bold text-blue-900">{user.role} - {user.name}</div>
+              <div className="text-xs text-blue-700">Pending Indents: {indents.length}</div>
+            </div>
+          </div>
+        </CardContent>
+      </Card>
+
+      {error && <div className="bg-red-50 text-red-600 p-4 rounded-lg border border-red-200">{error}</div>}
+
+      {/* Indents List */}
+      {loading ? (
+        <Card><CardContent className="py-12 text-center"><RefreshCw className="w-8 h-8 animate-spin text-emerald-600 mx-auto" /></CardContent></Card>
+      ) : indents.length === 0 ? (
+        <Card><CardContent className="py-12 text-center">
+          <CheckCircle className="w-12 h-12 text-emerald-500 mx-auto mb-4" />
+          <h3 className="text-xl font-semibold">All Clear!</h3>
+          <p className="text-muted-foreground">No pending fund indents for approval</p>
+        </CardContent></Card>
       ) : (
-        <div className="space-y-6">
-          {Object.entries(worksByPlantation).map(([pltId, group]) => (
-            <Card key={pltId}>
-              <CardHeader className="pb-3 bg-muted/30">
+        <div className="space-y-4">
+          {indents.map(indent => (
+            <Card key={indent.id} className={expandedIndent === indent.id ? 'ring-2 ring-emerald-500' : ''}>
+              <CardHeader className="pb-3 cursor-pointer" onClick={() => setExpandedIndent(expandedIndent === indent.id ? null : indent.id)}>
                 <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-3">
+                  <div className="flex items-center gap-4">
                     <div className="w-10 h-10 bg-emerald-100 rounded-lg flex items-center justify-center">
-                      <TreePine className="w-5 h-5 text-emerald-700" />
+                      <FileText className="w-5 h-5 text-emerald-700" />
                     </div>
                     <div>
-                      <CardTitle className="text-lg">{group.plantation_name}</CardTitle>
-                      <CardDescription>Plantation ID: {group.plantation_id} • {group.items.length} work item(s)</CardDescription>
+                      <CardTitle className="text-lg flex items-center gap-2">
+                        {indent.id}
+                        <Badge className={statusColors[indent.status] || 'bg-gray-100'}>{indent.status}</Badge>
+                      </CardTitle>
+                      <CardDescription>{indent.plantation_name} • {indent.financial_year} • {indent.item_count} items • {formatCurrency(indent.total_amount)}</CardDescription>
                     </div>
                   </div>
-                  <Badge className="bg-emerald-100 text-emerald-800">SANCTIONED</Badge>
+                  <div className="flex items-center gap-2">
+                    <span className="text-xs text-muted-foreground">Created by: {indent.created_by_name}</span>
+                    {expandedIndent === indent.id ? <ChevronUp className="w-5 h-5" /> : <ChevronDown className="w-5 h-5" />}
+                  </div>
                 </div>
               </CardHeader>
-              <CardContent className="p-0">
-                <Table>
-                  <TableHeader>
-                    <TableRow className="bg-muted/50">
-                      <TableHead>Activity / Work Item</TableHead>
-                      <TableHead>Estimate Status</TableHead>
-                      <TableHead className="text-right">Sanctioned Qty</TableHead>
-                      <TableHead className="text-right">Revised Qty</TableHead>
-                      <TableHead className="text-right">Est. Cost (₹)</TableHead>
-                      <TableHead className="text-center">Actions</TableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {group.items.map(item => {
-                      const currentQty = item.revised_qty !== null ? item.revised_qty : item.sanctioned_qty
-                      const cost = currentQty * item.sanctioned_rate
-                      const isEditable = isECW && ['DRAFT', 'REJECTED'].includes(item.estimate_status)
 
-                      const statusConfig = {
-                        DRAFT: { color: 'bg-gray-100 text-gray-800', icon: Clock },
-                        SUBMITTED: { color: 'bg-amber-100 text-amber-800', icon: Send },
-                        APPROVED: { color: 'bg-emerald-100 text-emerald-800', icon: CheckCircle },
-                        REJECTED: { color: 'bg-red-100 text-red-800', icon: XCircle }
-                      }
-                      const status = statusConfig[item.estimate_status] || statusConfig.DRAFT
-                      const StatusIcon = status.icon
-
-                      return (
-                        <TableRow key={item.id} className="hover:bg-muted/30">
+              {expandedIndent === indent.id && (
+                <CardContent className="pt-0">
+                  <Table>
+                    <TableHeader>
+                      <TableRow className="bg-muted/50">
+                        <TableHead className="w-10">Select</TableHead>
+                        <TableHead>Particulars</TableHead>
+                        <TableHead>SSR</TableHead>
+                        <TableHead className="text-right">Qty</TableHead>
+                        <TableHead className="text-right">Rate</TableHead>
+                        <TableHead className="text-right">Amount</TableHead>
+                        <TableHead>Period</TableHead>
+                        <TableHead>FNB</TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {indent.items.map(item => (
+                        <TableRow key={item.id} className={selectedItems[item.id] === false ? 'bg-red-50 opacity-60' : ''}>
                           <TableCell>
-                            <div className="font-medium">{item.activity_name}</div>
-                            <div className="text-xs text-muted-foreground">{item.unit} @ {formatCurrency(item.sanctioned_rate)}/unit</div>
+                            <Checkbox 
+                              checked={selectedItems[item.id] !== false} 
+                              onCheckedChange={(v) => setSelectedItems(prev => ({ ...prev, [item.id]: v }))} 
+                            />
                           </TableCell>
-                          <TableCell>
-                            <Badge className={`${status.color} gap-1`}>
-                              <StatusIcon className="w-3 h-3" />
-                              {item.estimate_status}
-                            </Badge>
-                          </TableCell>
-                          <TableCell className="text-right font-mono">{item.sanctioned_qty}</TableCell>
-                          <TableCell className="text-right">
-                            {isEditable ? (
-                              <Input 
-                                type="number" 
-                                defaultValue={currentQty} 
-                                className="w-24 text-right"
-                                onBlur={(e) => handleUpdateQty(item.id, e.target.value)}
-                              />
-                            ) : (
-                              <span className="font-mono font-medium">{currentQty}</span>
-                            )}
-                          </TableCell>
-                          <TableCell className="text-right font-semibold">{formatCurrency(cost)}</TableCell>
-                          <TableCell className="text-center">
-                            <div className="flex justify-center gap-2">
-                              {isECW && ['DRAFT', 'REJECTED'].includes(item.estimate_status) && (
-                                <Button size="sm" onClick={() => handleStatusChange(item.id, 'SUBMITTED')} className="bg-blue-600 hover:bg-blue-700">
-                                  <Send className="w-3 h-3 mr-1" /> Submit
-                                </Button>
-                              )}
-                              {isPS && item.estimate_status === 'SUBMITTED' && (
-                                <>
-                                  <Button size="sm" onClick={() => handleStatusChange(item.id, 'APPROVED')} className="bg-emerald-600 hover:bg-emerald-700">
-                                    <CheckCircle className="w-3 h-3 mr-1" /> Approve
-                                  </Button>
-                                  <Button size="sm" variant="destructive" onClick={() => handleStatusChange(item.id, 'REJECTED')}>
-                                    <XCircle className="w-3 h-3 mr-1" /> Reject
-                                  </Button>
-                                </>
-                              )}
-                              {item.estimate_status === 'APPROVED' && (
-                                <span className="text-xs text-emerald-600 font-medium">✓ Approved</span>
-                              )}
-                              {item.estimate_status === 'SUBMITTED' && isECW && (
-                                <span className="text-xs text-amber-600">Pending Review</span>
-                              )}
-                            </div>
-                          </TableCell>
+                          <TableCell className="font-medium">{item.activity_name}</TableCell>
+                          <TableCell className="font-mono text-xs">{item.ssr_no}</TableCell>
+                          <TableCell className="text-right">{item.sanctioned_qty}</TableCell>
+                          <TableCell className="text-right">{formatCurrency(item.sanctioned_rate)}</TableCell>
+                          <TableCell className="text-right font-semibold">{formatCurrency(item.total_cost)}</TableCell>
+                          <TableCell className="text-xs">{item.period_from} - {item.period_to}</TableCell>
+                          <TableCell className="text-xs">Bk:{item.fnb_book_no} Pg:{item.fnb_page_no}</TableCell>
                         </TableRow>
-                      )
-                    })}
-                  </TableBody>
-                </Table>
-              </CardContent>
+                      ))}
+                    </TableBody>
+                  </Table>
+
+                  <div className="flex justify-end mt-4 pt-4 border-t">
+                    <Button className="bg-emerald-700 hover:bg-emerald-800" onClick={() => handleApprove(indent.id)} disabled={submitting}>
+                      {submitting ? <><RefreshCw className="w-4 h-4 mr-2 animate-spin" /></> : <><CheckCircle className="w-4 h-4 mr-2" /></>}
+                      {currentRole.label} (AFI)
+                    </Button>
+                  </div>
+                </CardContent>
+              )}
             </Card>
           ))}
         </div>
