@@ -640,67 +640,6 @@ function Dashboard({ user }) {
     </div>
   )
 }
-                <PieChart>
-                  <Pie data={pieData} dataKey="value" nameKey="name" cx="50%" cy="50%" outerRadius={75} innerRadius={40}>
-                    {pieData.map((entry, i) => <Cell key={i} fill={entry.color} />)}
-                  </Pie>
-                  <Tooltip />
-                </PieChart>
-              </ResponsiveContainer>
-            ) : (
-              <div className="h-[200px] flex items-center justify-center text-muted-foreground">No APOs yet</div>
-            )}
-            <div className="space-y-2 mt-4">
-              <div className="flex items-center justify-between text-sm">
-                <span className="text-muted-foreground">Total Sanctioned</span>
-                <span className="font-semibold">{formatCurrency(stats.total_sanctioned_amount)}</span>
-              </div>
-              <div className="flex items-center justify-between text-sm">
-                <span className="text-muted-foreground">Total Utilized</span>
-                <span className="font-semibold">{formatCurrency(stats.total_expenditure)}</span>
-              </div>
-              <Progress value={stats.utilization_pct} className="h-2 mt-2" />
-            </div>
-          </CardContent>
-        </Card>
-      </div>
-
-      {/* Alerts */}
-      {(user.role === 'RO' && (stats.draft_apos > 0 || stats.pending_apos > 0)) && (
-        <Card className="border-amber-200 bg-amber-50/30">
-          <CardHeader className="pb-2">
-            <CardTitle className="text-lg flex items-center gap-2">
-              <AlertTriangle className="w-5 h-5 text-amber-600" />
-              Action Items
-            </CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-2">
-            {stats.draft_apos > 0 && (
-              <div className="flex items-center gap-2 text-sm"><Clock className="w-4 h-4 text-gray-500" />{stats.draft_apos} APO(s) in Draft - submit for approval</div>
-            )}
-            {stats.pending_apos > 0 && (
-              <div className="flex items-center gap-2 text-sm"><AlertTriangle className="w-4 h-4 text-amber-500" />{stats.pending_apos} APO(s) pending approval</div>
-            )}
-          </CardContent>
-        </Card>
-      )}
-
-      {(user.role === 'DM' && stats.pending_apos > 0) && (
-        <Card className="border-purple-200 bg-purple-50/30">
-          <CardHeader className="pb-2">
-            <CardTitle className="text-lg flex items-center gap-2">
-              <ClipboardList className="w-5 h-5 text-purple-600" />
-              Pending Approvals
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <p className="text-sm">{stats.pending_apos} APO(s) waiting for your review and approval</p>
-          </CardContent>
-        </Card>
-      )}
-    </div>
-  )
-}
 
 // ===================== PLANTATIONS =====================
 function PlantationsView({ user, setView, setSelectedPlantation }) {
