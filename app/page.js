@@ -41,6 +41,16 @@ const api = {
   post(url, body) { return this.fetch(url, { method: 'POST', body: JSON.stringify(body) }) },
   patch(url, body) { return this.fetch(url, { method: 'PATCH', body: JSON.stringify(body) }) },
   delete(url) { return this.fetch(url, { method: 'DELETE' }) },
+  // Special method for file uploads (no Content-Type header - browser sets it automatically with boundary)
+  async uploadFile(url, formData) {
+    const token = this.getToken()
+    const headers = {}
+    if (token) headers['Authorization'] = `Bearer ${token}`
+    const res = await fetch(`/api${url}`, { method: 'POST', headers, body: formData })
+    const data = await res.json()
+    if (!res.ok) throw new Error(data.error || data.message || 'Upload failed')
+    return data
+  },
 }
 
 // ===================== CONSTANTS =====================
