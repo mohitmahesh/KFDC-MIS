@@ -401,44 +401,73 @@ function Dashboard({ user }) {
     api.get('/dashboard/stats').then(setStats).catch(console.error).finally(() => setLoading(false))
   }, [])
 
-  if (loading) return <div className="flex items-center justify-center h-64"><RefreshCw className="w-6 h-6 animate-spin text-emerald-600" /></div>
+  if (loading) return (
+    <div className="flex items-center justify-center h-64">
+      <RefreshCw className="w-8 h-8 animate-spin text-teal-600" />
+    </div>
+  )
   if (!stats) return <p className="text-muted-foreground p-4">Failed to load dashboard</p>
 
   const statCards = [
-    { label: 'Total Plantations', value: stats.total_plantations, icon: TreePine, color: 'text-emerald-600', bg: 'bg-emerald-50' },
-    { label: 'Total Area (Ha)', value: stats.total_area_ha?.toFixed(1), icon: MapPin, color: 'text-blue-600', bg: 'bg-blue-50' },
-    { label: 'Active APOs', value: stats.sanctioned_apos, icon: FileText, color: 'text-purple-600', bg: 'bg-purple-50' },
-    { label: 'Budget Utilized', value: `${stats.utilization_pct}%`, icon: TrendingUp, color: 'text-amber-600', bg: 'bg-amber-50' },
+    { label: 'Total Plantations', value: stats.total_plantations, icon: TreePine, color: 'text-emerald-600', bg: 'bg-emerald-50', trend: '+5%' },
+    { label: 'Total Area (Ha)', value: stats.total_area_ha?.toFixed(1), icon: MapPin, color: 'text-blue-600', bg: 'bg-blue-50', trend: '+2.3%' },
+    { label: 'Active APOs', value: stats.sanctioned_apos, icon: FileText, color: 'text-violet-600', bg: 'bg-violet-50', trend: '+12%' },
+    { label: 'Budget Utilized', value: `${stats.utilization_pct}%`, icon: Wallet, color: 'text-amber-600', bg: 'bg-amber-50', trend: null },
   ]
 
   const pieData = [
-    { name: 'Sanctioned', value: stats.sanctioned_apos, color: '#166534' },
-    { name: 'Pending', value: stats.pending_apos, color: '#ca8a04' },
+    { name: 'Sanctioned', value: stats.sanctioned_apos, color: '#10b981' },
+    { name: 'Pending', value: stats.pending_apos, color: '#f59e0b' },
     { name: 'Draft', value: stats.draft_apos, color: '#6b7280' },
-    { name: 'Rejected', value: stats.rejected_apos, color: '#dc2626' },
+    { name: 'Rejected', value: stats.rejected_apos, color: '#ef4444' },
   ].filter(d => d.value > 0)
 
   return (
     <div className="space-y-6">
-      <div>
-        <h2 className="text-2xl font-bold">Dashboard</h2>
-        <p className="text-muted-foreground">
-          Welcome back, {user.name} | FY 2026-27
-        </p>
+      {/* Header with Greeting */}
+      <div className="flex items-center justify-between">
+        <div className="flex items-center gap-4">
+          <div className="w-12 h-12 bg-gradient-to-br from-teal-400 to-emerald-500 rounded-full flex items-center justify-center text-white text-xl font-semibold">
+            {user.name?.charAt(0) || 'U'}
+          </div>
+          <div>
+            <h1 className="text-2xl font-semibold text-gray-800">
+              Hey {user.name?.split(' ')[0]}! 👋
+            </h1>
+            <p className="text-gray-500">Hope you are having a great day</p>
+          </div>
+        </div>
+        <div className="flex items-center gap-3">
+          <Button variant="outline" size="sm" className="gap-2">
+            <Calendar className="w-4 h-4" />
+            FY 2026-27
+          </Button>
+          <Button variant="outline" size="icon" className="relative">
+            <Bell className="w-4 h-4" />
+            <span className="absolute -top-1 -right-1 w-4 h-4 bg-teal-500 text-white text-[10px] rounded-full flex items-center justify-center">3</span>
+          </Button>
+        </div>
       </div>
 
       {/* Stat Cards */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
         {statCards.map(s => (
-          <Card key={s.label} className="border shadow-sm">
-            <CardContent className="p-4">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-xs text-muted-foreground mb-1">{s.label}</p>
-                  <p className="text-2xl font-bold">{s.value}</p>
+          <Card key={s.label} className="border shadow-sm hover:shadow-md transition-shadow">
+            <CardContent className="p-5">
+              <div className="flex items-start justify-between">
+                <div className="space-y-2">
+                  <p className="text-sm text-gray-500">{s.label}</p>
+                  <div className="flex items-baseline gap-2">
+                    <p className="text-3xl font-bold text-gray-800">{s.value}</p>
+                    {s.trend && (
+                      <span className="text-xs text-emerald-600 font-medium bg-emerald-50 px-1.5 py-0.5 rounded">
+                        {s.trend}
+                      </span>
+                    )}
+                  </div>
                 </div>
-                <div className={`w-10 h-10 ${s.bg} rounded-lg flex items-center justify-center`}>
-                  <s.icon className={`w-5 h-5 ${s.color}`} />
+                <div className={`w-12 h-12 ${s.bg} rounded-xl flex items-center justify-center`}>
+                  <s.icon className={`w-6 h-6 ${s.color}`} />
                 </div>
               </div>
             </CardContent>
@@ -446,41 +475,171 @@ function Dashboard({ user }) {
         ))}
       </div>
 
-      {/* Financial Overview */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
+      {/* Main Content Grid */}
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        {/* Budget Chart - 2 columns */}
         <Card className="lg:col-span-2">
           <CardHeader className="pb-2">
-            <CardTitle className="text-lg">Budget: Sanctioned vs Utilized</CardTitle>
-            <CardDescription>Activity-wise budget comparison</CardDescription>
+            <div className="flex items-center justify-between">
+              <div>
+                <CardTitle className="text-lg font-semibold">Budget Statistics</CardTitle>
+                <CardDescription>Sanctioned vs Utilized Amount</CardDescription>
+              </div>
+              <Select defaultValue="all">
+                <SelectTrigger className="w-32 h-8 text-xs">
+                  <SelectValue placeholder="Filter" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">All Activities</SelectItem>
+                  <SelectItem value="planting">Planting</SelectItem>
+                  <SelectItem value="maintenance">Maintenance</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
           </CardHeader>
           <CardContent>
             {stats.budget_chart?.length > 0 ? (
-              <ResponsiveContainer width="100%" height={300}>
-                <BarChart data={stats.budget_chart}>
-                  <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" />
-                  <XAxis dataKey="name" tick={{ fontSize: 11 }} />
-                  <YAxis tick={{ fontSize: 11 }} />
-                  <Tooltip formatter={(value) => formatCurrency(value)} />
-                  <Legend />
-                  <Bar dataKey="sanctioned" name="Sanctioned" fill="#166534" radius={[4, 4, 0, 0]} />
-                  <Bar dataKey="spent" name="Utilized" fill="#ca8a04" radius={[4, 4, 0, 0]} />
+              <ResponsiveContainer width="100%" height={280}>
+                <BarChart data={stats.budget_chart} barGap={4}>
+                  <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" vertical={false} />
+                  <XAxis dataKey="name" tick={{ fontSize: 11 }} axisLine={false} tickLine={false} />
+                  <YAxis tick={{ fontSize: 11 }} axisLine={false} tickLine={false} />
+                  <Tooltip 
+                    formatter={(value) => formatCurrency(value)} 
+                    contentStyle={{ borderRadius: '8px', border: '1px solid #e5e7eb' }}
+                  />
+                  <Legend wrapperStyle={{ paddingTop: '10px' }} />
+                  <Bar dataKey="sanctioned" name="Sanctioned" fill="#6366f1" radius={[4, 4, 0, 0]} />
+                  <Bar dataKey="spent" name="Utilized" fill="#a855f7" radius={[4, 4, 0, 0]} />
                 </BarChart>
               </ResponsiveContainer>
             ) : (
-              <div className="h-[300px] flex items-center justify-center text-muted-foreground">
-                <p>No budget data available yet</p>
+              <div className="h-[280px] flex items-center justify-center text-gray-400">
+                <div className="text-center">
+                  <BarChart3 className="w-12 h-12 mx-auto mb-2 opacity-50" />
+                  <p>No budget data available yet</p>
+                </div>
               </div>
             )}
           </CardContent>
         </Card>
 
-        <Card>
-          <CardHeader className="pb-2">
-            <CardTitle className="text-lg">APO Status Overview</CardTitle>
-          </CardHeader>
-          <CardContent>
-            {pieData.length > 0 ? (
-              <ResponsiveContainer width="100%" height={200}>
+        {/* Right Column */}
+        <div className="space-y-6">
+          {/* APO Status Card */}
+          <Card>
+            <CardHeader className="pb-2">
+              <CardTitle className="text-lg font-semibold">APO Status</CardTitle>
+            </CardHeader>
+            <CardContent>
+              {pieData.length > 0 ? (
+                <div className="flex items-center gap-4">
+                  <ResponsiveContainer width={120} height={120}>
+                    <PieChart>
+                      <Pie
+                        data={pieData}
+                        innerRadius={35}
+                        outerRadius={55}
+                        paddingAngle={3}
+                        dataKey="value"
+                      >
+                        {pieData.map((entry, index) => (
+                          <Cell key={`cell-${index}`} fill={entry.color} />
+                        ))}
+                      </Pie>
+                    </PieChart>
+                  </ResponsiveContainer>
+                  <div className="space-y-2">
+                    {pieData.map((item, idx) => (
+                      <div key={idx} className="flex items-center gap-2">
+                        <div className="w-3 h-3 rounded-full" style={{ backgroundColor: item.color }} />
+                        <span className="text-sm text-gray-600">{item.name}</span>
+                        <span className="text-sm font-semibold text-gray-800 ml-auto">{item.value}</span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              ) : (
+                <div className="h-[120px] flex items-center justify-center text-gray-400">
+                  <p>No APO data available</p>
+                </div>
+              )}
+            </CardContent>
+          </Card>
+
+          {/* Quick Actions Card */}
+          <Card>
+            <CardHeader className="pb-2">
+              <CardTitle className="text-lg font-semibold">Quick Actions</CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-2">
+              {user.role === 'RO' && (
+                <Button variant="outline" className="w-full justify-start gap-2" onClick={() => {}}>
+                  <Plus className="w-4 h-4 text-teal-600" />
+                  Create New APO
+                </Button>
+              )}
+              <Button variant="outline" className="w-full justify-start gap-2" onClick={() => {}}>
+                <TreePine className="w-4 h-4 text-emerald-600" />
+                View Plantations
+              </Button>
+              <Button variant="outline" className="w-full justify-start gap-2" onClick={() => {}}>
+                <FileText className="w-4 h-4 text-violet-600" />
+                APO Reports
+              </Button>
+            </CardContent>
+          </Card>
+        </div>
+      </div>
+
+      {/* Recent Activity Section */}
+      <Card>
+        <CardHeader className="pb-2">
+          <div className="flex items-center justify-between">
+            <CardTitle className="text-lg font-semibold">Recent APOs</CardTitle>
+            <Button variant="ghost" size="sm" className="text-teal-600 hover:text-teal-700">
+              See All <ChevronRight className="w-4 h-4 ml-1" />
+            </Button>
+          </div>
+        </CardHeader>
+        <CardContent>
+          <Table>
+            <TableHeader>
+              <TableRow className="bg-gray-50/50">
+                <TableHead>APO ID</TableHead>
+                <TableHead>Plantation</TableHead>
+                <TableHead>Financial Year</TableHead>
+                <TableHead>Status</TableHead>
+                <TableHead className="text-right">Amount</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {stats.recent_apos?.slice(0, 5).map((apo, idx) => (
+                <TableRow key={idx} className="hover:bg-gray-50">
+                  <TableCell className="font-medium">{apo.id}</TableCell>
+                  <TableCell>{apo.plantation_name}</TableCell>
+                  <TableCell>{apo.financial_year}</TableCell>
+                  <TableCell>
+                    <Badge className={STATUS_COLORS[apo.status] || 'bg-gray-100'}>
+                      {STATUS_LABELS[apo.status] || apo.status}
+                    </Badge>
+                  </TableCell>
+                  <TableCell className="text-right font-semibold">{formatCurrency(apo.total_amount)}</TableCell>
+                </TableRow>
+              )) || (
+                <TableRow>
+                  <TableCell colSpan={5} className="text-center text-gray-400 py-8">
+                    No recent APOs found
+                  </TableCell>
+                </TableRow>
+              )}
+            </TableBody>
+          </Table>
+        </CardContent>
+      </Card>
+    </div>
+  )
+}
                 <PieChart>
                   <Pie data={pieData} dataKey="value" nameKey="name" cx="50%" cy="50%" outerRadius={75} innerRadius={40}>
                     {pieData.map((entry, i) => <Cell key={i} fill={entry.color} />)}
