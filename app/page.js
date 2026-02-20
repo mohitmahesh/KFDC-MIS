@@ -118,8 +118,11 @@ function LoginPage({ onLogin }) {
     { email: 'dm.dharwad@kfdc.in', role: 'Division Manager', division: 'Dharwad' },
     { email: 'dm.bangalore@kfdc.in', role: 'Division Manager', division: 'Bangalore' },
     { email: 'admin@kfdc.in', role: 'Admin (HO)', division: 'All' },
-    { email: 'ecw.dharwad@kfdc.in', role: 'Estimates Case Worker', division: 'Dharwad' },
-    { email: 'ps.dharwad@kfdc.in', role: 'Plantation Supervisor', division: 'Dharwad' },
+    // Fund Indent Hierarchy: RFO → DCF → ED → MD
+    { email: 'rfo.dharwad@kfdc.in', role: 'Range Forest Officer', division: 'Dharwad' },
+    { email: 'dcf.dharwad@kfdc.in', role: 'Deputy Conservator', division: 'Dharwad' },
+    { email: 'ed@kfdc.in', role: 'Executive Director', division: 'All' },
+    { email: 'md@kfdc.in', role: 'Managing Director', division: 'All' },
   ]
 
   return (
