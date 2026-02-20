@@ -1866,6 +1866,7 @@ function App() {
   const [view, setView] = useState('dashboard')
   const [selectedPlantation, setSelectedPlantation] = useState(null)
   const [selectedApo, setSelectedApo] = useState(null)
+  const [selectedWork, setSelectedWork] = useState(null)
   const [authChecked, setAuthChecked] = useState(false)
 
   useEffect(() => {
@@ -1897,8 +1898,10 @@ function App() {
     return <LoginPage onLogin={(u) => { 
       setUser(u)
       // Set default view based on role
-      if (u.role === 'CASE_WORKER_ESTIMATES' || u.role === 'PLANTATION_SUPERVISOR') {
-        setView('estimates')
+      if (u.role === 'RFO') {
+        setView('fund-indent')
+      } else if (['DCF', 'ED', 'MD'].includes(u.role)) {
+        setView('fund-indent-approve')
       } else {
         setView('dashboard')
       }
@@ -1914,12 +1917,14 @@ function App() {
       case 'apo-list': return <ApoList user={user} setView={setView} setSelectedApo={setSelectedApo} />
       case 'apo-detail': return selectedApo ? <ApoDetail apoId={selectedApo} user={user} setView={setView} /> : null
       case 'norms': return <NormsView user={user} />
-      case 'estimates': return <EstimatesView user={user} />
+      // Fund Indent Views
+      case 'fund-indent': return <FundIndentRFOView user={user} setView={setView} setSelectedWork={setSelectedWork} />
+      case 'fund-indent-items': return selectedWork ? <FundIndentItemsView user={user} apoId={selectedWork} setView={setView} /> : null
+      case 'fund-indent-approve': return <FundIndentApprovalView user={user} />
       default: 
-        // Default to estimates for ECW/PS users, dashboard for others
-        if (user.role === 'CASE_WORKER_ESTIMATES' || user.role === 'PLANTATION_SUPERVISOR') {
-          return <EstimatesView user={user} />
-        }
+        // Default based on role
+        if (u.role === 'RFO') return <FundIndentRFOView user={user} setView={setView} setSelectedWork={setSelectedWork} />
+        if (['DCF', 'ED', 'MD'].includes(user.role)) return <FundIndentApprovalView user={user} />
         return <Dashboard user={user} />
     }
   }
