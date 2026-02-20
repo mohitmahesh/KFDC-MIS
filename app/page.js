@@ -1841,11 +1841,12 @@ function FundIndentItemsView({ user, apoId, setView }) {
                 <TableHead>CM By</TableHead>
                 <TableHead>FNB Book</TableHead>
                 <TableHead>FNB Page</TableHead>
+                <TableHead>FNB PDF</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
               {loading ? (
-                <TableRow><TableCell colSpan={12} className="text-center py-8"><RefreshCw className="w-6 h-6 animate-spin text-emerald-600 mx-auto" /></TableCell></TableRow>
+                <TableRow><TableCell colSpan={13} className="text-center py-8"><RefreshCw className="w-6 h-6 animate-spin text-emerald-600 mx-auto" /></TableCell></TableRow>
               ) : items.map(item => (
                 <TableRow key={item.id} className={selectedItems[item.id] ? 'bg-emerald-50/50' : ''}>
                   <TableCell>
@@ -1862,6 +1863,49 @@ function FundIndentItemsView({ user, apoId, setView }) {
                   <TableCell><Input className="w-24 text-xs" value={itemData[item.id]?.cm_by || ''} onChange={e => handleItemChange(item.id, 'cm_by', e.target.value)} disabled={!selectedItems[item.id]} /></TableCell>
                   <TableCell><Input className="w-16 text-xs" value={itemData[item.id]?.fnb_book_no || ''} onChange={e => handleItemChange(item.id, 'fnb_book_no', e.target.value)} disabled={!selectedItems[item.id]} /></TableCell>
                   <TableCell><Input className="w-16 text-xs" value={itemData[item.id]?.fnb_page_no || ''} onChange={e => handleItemChange(item.id, 'fnb_page_no', e.target.value)} disabled={!selectedItems[item.id]} /></TableCell>
+                  <TableCell>
+                    {/* FNB PDF Upload */}
+                    {itemData[item.id]?.fnb_pdf_url ? (
+                      <div className="flex items-center gap-1">
+                        <a 
+                          href={itemData[item.id].fnb_pdf_url} 
+                          target="_blank" 
+                          rel="noopener noreferrer"
+                          className="flex items-center gap-1 text-emerald-600 hover:text-emerald-800 text-xs"
+                          title={itemData[item.id].fnb_pdf_name}
+                        >
+                          <File className="w-4 h-4" />
+                          <span className="max-w-[60px] truncate">{itemData[item.id].fnb_pdf_name || 'PDF'}</span>
+                        </a>
+                        <button 
+                          onClick={() => handleRemoveFile(item.id)}
+                          className="text-red-500 hover:text-red-700 ml-1"
+                          title="Remove file"
+                          disabled={!selectedItems[item.id]}
+                        >
+                          <X className="w-3 h-3" />
+                        </button>
+                      </div>
+                    ) : (
+                      <label className={`cursor-pointer flex items-center justify-center ${!selectedItems[item.id] ? 'opacity-50 cursor-not-allowed' : ''}`}>
+                        <input
+                          type="file"
+                          accept=".pdf"
+                          className="hidden"
+                          onChange={(e) => handleFileUpload(item.id, e.target.files?.[0])}
+                          disabled={!selectedItems[item.id] || uploadingItem === item.id}
+                        />
+                        {uploadingItem === item.id ? (
+                          <RefreshCw className="w-4 h-4 animate-spin text-emerald-600" />
+                        ) : (
+                          <div className={`flex items-center gap-1 px-2 py-1 rounded text-xs border ${selectedItems[item.id] ? 'border-emerald-300 bg-emerald-50 text-emerald-700 hover:bg-emerald-100' : 'border-gray-200 bg-gray-50 text-gray-400'}`}>
+                            <Upload className="w-3 h-3" />
+                            <span>Upload</span>
+                          </div>
+                        )}
+                      </label>
+                    )}
+                  </TableCell>
                 </TableRow>
               ))}
             </TableBody>
