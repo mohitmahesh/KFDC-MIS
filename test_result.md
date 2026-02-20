@@ -361,8 +361,6 @@ metadata:
 
 test_plan:
   current_focus:
-    - "Fund Indent Workflow (RFO → DCF → ED → MD)"
-    - "FNB PDF Upload API (/fund-indent/upload-fnb)"
     - "Complete UI Testing - 8 Test Scenarios"
     - "RO Login & Dashboard UI"
     - "Plantations View UI"
