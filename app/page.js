@@ -139,31 +139,59 @@ function LoginPage({ onLogin }) {
     { email: 'md@kfdc.in', role: 'Managing Director', division: 'All' },
   ]
 
-  // Forest tree silhouette SVG for background
+  // Forest tree silhouette SVG for background - UPRIGHT TREES
   const ForestBackground = () => (
     <div className="absolute inset-0 overflow-hidden pointer-events-none">
-      <svg viewBox="0 0 1920 1080" className="w-full h-full opacity-20" preserveAspectRatio="xMidYMax slice">
+      <svg viewBox="0 0 1920 1080" className="w-full h-full" preserveAspectRatio="xMidYMax slice">
+        {/* Background gradient */}
+        <rect width="1920" height="1080" fill="url(#bgGrad)" />
         <defs>
-          <linearGradient id="forestGrad" x1="0%" y1="0%" x2="0%" y2="100%">
-            <stop offset="0%" stopColor="#166534" stopOpacity="0.3" />
-            <stop offset="100%" stopColor="#166534" stopOpacity="0.8" />
+          <linearGradient id="bgGrad" x1="0%" y1="0%" x2="0%" y2="100%">
+            <stop offset="0%" stopColor="#f0fdf4" />
+            <stop offset="100%" stopColor="#dcfce7" />
           </linearGradient>
         </defs>
-        {/* Pine trees silhouette - left side */}
-        <g fill="url(#forestGrad)">
-          {[0, 100, 200, 300, 400].map((x, i) => (
-            <path key={`left-${i}`} d={`M${x + 60} 1080 L${x + 30} 900 L${x + 45} 900 L${x + 20} 750 L${x + 40} 750 L${x + 10} 600 L${x + 60} 500 L${x + 110} 600 L${x + 80} 750 L${x + 100} 750 L${x + 75} 900 L${x + 90} 900 Z`} 
-              style={{ opacity: 0.6 + Math.random() * 0.4 }} />
+        
+        {/* Upright pine trees - LEFT SIDE - Multiple rows */}
+        <g fill="#166534">
+          {/* Back row - lighter */}
+          {[50, 130, 210, 290, 370, 450].map((x, i) => (
+            <polygon key={`lb-${i}`} points={`${x},1080 ${x-30},1080 ${x-15},850 ${x-25},850 ${x-10},650 ${x-20},650 ${x},500 ${x+20},650 ${x+10},650 ${x+25},850 ${x+15},850 ${x+30},1080`} 
+              opacity={0.08 + (i % 3) * 0.02} />
           ))}
-          {/* Right side trees */}
-          {[1500, 1600, 1700, 1800].map((x, i) => (
-            <path key={`right-${i}`} d={`M${x + 60} 1080 L${x + 30} 900 L${x + 45} 900 L${x + 20} 750 L${x + 40} 750 L${x + 10} 600 L${x + 60} 500 L${x + 110} 600 L${x + 80} 750 L${x + 100} 750 L${x + 75} 900 L${x + 90} 900 Z`} 
-              style={{ opacity: 0.5 + Math.random() * 0.5 }} />
+          {/* Middle row */}
+          {[80, 170, 260, 350, 440].map((x, i) => (
+            <polygon key={`lm-${i}`} points={`${x},1080 ${x-35},1080 ${x-18},800 ${x-30},800 ${x-12},580 ${x-24},580 ${x},400 ${x+24},580 ${x+12},580 ${x+30},800 ${x+18},800 ${x+35},1080`} 
+              opacity={0.12 + (i % 2) * 0.03} />
+          ))}
+          {/* Front row - darker */}
+          {[30, 140, 250, 360, 470].map((x, i) => (
+            <polygon key={`lf-${i}`} points={`${x},1080 ${x-40},1080 ${x-20},750 ${x-35},750 ${x-15},500 ${x-28},500 ${x},300 ${x+28},500 ${x+15},500 ${x+35},750 ${x+20},750 ${x+40},1080`} 
+              opacity={0.18 + (i % 2) * 0.04} />
           ))}
         </g>
-        {/* Mountains in background */}
-        <path d="M0 800 Q300 600 600 750 T1200 650 T1920 800 L1920 1080 L0 1080 Z" fill="#166534" opacity="0.15" />
-        <path d="M0 850 Q400 700 800 800 T1600 750 T1920 850 L1920 1080 L0 1080 Z" fill="#166534" opacity="0.1" />
+
+        {/* Upright pine trees - RIGHT SIDE - Multiple rows */}
+        <g fill="#166534">
+          {/* Back row */}
+          {[1470, 1550, 1630, 1710, 1790, 1870].map((x, i) => (
+            <polygon key={`rb-${i}`} points={`${x},1080 ${x-30},1080 ${x-15},850 ${x-25},850 ${x-10},650 ${x-20},650 ${x},500 ${x+20},650 ${x+10},650 ${x+25},850 ${x+15},850 ${x+30},1080`} 
+              opacity={0.08 + (i % 3) * 0.02} />
+          ))}
+          {/* Middle row */}
+          {[1500, 1590, 1680, 1770, 1860].map((x, i) => (
+            <polygon key={`rm-${i}`} points={`${x},1080 ${x-35},1080 ${x-18},800 ${x-30},800 ${x-12},580 ${x-24},580 ${x},400 ${x+24},580 ${x+12},580 ${x+30},800 ${x+18},800 ${x+35},1080`} 
+              opacity={0.12 + (i % 2) * 0.03} />
+          ))}
+          {/* Front row */}
+          {[1450, 1560, 1670, 1780, 1890].map((x, i) => (
+            <polygon key={`rf-${i}`} points={`${x},1080 ${x-40},1080 ${x-20},750 ${x-35},750 ${x-15},500 ${x-28},500 ${x},300 ${x+28},500 ${x+15},500 ${x+35},750 ${x+20},750 ${x+40},1080`} 
+              opacity={0.18 + (i % 2) * 0.04} />
+          ))}
+        </g>
+
+        {/* Subtle mountain silhouette */}
+        <path d="M0 900 Q400 750 800 850 T1600 800 T1920 900 L1920 1080 L0 1080 Z" fill="#166534" opacity="0.05" />
       </svg>
     </div>
   )
