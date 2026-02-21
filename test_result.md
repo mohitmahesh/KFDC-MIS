@@ -379,7 +379,6 @@ metadata:
 
 test_plan:
   current_focus:
-    - "Dynamic Work Type Calculation"
     - "Plantation with new fields"
   stuck_tasks: []
   test_all: false
