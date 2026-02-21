@@ -767,7 +767,7 @@ function PlantationsView({ user, setView, setSelectedPlantation }) {
   const [form, setForm] = useState({ 
     name: '', 
     species: '', 
-    year_of_planting: 2024, 
+    year_of_planting: new Date().getFullYear(), 
     total_area_ha: '', 
     village: '', 
     taluk: '', 
