@@ -8,7 +8,7 @@ import json
 import sys
 
 # Base URL
-BASE_URL = 'https://kfdc-fund-mgmt.preview.emergentagent.com'
+BASE_URL = 'https://kfdc-green-deploy.preview.emergentagent.com'
 API_BASE = f"{BASE_URL}/api"
 
 class AdditionalTester:

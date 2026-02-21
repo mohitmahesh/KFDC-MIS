@@ -13,7 +13,7 @@ import io
 from typing import Dict, Any, Optional
 
 # Base URL from environment
-BASE_URL = "https://kfdc-fund-mgmt.preview.emergentagent.com/api"
+BASE_URL = "https://kfdc-green-deploy.preview.emergentagent.com/api"
 
 class FNBUploadTester:
     def __init__(self):
@@ -339,7 +339,7 @@ startxref
         # Test file accessibility through public URL
         try:
             # Convert to full URL for testing
-            full_url = f"https://kfdc-fund-mgmt.preview.emergentagent.com{file_url}"
+            full_url = f"https://kfdc-green-deploy.preview.emergentagent.com{file_url}"
             response = requests.get(full_url)
             
             self.test_assertion(

@@ -7,7 +7,7 @@ import requests
 import json
 import os
 
-BASE_URL = os.getenv('NEXT_PUBLIC_BASE_URL', 'https://kfdc-fund-mgmt.preview.emergentagent.com')
+BASE_URL = os.getenv('NEXT_PUBLIC_BASE_URL', 'https://kfdc-green-deploy.preview.emergentagent.com')
 API_BASE = f"{BASE_URL}/api"
 
 def verify_estimates_endpoint_change():
