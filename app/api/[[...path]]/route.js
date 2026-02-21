@@ -539,7 +539,9 @@ async function handleRoute(request, { params }) {
         const range = rangeMap[p.range_id]
         const division = range ? divMap[range.division_id] : null
         const age = new Date().getFullYear() - p.year_of_planting
-        return { ...p, range_name: range?.name, division_name: division?.name, age }
+        // Dynamically calculate work_type based on financial year
+        const dynamicWorkType = getWorkType(p.year_of_planting)
+        return { ...p, range_name: range?.name, division_name: division?.name, age, work_type: dynamicWorkType }
       })
       return handleCORS(NextResponse.json(enriched))
     }
