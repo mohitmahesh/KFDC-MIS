@@ -815,7 +815,7 @@ function PlantationsView({ user, setView, setSelectedPlantation }) {
       await api.post('/plantations', form)
       setShowCreate(false)
       setForm({ 
-        name: '', species: '', year_of_planting: 2024, total_area_ha: '', 
+        name: '', species: '', year_of_planting: new Date().getFullYear(), total_area_ha: '', 
         village: '', taluk: '', district: '', vidhana_sabha: '', lok_sabha: '',
         division: '', latitude: '', longitude: '', work_type: 'FW'
       })
