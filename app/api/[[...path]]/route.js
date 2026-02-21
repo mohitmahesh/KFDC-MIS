@@ -587,9 +587,10 @@ async function handleRoute(request, { params }) {
       if (!plantation) return handleCORS(NextResponse.json({ error: 'Not found' }, { status: 404 }))
       const { _id, ...p } = plantation
       const age = new Date().getFullYear() - p.year_of_planting
+      const dynamicWorkType = getWorkType(p.year_of_planting)
       const range = await db.collection('ranges').findOne({ id: p.range_id })
       const division = range ? await db.collection('divisions').findOne({ id: range.division_id }) : null
-      return handleCORS(NextResponse.json({ ...p, age, range_name: range?.name, division_name: division?.name }))
+      return handleCORS(NextResponse.json({ ...p, age, work_type: dynamicWorkType, range_name: range?.name, division_name: division?.name }))
     }
 
     const plantationHistoryMatch = route.match(/^\/plantations\/([^/]+)\/history$/)
