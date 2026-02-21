@@ -138,165 +138,158 @@ function LoginPage({ onLogin }) {
     { email: 'md@kfdc.in', role: 'Managing Director', division: 'All' },
   ]
 
-  // Sunset Forest Landscape Background
-  const SunsetForestBackground = () => (
+  // Green Forest Landscape Background
+  const GreenForestBackground = () => (
     <div className="absolute inset-0 overflow-hidden">
       <svg viewBox="0 0 1920 1080" className="w-full h-full" preserveAspectRatio="xMidYMid slice">
         <defs>
-          {/* Sky gradient - sunset to night */}
+          {/* Sky gradient - soft morning green/blue */}
           <linearGradient id="skyGradient" x1="0%" y1="0%" x2="0%" y2="100%">
-            <stop offset="0%" stopColor="#1a1a3e" />
-            <stop offset="25%" stopColor="#2d2654" />
-            <stop offset="45%" stopColor="#6b3a5d" />
-            <stop offset="65%" stopColor="#c76a5e" />
-            <stop offset="85%" stopColor="#e8a87c" />
-            <stop offset="100%" stopColor="#f4c896" />
+            <stop offset="0%" stopColor="#134e4a" />
+            <stop offset="30%" stopColor="#115e59" />
+            <stop offset="50%" stopColor="#0f766e" />
+            <stop offset="70%" stopColor="#14b8a6" />
+            <stop offset="100%" stopColor="#5eead4" />
           </linearGradient>
           {/* Water gradient */}
           <linearGradient id="waterGradient" x1="0%" y1="0%" x2="0%" y2="100%">
-            <stop offset="0%" stopColor="#2a3a5c" />
-            <stop offset="100%" stopColor="#1a2844" />
+            <stop offset="0%" stopColor="#134e4a" />
+            <stop offset="100%" stopColor="#0f3d3a" />
           </linearGradient>
           {/* Mountain gradients */}
           <linearGradient id="mountain1" x1="0%" y1="0%" x2="0%" y2="100%">
-            <stop offset="0%" stopColor="#3d2a5c" />
-            <stop offset="100%" stopColor="#2a1d44" />
+            <stop offset="0%" stopColor="#166534" />
+            <stop offset="100%" stopColor="#14532d" />
           </linearGradient>
           <linearGradient id="mountain2" x1="0%" y1="0%" x2="0%" y2="100%">
-            <stop offset="0%" stopColor="#4a3368" />
-            <stop offset="100%" stopColor="#352450" />
+            <stop offset="0%" stopColor="#15803d" />
+            <stop offset="100%" stopColor="#166534" />
           </linearGradient>
         </defs>
         
         {/* Sky */}
         <rect width="1920" height="1080" fill="url(#skyGradient)" />
         
-        {/* Stars */}
-        {[...Array(50)].map((_, i) => (
-          <circle key={i} cx={Math.random() * 1920} cy={Math.random() * 400} r={Math.random() * 1.5 + 0.5} fill="white" opacity={Math.random() * 0.6 + 0.2} />
-        ))}
-        
         {/* Clouds */}
-        <ellipse cx="300" cy="150" rx="80" ry="25" fill="white" opacity="0.3" />
-        <ellipse cx="350" cy="145" rx="60" ry="20" fill="white" opacity="0.4" />
-        <ellipse cx="1500" cy="180" rx="70" ry="22" fill="white" opacity="0.35" />
-        <ellipse cx="1550" cy="175" rx="50" ry="18" fill="white" opacity="0.4" />
-        <ellipse cx="1200" cy="120" rx="40" ry="15" fill="white" opacity="0.25" />
+        <ellipse cx="250" cy="120" rx="100" ry="30" fill="white" opacity="0.25" />
+        <ellipse cx="320" cy="115" rx="70" ry="25" fill="white" opacity="0.3" />
+        <ellipse cx="1600" cy="140" rx="90" ry="28" fill="white" opacity="0.25" />
+        <ellipse cx="1680" cy="135" rx="60" ry="22" fill="white" opacity="0.3" />
+        <ellipse cx="960" cy="80" rx="50" ry="18" fill="white" opacity="0.2" />
         
-        {/* Back mountains - snow capped */}
-        <path d="M-100 700 L200 350 L350 450 L500 300 L650 420 L800 380 L950 500 L1100 320 L1250 450 L1400 350 L1550 480 L1700 300 L1850 400 L2020 350 L2020 700 Z" fill="url(#mountain1)" />
-        {/* Snow caps */}
-        <path d="M200 350 L230 390 L170 390 Z" fill="white" opacity="0.8" />
-        <path d="M500 300 L540 360 L460 360 Z" fill="white" opacity="0.8" />
-        <path d="M1100 320 L1140 380 L1060 380 Z" fill="white" opacity="0.8" />
-        <path d="M1700 300 L1745 370 L1655 370 Z" fill="white" opacity="0.8" />
+        {/* Back mountains with mist effect */}
+        <path d="M-100 650 L150 380 L300 480 L450 320 L600 450 L750 350 L900 480 L1050 300 L1200 420 L1350 350 L1500 450 L1650 320 L1800 400 L2020 350 L2020 650 Z" fill="url(#mountain1)" opacity="0.6" />
         
         {/* Middle mountains */}
-        <path d="M-100 750 L100 500 L300 600 L450 480 L600 550 L750 450 L900 580 L1050 500 L1200 600 L1350 480 L1500 560 L1650 450 L1800 550 L2020 480 L2020 750 Z" fill="url(#mountain2)" />
+        <path d="M-100 700 L80 480 L250 580 L400 450 L550 530 L700 420 L850 550 L1000 470 L1150 580 L1300 450 L1450 540 L1600 420 L1750 530 L1920 450 L2020 700 Z" fill="url(#mountain2)" opacity="0.8" />
         
-        {/* Orange/Autumn trees - LEFT side */}
+        {/* Light green trees - back row LEFT */}
         <g>
-          {[60, 140, 220, 300, 380].map((x, i) => (
-            <g key={`left-orange-${i}`}>
-              <polygon points={`${x},850 ${x-25},850 ${x-15},720 ${x-22},720 ${x-10},600 ${x-18},600 ${x},500 ${x+18},600 ${x+10},600 ${x+22},720 ${x+15},720 ${x+25},850`} 
-                fill={i % 2 === 0 ? '#d4691a' : '#e87c3d'} />
-            </g>
-          ))}
-          {[100, 180, 260, 340].map((x, i) => (
-            <g key={`left-orange2-${i}`}>
-              <polygon points={`${x},850 ${x-20},850 ${x-12},750 ${x-18},750 ${x-8},650 ${x-14},650 ${x},570 ${x+14},650 ${x+8},650 ${x+18},750 ${x+12},750 ${x+20},850`} 
-                fill={i % 2 === 0 ? '#e07020' : '#c95d15'} />
-            </g>
+          {[40, 110, 180, 250, 320, 390, 460].map((x, i) => (
+            <polygon key={`bl-${i}`} points={`${x},820 ${x-22},820 ${x-14},700 ${x-20},700 ${x-10},590 ${x-16},590 ${x},500 ${x+16},590 ${x+10},590 ${x+20},700 ${x+14},700 ${x+22},820`} 
+              fill="#22c55e" opacity={0.5 + (i % 3) * 0.1} />
           ))}
         </g>
         
-        {/* Orange/Autumn trees - RIGHT side */}
+        {/* Light green trees - back row RIGHT */}
         <g>
-          {[1540, 1620, 1700, 1780, 1860].map((x, i) => (
-            <g key={`right-orange-${i}`}>
-              <polygon points={`${x},850 ${x-25},850 ${x-15},720 ${x-22},720 ${x-10},600 ${x-18},600 ${x},500 ${x+18},600 ${x+10},600 ${x+22},720 ${x+15},720 ${x+25},850`} 
-                fill={i % 2 === 0 ? '#e87c3d' : '#d4691a'} />
-            </g>
-          ))}
-          {[1580, 1660, 1740, 1820].map((x, i) => (
-            <g key={`right-orange2-${i}`}>
-              <polygon points={`${x},850 ${x-20},850 ${x-12},750 ${x-18},750 ${x-8},650 ${x-14},650 ${x},570 ${x+14},650 ${x+8},650 ${x+18},750 ${x+12},750 ${x+20},850`} 
-                fill={i % 2 === 0 ? '#c95d15' : '#e07020'} />
-            </g>
+          {[1460, 1530, 1600, 1670, 1740, 1810, 1880].map((x, i) => (
+            <polygon key={`br-${i}`} points={`${x},820 ${x-22},820 ${x-14},700 ${x-20},700 ${x-10},590 ${x-16},590 ${x},500 ${x+16},590 ${x+10},590 ${x+20},700 ${x+14},700 ${x+22},820`} 
+              fill="#22c55e" opacity={0.5 + (i % 3) * 0.1} />
           ))}
         </g>
         
-        {/* Dark purple/blue trees - foreground LEFT */}
+        {/* Medium green trees - middle row LEFT */}
         <g>
-          {[30, 120, 200, 280, 360, 440].map((x, i) => (
-            <g key={`left-dark-${i}`}>
-              <polygon points={`${x},900 ${x-30},900 ${x-18},750 ${x-26},750 ${x-12},620 ${x-20},620 ${x},520 ${x+20},620 ${x+12},620 ${x+26},750 ${x+18},750 ${x+30},900`} 
-                fill="#2a1d44" opacity={0.9 - i * 0.05} />
-            </g>
+          {[70, 150, 230, 310, 390, 470].map((x, i) => (
+            <polygon key={`ml-${i}`} points={`${x},850 ${x-26},850 ${x-16},710 ${x-24},710 ${x-12},580 ${x-20},580 ${x},470 ${x+20},580 ${x+12},580 ${x+24},710 ${x+16},710 ${x+26},850`} 
+              fill="#16a34a" opacity={0.7 + (i % 2) * 0.1} />
           ))}
         </g>
         
-        {/* Dark purple/blue trees - foreground RIGHT */}
+        {/* Medium green trees - middle row RIGHT */}
         <g>
-          {[1480, 1560, 1650, 1740, 1830, 1920].map((x, i) => (
-            <g key={`right-dark-${i}`}>
-              <polygon points={`${x},900 ${x-30},900 ${x-18},750 ${x-26},750 ${x-12},620 ${x-20},620 ${x},520 ${x+20},620 ${x+12},620 ${x+26},750 ${x+18},750 ${x+30},900`} 
-                fill="#2a1d44" opacity={0.9 - i * 0.05} />
-            </g>
+          {[1450, 1530, 1610, 1690, 1770, 1850].map((x, i) => (
+            <polygon key={`mr-${i}`} points={`${x},850 ${x-26},850 ${x-16},710 ${x-24},710 ${x-12},580 ${x-20},580 ${x},470 ${x+20},580 ${x+12},580 ${x+24},710 ${x+16},710 ${x+26},850`} 
+              fill="#16a34a" opacity={0.7 + (i % 2) * 0.1} />
           ))}
         </g>
         
-        {/* Round bushes/shrubs - LEFT */}
-        {[80, 180, 280, 380, 480].map((x, i) => (
-          <ellipse key={`bush-l-${i}`} cx={x} cy={880} rx={50 + i * 5} ry={30} fill="#3d2a5c" opacity="0.8" />
-        ))}
+        {/* Dark green trees - front row LEFT */}
+        <g>
+          {[30, 120, 210, 300, 390, 480].map((x, i) => (
+            <polygon key={`fl-${i}`} points={`${x},900 ${x-32},900 ${x-20},740 ${x-28},740 ${x-14},590 ${x-24},590 ${x},460 ${x+24},590 ${x+14},590 ${x+28},740 ${x+20},740 ${x+32},900`} 
+              fill="#15803d" opacity="0.95" />
+          ))}
+        </g>
         
-        {/* Round bushes/shrubs - RIGHT */}
-        {[1440, 1540, 1640, 1740, 1840].map((x, i) => (
-          <ellipse key={`bush-r-${i}`} cx={x} cy={880} rx={50 + i * 5} ry={30} fill="#3d2a5c" opacity="0.8" />
-        ))}
+        {/* Dark green trees - front row RIGHT */}
+        <g>
+          {[1440, 1530, 1620, 1710, 1800, 1890].map((x, i) => (
+            <polygon key={`fr-${i}`} points={`${x},900 ${x-32},900 ${x-20},740 ${x-28},740 ${x-14},590 ${x-24},590 ${x},460 ${x+24},590 ${x+14},590 ${x+28},740 ${x+20},740 ${x+32},900`} 
+              fill="#15803d" opacity="0.95" />
+          ))}
+        </g>
+        
+        {/* Darkest trees - foreground LEFT */}
+        <g>
+          {[0, 100, 200, 300, 400, 500].map((x, i) => (
+            <polygon key={`df-l-${i}`} points={`${x},950 ${x-35},950 ${x-22},770 ${x-32},770 ${x-16},600 ${x-26},600 ${x},450 ${x+26},600 ${x+16},600 ${x+32},770 ${x+22},770 ${x+35},950`} 
+              fill="#14532d" />
+          ))}
+        </g>
+        
+        {/* Darkest trees - foreground RIGHT */}
+        <g>
+          {[1420, 1520, 1620, 1720, 1820, 1920].map((x, i) => (
+            <polygon key={`df-r-${i}`} points={`${x},950 ${x-35},950 ${x-22},770 ${x-32},770 ${x-16},600 ${x-26},600 ${x},450 ${x+26},600 ${x+16},600 ${x+32},770 ${x+22},770 ${x+35},950`} 
+              fill="#14532d" />
+          ))}
+        </g>
         
         {/* Water/Lake */}
-        <rect x="0" y="900" width="1920" height="180" fill="url(#waterGradient)" />
+        <rect x="0" y="920" width="1920" height="160" fill="url(#waterGradient)" />
         
         {/* Water reflections */}
-        <rect x="0" y="910" width="1920" height="2" fill="#e8a87c" opacity="0.3" />
-        <rect x="0" y="940" width="1920" height="1" fill="#c76a5e" opacity="0.2" />
-        <rect x="0" y="970" width="1920" height="1" fill="#6b3a5d" opacity="0.15" />
+        <rect x="0" y="930" width="1920" height="2" fill="#5eead4" opacity="0.2" />
+        <rect x="0" y="960" width="1920" height="1" fill="#14b8a6" opacity="0.15" />
+        <rect x="0" y="990" width="1920" height="1" fill="#0f766e" opacity="0.1" />
         
-        {/* Sun glow behind mountains */}
-        <ellipse cx="960" cy="550" rx="300" ry="150" fill="#f4c896" opacity="0.3" />
-        <ellipse cx="960" cy="550" rx="200" ry="100" fill="#e8a87c" opacity="0.2" />
+        {/* Mist/fog effect at tree base */}
+        <ellipse cx="200" cy="900" rx="250" ry="40" fill="white" opacity="0.08" />
+        <ellipse cx="1720" cy="900" rx="250" ry="40" fill="white" opacity="0.08" />
+        <ellipse cx="960" cy="920" rx="400" ry="30" fill="white" opacity="0.05" />
       </svg>
     </div>
   )
 
   return (
     <div className="min-h-screen relative overflow-hidden">
-      <SunsetForestBackground />
+      <GreenForestBackground />
       
-      {/* Header */}
-      <header className="relative z-20 py-4 px-6 flex items-center justify-between">
-        <div className="flex items-center gap-3">
-          <div className="w-12 h-12 border-2 border-white/50 rounded-full flex items-center justify-center bg-white/10 backdrop-blur-sm">
-            <img src="/kfdc-logo.png" alt="KFDC iFMS" className="w-8 h-8 object-contain" />
+      {/* Header - Clean and Professional */}
+      <header className="relative z-20 py-5 px-8 flex items-center justify-between">
+        <div className="flex items-center gap-4">
+          <img src="/kfdc-logo.png" alt="KFDC" className="w-10 h-10 object-contain drop-shadow-lg" />
+          <div className="flex flex-col">
+            <span className="font-bold text-white text-xl tracking-tight drop-shadow-md">KFDC iFMS</span>
+            <span className="text-xs text-white/70">Integrated Forestry Management</span>
           </div>
-          <span className="font-semibold text-white text-lg">KFDC iFMS</span>
         </div>
         <Button 
           variant="outline" 
           size="sm" 
-          className="bg-white/10 border-white/30 text-white hover:bg-white/20 backdrop-blur-sm"
+          className="bg-white/10 border-white/20 text-white hover:bg-white/20 backdrop-blur-sm text-xs"
           onClick={handleSeed}
           disabled={seeding}
         >
-          {seeding ? <RefreshCw className="w-4 h-4 mr-2 animate-spin" /> : null}
+          {seeding ? <RefreshCw className="w-3 h-3 mr-1.5 animate-spin" /> : null}
           {seeding ? 'Initializing...' : 'Initialize Demo Data'}
         </Button>
       </header>
 
       {/* Main Content */}
-      <div className="flex items-center justify-center min-h-[calc(100vh-80px)] relative z-10 px-4">
+      <div className="flex items-center justify-center min-h-[calc(100vh-90px)] relative z-10 px-4">
         {/* Glassmorphism Login Card */}
         <Card className="w-full max-w-md shadow-2xl border border-white/20 bg-white/10 backdrop-blur-xl rounded-3xl">
           <CardHeader className="text-center pb-2 pt-8">
@@ -314,7 +307,7 @@ function LoginPage({ onLogin }) {
                   value={email} 
                   onChange={e => setEmail(e.target.value)} 
                   required 
-                  className="h-12 bg-white/10 border-white/20 rounded-xl text-white placeholder:text-white/50 focus:ring-2 focus:ring-blue-400 focus:border-transparent"
+                  className="h-12 bg-white/10 border-white/20 rounded-xl text-white placeholder:text-white/50 focus:ring-2 focus:ring-emerald-400 focus:border-transparent"
                 />
               </div>
               <div className="space-y-2">
@@ -326,7 +319,7 @@ function LoginPage({ onLogin }) {
                   value={password} 
                   onChange={e => setPassword(e.target.value)} 
                   required 
-                  className="h-12 bg-white/10 border-white/20 rounded-xl text-white placeholder:text-white/50 focus:ring-2 focus:ring-blue-400 focus:border-transparent"
+                  className="h-12 bg-white/10 border-white/20 rounded-xl text-white placeholder:text-white/50 focus:ring-2 focus:ring-emerald-400 focus:border-transparent"
                 />
               </div>
               
@@ -336,13 +329,13 @@ function LoginPage({ onLogin }) {
                     id="remember" 
                     checked={rememberMe}
                     onCheckedChange={setRememberMe}
-                    className="border-white/30 data-[state=checked]:bg-blue-500 data-[state=checked]:border-blue-500"
+                    className="border-white/30 data-[state=checked]:bg-emerald-500 data-[state=checked]:border-emerald-500"
                   />
                   <label htmlFor="remember" className="text-sm text-white/80 cursor-pointer">
                     Remember me
                   </label>
                 </div>
-                <span className="text-sm text-blue-300 hover:text-blue-200 cursor-pointer">
+                <span className="text-sm text-emerald-300 hover:text-emerald-200 cursor-pointer">
                   Forgot password?
                 </span>
               </div>
@@ -351,7 +344,7 @@ function LoginPage({ onLogin }) {
               
               <Button 
                 type="submit" 
-                className="w-full h-12 bg-gradient-to-r from-blue-500 to-blue-600 hover:from-blue-600 hover:to-blue-700 rounded-xl text-base font-semibold mt-2 shadow-lg" 
+                className="w-full h-12 bg-gradient-to-r from-emerald-500 to-green-600 hover:from-emerald-600 hover:to-green-700 rounded-xl text-base font-semibold mt-2 shadow-lg" 
                 disabled={loading}
               >
                 {loading ? 'Signing in...' : 'Sign In'}
