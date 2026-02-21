@@ -526,6 +526,12 @@ async function handleRoute(request, { params }) {
         return handleCORS(NextResponse.json({ error: 'Only Range Officers can create plantations' }, { status: 403 }))
       }
       const body = await request.json()
+      
+      // Determine work type based on year of planting
+      const currentYear = new Date().getFullYear()
+      const plantingYear = parseInt(body.year_of_planting)
+      const workType = body.work_type || (currentYear - plantingYear <= 1 ? 'FW' : 'M')
+      
       const plantation = {
         id: uuidv4(),
         range_id: user.range_id,
@@ -536,6 +542,12 @@ async function handleRoute(request, { params }) {
         village: body.village || null,
         taluk: body.taluk || null,
         district: body.district || null,
+        vidhana_sabha: body.vidhana_sabha || null,
+        lok_sabha: body.lok_sabha || null,
+        division: body.division || null,
+        latitude: body.latitude ? parseFloat(body.latitude) : null,
+        longitude: body.longitude ? parseFloat(body.longitude) : null,
+        work_type: workType,
         created_at: new Date(),
       }
       await db.collection('plantations').insertOne(plantation)
