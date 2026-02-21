@@ -396,70 +396,73 @@ function Dashboard({ user }) {
 
   if (loading) return (
     <div className="flex items-center justify-center h-64">
-      <RefreshCw className="w-8 h-8 animate-spin text-teal-600" />
+      <RefreshCw className="w-8 h-8 animate-spin text-green-600" />
     </div>
   )
   if (!stats) return <p className="text-muted-foreground p-4">Failed to load dashboard</p>
 
   const statCards = [
-    { label: 'Total Plantations', value: stats.total_plantations, icon: TreePine, color: 'text-emerald-600', bg: 'bg-emerald-50', trend: '+5%' },
-    { label: 'Total Area (Ha)', value: stats.total_area_ha?.toFixed(1), icon: MapPin, color: 'text-blue-600', bg: 'bg-blue-50', trend: '+2.3%' },
-    { label: 'Active APOs', value: stats.sanctioned_apos, icon: FileText, color: 'text-violet-600', bg: 'bg-violet-50', trend: '+12%' },
-    { label: 'Budget Utilized', value: `${stats.utilization_pct}%`, icon: Wallet, color: 'text-amber-600', bg: 'bg-amber-50', trend: null },
+    { label: 'Total Plantations', value: stats.total_plantations, icon: TreePine, color: 'text-green-600', bg: 'bg-green-50', iconBg: 'bg-green-100' },
+    { label: 'Total Area', value: `${stats.total_area_ha?.toFixed(1)} Ha`, icon: MapPin, color: 'text-blue-600', bg: 'bg-blue-50', iconBg: 'bg-blue-100' },
+    { label: 'Active APOs', value: stats.sanctioned_apos, icon: FileText, color: 'text-green-600', bg: 'bg-green-50', iconBg: 'bg-green-100' },
+    { label: 'Budget Utilized', value: `${stats.utilization_pct}%`, icon: TrendingUp, color: 'text-blue-600', bg: 'bg-blue-50', iconBg: 'bg-blue-100' },
   ]
 
   const pieData = [
-    { name: 'Sanctioned', value: stats.sanctioned_apos, color: '#10b981' },
-    { name: 'Pending', value: stats.pending_apos, color: '#f59e0b' },
-    { name: 'Draft', value: stats.draft_apos, color: '#6b7280' },
-    { name: 'Rejected', value: stats.rejected_apos, color: '#ef4444' },
+    { name: 'Sanctioned', value: stats.sanctioned_apos, color: '#2563eb' },
+    { name: 'Utilized', value: stats.pending_apos || 1, color: '#16a34a' },
+    { name: 'APO Status', value: stats.draft_apos || 1, color: '#166534' },
   ].filter(d => d.value > 0)
+
+  // Forest tree silhouette SVG for header background
+  const ForestHeader = () => (
+    <div className="absolute inset-0 overflow-hidden pointer-events-none opacity-10">
+      <svg viewBox="0 0 1200 200" className="w-full h-full" preserveAspectRatio="xMidYMax slice">
+        {/* Pine trees silhouette */}
+        <g fill="#166534">
+          {[0, 80, 160, 240, 320, 400, 480, 560, 640, 720, 800, 880, 960, 1040, 1120].map((x, i) => (
+            <path key={i} d={`M${x + 40} 200 L${x + 20} 140 L${x + 30} 140 L${x + 15} 100 L${x + 25} 100 L${x + 10} 60 L${x + 40} 20 L${x + 70} 60 L${x + 55} 100 L${x + 65} 100 L${x + 50} 140 L${x + 60} 140 Z`} 
+              style={{ transform: `scale(${0.6 + Math.random() * 0.5})`, transformOrigin: `${x + 40}px 200px` }} />
+          ))}
+        </g>
+      </svg>
+    </div>
+  )
 
   return (
     <div className="space-y-6">
-      {/* Header with Greeting */}
-      <div className="flex items-center justify-between">
-        <div className="flex items-center gap-4">
-          <div className="w-12 h-12 bg-gradient-to-br from-teal-400 to-emerald-500 rounded-full flex items-center justify-center text-white text-xl font-semibold">
-            {user.name?.charAt(0) || 'U'}
-          </div>
+      {/* Header with Forest Background */}
+      <div className="relative bg-gradient-to-r from-green-50 to-blue-50 rounded-xl p-6 overflow-hidden">
+        <ForestHeader />
+        <div className="relative z-10 flex items-center justify-between">
           <div>
-            <h1 className="text-2xl font-semibold text-gray-800">
-              Hey {user.name?.split(' ')[0]}! 👋
-            </h1>
-            <p className="text-gray-500">Hope you are having a great day</p>
+            <h1 className="text-2xl font-bold text-gray-800">Dashboard</h1>
+            <p className="text-gray-600">Welcome back, {user.name}</p>
           </div>
-        </div>
-        <div className="flex items-center gap-3">
-          <Button variant="outline" size="sm" className="gap-2">
-            <Calendar className="w-4 h-4" />
-            FY 2026-27
-          </Button>
-          <Button variant="outline" size="icon" className="relative">
-            <Bell className="w-4 h-4" />
-            <span className="absolute -top-1 -right-1 w-4 h-4 bg-teal-500 text-white text-[10px] rounded-full flex items-center justify-center">3</span>
-          </Button>
+          <div className="flex items-center gap-3">
+            <Button variant="outline" size="sm" className="gap-2 bg-white/80">
+              <Calendar className="w-4 h-4" />
+              FY 2026-27
+            </Button>
+            <Button variant="outline" size="icon" className="relative bg-white/80">
+              <Bell className="w-4 h-4" />
+              <span className="absolute -top-1 -right-1 w-4 h-4 bg-green-500 text-white text-[10px] rounded-full flex items-center justify-center">3</span>
+            </Button>
+          </div>
         </div>
       </div>
 
       {/* Stat Cards */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
         {statCards.map(s => (
-          <Card key={s.label} className="border shadow-sm hover:shadow-md transition-shadow">
+          <Card key={s.label} className="border shadow-sm hover:shadow-md transition-shadow bg-white">
             <CardContent className="p-5">
               <div className="flex items-start justify-between">
-                <div className="space-y-2">
+                <div className="space-y-1">
                   <p className="text-sm text-gray-500">{s.label}</p>
-                  <div className="flex items-baseline gap-2">
-                    <p className="text-3xl font-bold text-gray-800">{s.value}</p>
-                    {s.trend && (
-                      <span className="text-xs text-emerald-600 font-medium bg-emerald-50 px-1.5 py-0.5 rounded">
-                        {s.trend}
-                      </span>
-                    )}
-                  </div>
+                  <p className="text-3xl font-bold text-gray-800">{s.value}</p>
                 </div>
-                <div className={`w-12 h-12 ${s.bg} rounded-xl flex items-center justify-center`}>
+                <div className={`w-12 h-12 ${s.iconBg} rounded-xl flex items-center justify-center`}>
                   <s.icon className={`w-6 h-6 ${s.color}`} />
                 </div>
               </div>
@@ -480,7 +483,7 @@ function Dashboard({ user }) {
               </div>
               <Select defaultValue="all">
                 <SelectTrigger className="w-32 h-8 text-xs">
-                  <SelectValue placeholder="Filter" />
+                  <SelectValue placeholder="Activities" />
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="all">All Activities</SelectItem>
@@ -488,6 +491,17 @@ function Dashboard({ user }) {
                   <SelectItem value="maintenance">Maintenance</SelectItem>
                 </SelectContent>
               </Select>
+            </div>
+            {/* Legend */}
+            <div className="flex gap-4 mt-2">
+              <div className="flex items-center gap-2">
+                <div className="w-3 h-3 bg-blue-500 rounded" />
+                <span className="text-xs text-gray-600">Sanctioned</span>
+              </div>
+              <div className="flex items-center gap-2">
+                <div className="w-3 h-3 bg-green-500 rounded" />
+                <span className="text-xs text-gray-600">Utilized Amount</span>
+              </div>
             </div>
           </CardHeader>
           <CardContent>
@@ -501,9 +515,8 @@ function Dashboard({ user }) {
                     formatter={(value) => formatCurrency(value)} 
                     contentStyle={{ borderRadius: '8px', border: '1px solid #e5e7eb' }}
                   />
-                  <Legend wrapperStyle={{ paddingTop: '10px' }} />
-                  <Bar dataKey="sanctioned" name="Sanctioned" fill="#6366f1" radius={[4, 4, 0, 0]} />
-                  <Bar dataKey="spent" name="Utilized" fill="#a855f7" radius={[4, 4, 0, 0]} />
+                  <Bar dataKey="sanctioned" name="Sanctioned" fill="#2563eb" radius={[4, 4, 0, 0]} />
+                  <Bar dataKey="spent" name="Utilized" fill="#16a34a" radius={[4, 4, 0, 0]} />
                 </BarChart>
               </ResponsiveContainer>
             ) : (
@@ -517,119 +530,103 @@ function Dashboard({ user }) {
           </CardContent>
         </Card>
 
-        {/* Right Column */}
-        <div className="space-y-6">
-          {/* APO Status Card */}
-          <Card>
-            <CardHeader className="pb-2">
-              <CardTitle className="text-lg font-semibold">APO Status</CardTitle>
-            </CardHeader>
-            <CardContent>
-              {pieData.length > 0 ? (
-                <div className="flex items-center gap-4">
-                  <ResponsiveContainer width={120} height={120}>
-                    <PieChart>
-                      <Pie
-                        data={pieData}
-                        innerRadius={35}
-                        outerRadius={55}
-                        paddingAngle={3}
-                        dataKey="value"
-                      >
-                        {pieData.map((entry, index) => (
-                          <Cell key={`cell-${index}`} fill={entry.color} />
-                        ))}
-                      </Pie>
-                    </PieChart>
-                  </ResponsiveContainer>
-                  <div className="space-y-2">
-                    {pieData.map((item, idx) => (
-                      <div key={idx} className="flex items-center gap-2">
-                        <div className="w-3 h-3 rounded-full" style={{ backgroundColor: item.color }} />
-                        <span className="text-sm text-gray-600">{item.name}</span>
-                        <span className="text-sm font-semibold text-gray-800 ml-auto">{item.value}</span>
-                      </div>
+        {/* APO Status Card */}
+        <Card>
+          <CardHeader className="pb-2">
+            <CardTitle className="text-lg font-semibold">APO Status</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="flex flex-col items-center">
+              <ResponsiveContainer width={180} height={180}>
+                <PieChart>
+                  <Pie
+                    data={pieData}
+                    innerRadius={50}
+                    outerRadius={80}
+                    paddingAngle={2}
+                    dataKey="value"
+                  >
+                    {pieData.map((entry, index) => (
+                      <Cell key={`cell-${index}`} fill={entry.color} />
                     ))}
+                  </Pie>
+                </PieChart>
+              </ResponsiveContainer>
+              <div className="space-y-2 w-full mt-2">
+                {pieData.map((item, idx) => (
+                  <div key={idx} className="flex items-center justify-between text-sm">
+                    <div className="flex items-center gap-2">
+                      <div className="w-3 h-3 rounded" style={{ backgroundColor: item.color }} />
+                      <span className="text-gray-600">{item.name}</span>
+                    </div>
+                    <span className="font-semibold text-gray-800">{item.value}</span>
                   </div>
-                </div>
-              ) : (
-                <div className="h-[120px] flex items-center justify-center text-gray-400">
-                  <p>No APO data available</p>
-                </div>
-              )}
-            </CardContent>
-          </Card>
-
-          {/* Quick Actions Card */}
-          <Card>
-            <CardHeader className="pb-2">
-              <CardTitle className="text-lg font-semibold">Quick Actions</CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-2">
-              {user.role === 'RO' && (
-                <Button variant="outline" className="w-full justify-start gap-2" onClick={() => {}}>
-                  <Plus className="w-4 h-4 text-teal-600" />
-                  Create New APO
-                </Button>
-              )}
-              <Button variant="outline" className="w-full justify-start gap-2" onClick={() => {}}>
-                <TreePine className="w-4 h-4 text-emerald-600" />
-                View Plantations
-              </Button>
-              <Button variant="outline" className="w-full justify-start gap-2" onClick={() => {}}>
-                <FileText className="w-4 h-4 text-violet-600" />
-                APO Reports
-              </Button>
-            </CardContent>
-          </Card>
-        </div>
+                ))}
+              </div>
+            </div>
+          </CardContent>
+        </Card>
       </div>
 
-      {/* Recent Activity Section */}
-      <Card>
-        <CardHeader className="pb-2">
-          <div className="flex items-center justify-between">
-            <CardTitle className="text-lg font-semibold">Recent APOs</CardTitle>
-            <Button variant="ghost" size="sm" className="text-teal-600 hover:text-teal-700">
-              See All <ChevronRight className="w-4 h-4 ml-1" />
-            </Button>
-          </div>
-        </CardHeader>
-        <CardContent>
-          <Table>
-            <TableHeader>
-              <TableRow className="bg-gray-50/50">
-                <TableHead>APO ID</TableHead>
-                <TableHead>Plantation</TableHead>
-                <TableHead>Financial Year</TableHead>
-                <TableHead>Status</TableHead>
-                <TableHead className="text-right">Amount</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {stats.recent_apos?.slice(0, 5).map((apo, idx) => (
-                <TableRow key={idx} className="hover:bg-gray-50">
-                  <TableCell className="font-medium">{apo.id}</TableCell>
-                  <TableCell>{apo.plantation_name}</TableCell>
-                  <TableCell>{apo.financial_year}</TableCell>
-                  <TableCell>
-                    <Badge className={STATUS_COLORS[apo.status] || 'bg-gray-100'}>
-                      {STATUS_LABELS[apo.status] || apo.status}
-                    </Badge>
-                  </TableCell>
-                  <TableCell className="text-right font-semibold">{formatCurrency(apo.total_amount)}</TableCell>
-                </TableRow>
-              )) || (
-                <TableRow>
-                  <TableCell colSpan={5} className="text-center text-gray-400 py-8">
-                    No recent APOs found
-                  </TableCell>
-                </TableRow>
-              )}
-            </TableBody>
-          </Table>
-        </CardContent>
-      </Card>
+      {/* Bottom Row */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        {/* Quick Actions */}
+        <Card>
+          <CardHeader className="pb-2">
+            <CardTitle className="text-lg font-semibold">Quick Actions</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="grid grid-cols-2 gap-3">
+              <Button variant="outline" className="h-auto py-4 flex flex-col gap-2 bg-green-50 border-green-200 hover:bg-green-100">
+                <div className="w-10 h-10 bg-green-500 rounded-lg flex items-center justify-center">
+                  <TreePine className="w-5 h-5 text-white" />
+                </div>
+                <span className="text-sm font-medium text-green-800">Total Plantations</span>
+              </Button>
+              <Button variant="outline" className="h-auto py-4 flex flex-col gap-2 bg-blue-50 border-blue-200 hover:bg-blue-100">
+                <div className="w-10 h-10 bg-blue-500 rounded-lg flex items-center justify-center">
+                  <FileText className="w-5 h-5 text-white" />
+                </div>
+                <span className="text-sm font-medium text-blue-800">Recent Actions</span>
+              </Button>
+            </div>
+          </CardContent>
+        </Card>
+
+        {/* Recent APOs */}
+        <Card>
+          <CardHeader className="pb-2">
+            <div className="flex items-center justify-between">
+              <CardTitle className="text-lg font-semibold">Recent APOs</CardTitle>
+              <Button variant="ghost" size="sm" className="text-green-600 hover:text-green-700">
+                Reset APOs <ChevronRight className="w-4 h-4 ml-1" />
+              </Button>
+            </div>
+          </CardHeader>
+          <CardContent className="space-y-3">
+            {stats.recent_apos?.slice(0, 3).map((apo, idx) => (
+              <div key={idx} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
+                <div className="flex items-center gap-3">
+                  <div className="w-8 h-8 bg-green-100 rounded-lg flex items-center justify-center">
+                    <FileText className="w-4 h-4 text-green-600" />
+                  </div>
+                  <div>
+                    <p className="text-sm font-medium">{apo.plantation_name || 'Recent APOs'}</p>
+                    <p className="text-xs text-gray-500">Past Issue - {apo.financial_year}</p>
+                  </div>
+                </div>
+                <Badge className={STATUS_COLORS[apo.status] || 'bg-gray-100'}>
+                  {STATUS_LABELS[apo.status] || apo.status}
+                </Badge>
+              </div>
+            )) || (
+              <div className="text-center text-gray-400 py-4">
+                No recent APOs found
+              </div>
+            )}
+          </CardContent>
+        </Card>
+      </div>
     </div>
   )
 }
