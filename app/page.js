@@ -324,27 +324,21 @@ function Sidebar({ user, currentView, setView, onLogout }) {
   }
   
   const roleColors = { 
-    RO: 'bg-blue-500/20 text-blue-300', 
-    DM: 'bg-purple-500/20 text-purple-300', 
-    ADMIN: 'bg-amber-500/20 text-amber-300',
-    RFO: 'bg-cyan-500/20 text-cyan-300',
-    DCF: 'bg-orange-500/20 text-orange-300',
-    ED: 'bg-indigo-500/20 text-indigo-300',
-    MD: 'bg-rose-500/20 text-rose-300'
+    RO: 'bg-emerald-400/20 text-emerald-200', 
+    DM: 'bg-blue-400/20 text-blue-200', 
+    ADMIN: 'bg-amber-400/20 text-amber-200',
+    RFO: 'bg-cyan-400/20 text-cyan-200',
+    DCF: 'bg-orange-400/20 text-orange-200',
+    ED: 'bg-indigo-400/20 text-indigo-200',
+    MD: 'bg-rose-400/20 text-rose-200'
   }
 
   return (
-    <div className="w-64 bg-[#1e293b] h-screen flex flex-col">
+    <div className="w-64 bg-[#166534] h-screen flex flex-col">
       {/* Logo */}
-      <div className="p-5 border-b border-slate-700/50">
-        <div className="flex items-center gap-3">
-          <div className="w-10 h-10 bg-teal-500 rounded-lg flex items-center justify-center">
-            <TreePine className="w-6 h-6 text-white" />
-          </div>
-          <div>
-            <h1 className="font-bold text-white">KFDC iFMS</h1>
-            <p className="text-[11px] text-slate-400">Integrated Forestry Management</p>
-          </div>
+      <div className="p-4 flex justify-center border-b border-green-600/30">
+        <div className="w-16 h-16 bg-white rounded-full flex items-center justify-center p-1 shadow-lg">
+          <img src="/kfdc-logo.png" alt="KFDC iFMS" className="w-full h-full object-contain" />
         </div>
       </div>
 
@@ -356,8 +350,8 @@ function Sidebar({ user, currentView, setView, onLogout }) {
             onClick={() => setView(item.id)}
             className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm transition-all ${
               currentView === item.id
-                ? 'bg-teal-500 text-white font-medium'
-                : 'text-slate-300 hover:bg-slate-700/50 hover:text-white'
+                ? 'bg-white/20 text-white font-medium border-l-4 border-white'
+                : 'text-green-100 hover:bg-white/10 hover:text-white'
             }`}
           >
             <item.icon className="w-5 h-5" />
@@ -367,9 +361,9 @@ function Sidebar({ user, currentView, setView, onLogout }) {
       </nav>
 
       {/* User Profile */}
-      <div className="p-4 border-t border-slate-700/50">
+      <div className="p-4 border-t border-green-600/30">
         <div className="flex items-center gap-3 mb-3">
-          <div className="w-10 h-10 bg-gradient-to-br from-teal-400 to-emerald-500 rounded-full flex items-center justify-center text-white font-semibold">
+          <div className="w-10 h-10 bg-gradient-to-br from-green-300 to-emerald-400 rounded-full flex items-center justify-center text-green-900 font-semibold shadow-md">
             {user.name?.charAt(0) || 'U'}
           </div>
           <div className="flex-1 min-w-0">
@@ -378,11 +372,10 @@ function Sidebar({ user, currentView, setView, onLogout }) {
               {roleLabels[user.role]}
             </Badge>
           </div>
-          <ChevronUp className="w-4 h-4 text-slate-400" />
         </div>
         <button 
           onClick={onLogout}
-          className="w-full flex items-center justify-center gap-2 px-3 py-2 rounded-lg text-slate-400 hover:text-white hover:bg-slate-700/50 transition-colors text-sm"
+          className="w-full flex items-center justify-center gap-2 px-3 py-2 rounded-lg text-green-200 hover:text-white hover:bg-white/10 transition-colors text-sm border border-green-500/30"
         >
           <LogOut className="w-4 h-4" />
           <span>Log out</span>
