@@ -888,7 +888,7 @@ function PlantationsView({ user, setView, setSelectedPlantation }) {
                 <div className="grid grid-cols-3 gap-4">
                   <div>
                     <Label>Year of Planting</Label>
-                    <Input type="number" value={form.year_of_planting} onChange={e => setForm(f => ({ ...f, year_of_planting: e.target.value }))} />
+                    <Input type="number" value={form.year_of_planting} onChange={handleYearChange} />
                   </div>
                   <div>
                     <Label>Area (Hectares)</Label>
