@@ -329,7 +329,7 @@ backend:
     file: "app/api/[[...path]]/route.js"
     stuck_count: 0
     priority: "high"
-    needs_retesting: false
+    needs_retesting: true
     status_history:
       - working: true
         agent: "main"
@@ -337,6 +337,21 @@ backend:
       - working: true
         agent: "testing"
         comment: "✅ TESTED: All new plantation fields working. POST /plantations creates plantation with vidhana_sabha, lok_sabha, latitude, longitude fields. PUT /plantations/:id successfully updates all new fields. Field validation and persistence working correctly."
+      - working: "NA"
+        agent: "main"
+        comment: "ENHANCED: Added dynamic work_type calculation based on financial year (April-March cycle). FW = Fresh Work (current financial year), M = Maintenance (any previous FY). Backend now dynamically calculates work_type in GET /plantations, GET /plantations/:id, and POST /plantations. Seed data already has work_type values. The work_type automatically transitions from FW to M when the financial year changes."
+
+  - task: "Dynamic Work Type Calculation"
+    implemented: true
+    working: "NA"
+    file: "app/api/[[...path]]/route.js"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: true
+    status_history:
+      - working: "NA"
+        agent: "main"
+        comment: "NEW FEATURE: Added dynamic work_type calculation based on financial year. Helper functions: getCurrentFinancialYear() returns format like '2025-26', getWorkType(yearOfPlanting) returns 'FW' for current FY plantations and 'M' for previous years. Updated GET /plantations and GET /plantations/:id to dynamically calculate work_type. POST /plantations uses getWorkType() to determine initial work_type. Test by getting plantations - year 2025 should show FW, year 2024 and earlier should show M."
 
   - task: "Budget enforcement via Works"
     implemented: true
