@@ -1739,6 +1739,11 @@ function FundIndentRFOView({ user, setView, setSelectedWork }) {
   const [loadingIndents, setLoadingIndents] = useState(true)
   const [error, setError] = useState('')
   const [activeTab, setActiveTab] = useState('generate')
+  
+  // Work Preview Modal State
+  const [previewWork, setPreviewWork] = useState(null)
+  const [previewActivities, setPreviewActivities] = useState([])
+  const [loadingPreview, setLoadingPreview] = useState(false)
 
   const fetchWorks = useCallback(async () => {
     setLoading(true)
@@ -1769,6 +1774,32 @@ function FundIndentRFOView({ user, setView, setSelectedWork }) {
     fetchMyIndents()
   }, [fetchWorks, fetchMyIndents])
 
+  // Fetch work activities for preview
+  const handleViewWork = async (work) => {
+    setPreviewWork(work)
+    setLoadingPreview(true)
+    try {
+      const data = await api.get(`/fund-indent/work-items/${work.apo_id}`)
+      setPreviewActivities(data.items || [])
+    } catch (e) {
+      console.error(e)
+      setPreviewActivities([])
+    }
+    setLoadingPreview(false)
+  }
+
+  const closePreview = () => {
+    setPreviewWork(null)
+    setPreviewActivities([])
+  }
+
+  const handleProceedToGFI = () => {
+    if (previewWork) {
+      setSelectedWork(previewWork.apo_id)
+      setView('fund-indent-items')
+    }
+  }
+
   const statusColors = {
     PENDING_DCF: 'bg-orange-100 text-orange-800',
     PENDING_ED: 'bg-indigo-100 text-indigo-800',
@@ -1793,6 +1824,128 @@ function FundIndentRFOView({ user, setView, setSelectedWork }) {
           <p className="text-muted-foreground">Generate and track fund indents for sanctioned APO works</p>
         </div>
       </div>
+
+      {/* Work Preview Modal */}
+      {previewWork && (
+        <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
+          <Card className="w-full max-w-4xl max-h-[90vh] overflow-hidden flex flex-col">
+            <CardHeader className="border-b bg-muted/30">
+              <div className="flex items-center justify-between">
+                <div>
+                  <CardTitle className="text-xl flex items-center gap-2">
+                    <FileText className="w-5 h-5 text-emerald-600" />
+                    Work Details
+                  </CardTitle>
+                  <CardDescription>Review work activities before generating Fund Indent</CardDescription>
+                </div>
+                <Button variant="ghost" size="icon" onClick={closePreview}>
+                  <X className="w-5 h-5" />
+                </Button>
+              </div>
+            </CardHeader>
+            
+            <CardContent className="flex-1 overflow-auto p-6">
+              {/* Work Summary */}
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
+                <div className="bg-emerald-50 rounded-lg p-4">
+                  <p className="text-xs text-emerald-600 font-medium">APO ID</p>
+                  <p className="text-lg font-bold text-emerald-800">{previewWork.apo_id}</p>
+                </div>
+                <div className="bg-blue-50 rounded-lg p-4">
+                  <p className="text-xs text-blue-600 font-medium">Plantation</p>
+                  <p className="text-lg font-bold text-blue-800">{previewWork.plantation_name}</p>
+                </div>
+                <div className="bg-purple-50 rounded-lg p-4">
+                  <p className="text-xs text-purple-600 font-medium">Financial Year</p>
+                  <p className="text-lg font-bold text-purple-800">{previewWork.financial_year}</p>
+                </div>
+                <div className="bg-amber-50 rounded-lg p-4">
+                  <p className="text-xs text-amber-600 font-medium">Total Amount</p>
+                  <p className="text-lg font-bold text-amber-800">{formatCurrency(previewWork.total_amount)}</p>
+                </div>
+              </div>
+
+              {/* Activities Table */}
+              <div className="border rounded-lg overflow-hidden">
+                <div className="bg-muted/50 px-4 py-3 border-b">
+                  <h3 className="font-semibold flex items-center gap-2">
+                    <ClipboardList className="w-4 h-4" />
+                    Activities List ({previewActivities.length} items)
+                  </h3>
+                </div>
+                <Table>
+                  <TableHeader>
+                    <TableRow className="bg-muted/30">
+                      <TableHead className="w-16">#</TableHead>
+                      <TableHead>SSR No.</TableHead>
+                      <TableHead>Activity Name</TableHead>
+                      <TableHead className="text-right">Quantity</TableHead>
+                      <TableHead>Unit</TableHead>
+                      <TableHead className="text-right">Rate (₹)</TableHead>
+                      <TableHead className="text-right">Amount (₹)</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {loadingPreview ? (
+                      <TableRow>
+                        <TableCell colSpan={7} className="text-center py-8">
+                          <RefreshCw className="w-6 h-6 animate-spin text-emerald-600 mx-auto" />
+                        </TableCell>
+                      </TableRow>
+                    ) : previewActivities.length === 0 ? (
+                      <TableRow>
+                        <TableCell colSpan={7} className="text-center py-8 text-muted-foreground">
+                          No activities found
+                        </TableCell>
+                      </TableRow>
+                    ) : previewActivities.map((activity, idx) => (
+                      <TableRow key={activity.id} className="hover:bg-muted/20">
+                        <TableCell className="font-medium text-muted-foreground">{idx + 1}</TableCell>
+                        <TableCell className="font-mono text-xs">{activity.ssr_no || '-'}</TableCell>
+                        <TableCell className="font-medium">{activity.activity_name}</TableCell>
+                        <TableCell className="text-right">{activity.sanctioned_qty}</TableCell>
+                        <TableCell className="text-xs text-muted-foreground">{activity.unit || '-'}</TableCell>
+                        <TableCell className="text-right">{activity.sanctioned_rate?.toLocaleString('en-IN') || '-'}</TableCell>
+                        <TableCell className="text-right font-semibold">{formatCurrency(activity.total_cost)}</TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+                {previewActivities.length > 0 && (
+                  <div className="bg-muted/30 px-4 py-3 border-t flex justify-end">
+                    <div className="text-right">
+                      <span className="text-sm text-muted-foreground mr-4">Total:</span>
+                      <span className="text-xl font-bold text-emerald-700">
+                        {formatCurrency(previewActivities.reduce((sum, a) => sum + (a.total_cost || 0), 0))}
+                      </span>
+                    </div>
+                  </div>
+                )}
+              </div>
+            </CardContent>
+
+            {/* Footer with GFI Button */}
+            <div className="border-t bg-muted/20 px-6 py-4 flex items-center justify-between">
+              <p className="text-sm text-muted-foreground">
+                Select activities to generate Fund Indent on the next screen
+              </p>
+              <div className="flex items-center gap-3">
+                <Button variant="outline" onClick={closePreview}>
+                  Cancel
+                </Button>
+                <Button 
+                  className="bg-emerald-600 hover:bg-emerald-700 gap-2" 
+                  onClick={handleProceedToGFI}
+                  disabled={previewActivities.length === 0}
+                >
+                  <Send className="w-4 h-4" />
+                  Generate Fund Indent (GFI)
+                </Button>
+              </div>
+            </div>
+          </Card>
+        </div>
+      )}
 
       {/* Tabs */}
       <Tabs value={activeTab} onValueChange={setActiveTab}>
@@ -1831,7 +1984,7 @@ function FundIndentRFOView({ user, setView, setSelectedWork }) {
           <Card>
             <CardHeader>
               <CardTitle className="text-lg">Available Works for Fund Indent</CardTitle>
-              <CardDescription>Select a work to generate Fund Indent</CardDescription>
+              <CardDescription>Select a work to view details and generate Fund Indent</CardDescription>
             </CardHeader>
             <CardContent className="p-0">
               <Table>
@@ -1864,8 +2017,8 @@ function FundIndentRFOView({ user, setView, setSelectedWork }) {
                       <TableCell className="text-right">{work.work_count}</TableCell>
                       <TableCell className="text-right font-semibold">{formatCurrency(work.total_amount)}</TableCell>
                       <TableCell className="text-center">
-                        <Button size="sm" className="bg-emerald-700 hover:bg-emerald-800" onClick={() => { setSelectedWork(work.apo_id); setView('fund-indent-items') }}>
-                          <FileText className="w-3 h-3 mr-1" /> GFI
+                        <Button size="sm" variant="outline" className="gap-1.5 text-emerald-700 border-emerald-200 hover:bg-emerald-50" onClick={() => handleViewWork(work)}>
+                          <Eye className="w-3.5 h-3.5" /> View
                         </Button>
                       </TableCell>
                     </TableRow>
