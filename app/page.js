@@ -328,62 +328,82 @@ function Sidebar({ user, currentView, setView, onLogout }) {
   }
   
   const roleColors = { 
-    RO: 'bg-emerald-400/20 text-emerald-200', 
-    DM: 'bg-blue-400/20 text-blue-200', 
-    ADMIN: 'bg-amber-400/20 text-amber-200',
-    RFO: 'bg-cyan-400/20 text-cyan-200',
-    DCF: 'bg-orange-400/20 text-orange-200',
-    ED: 'bg-indigo-400/20 text-indigo-200',
-    MD: 'bg-rose-400/20 text-rose-200'
+    RO: 'bg-green-100 text-green-700', 
+    DM: 'bg-blue-100 text-blue-700', 
+    ADMIN: 'bg-amber-100 text-amber-700',
+    RFO: 'bg-cyan-100 text-cyan-700',
+    DCF: 'bg-orange-100 text-orange-700',
+    ED: 'bg-indigo-100 text-indigo-700',
+    MD: 'bg-rose-100 text-rose-700'
   }
 
   return (
-    <div className="w-64 bg-[#166534] h-screen flex flex-col">
+    <div className="w-64 bg-white h-screen flex flex-col border-r border-gray-100">
       {/* Logo */}
-      <div className="p-4 flex justify-center border-b border-green-600/30">
-        <div className="w-16 h-16 bg-white rounded-full flex items-center justify-center p-1 shadow-lg">
+      <div className="p-5 flex items-center gap-3">
+        <div className="w-10 h-10 flex items-center justify-center">
           <img src="/kfdc-logo.png" alt="KFDC iFMS" className="w-full h-full object-contain" />
         </div>
+        <span className="font-semibold text-gray-800 text-lg">KFDC iFMS</span>
+      </div>
+
+      {/* Menu Section */}
+      <div className="px-4 pt-4">
+        <p className="text-xs font-medium text-gray-400 uppercase tracking-wider mb-3">Menu</p>
       </div>
 
       {/* Navigation */}
-      <nav className="flex-1 p-3 space-y-1 overflow-y-auto">
+      <nav className="flex-1 px-3 space-y-1 overflow-y-auto">
         {navItems.filter(n => n.roles.includes(user.role)).map(item => (
           <button 
             key={item.id} 
             onClick={() => setView(item.id)}
-            className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm transition-all ${
+            className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm transition-all relative ${
               currentView === item.id
-                ? 'bg-white/20 text-white font-medium border-l-4 border-white'
-                : 'text-green-100 hover:bg-white/10 hover:text-white'
+                ? 'bg-green-50 text-green-700 font-medium'
+                : 'text-gray-600 hover:bg-gray-50 hover:text-gray-900'
             }`}
           >
-            <item.icon className="w-5 h-5" />
+            {currentView === item.id && (
+              <div className="absolute left-0 top-1/2 -translate-y-1/2 w-1 h-6 bg-green-600 rounded-r-full" />
+            )}
+            <item.icon className={`w-5 h-5 ${currentView === item.id ? 'text-green-600' : 'text-gray-400'}`} />
             {item.label}
           </button>
         ))}
       </nav>
 
-      {/* User Profile */}
-      <div className="p-4 border-t border-green-600/30">
-        <div className="flex items-center gap-3 mb-3">
-          <div className="w-10 h-10 bg-gradient-to-br from-green-300 to-emerald-400 rounded-full flex items-center justify-center text-green-900 font-semibold shadow-md">
-            {user.name?.charAt(0) || 'U'}
-          </div>
-          <div className="flex-1 min-w-0">
-            <p className="text-sm font-medium text-white truncate">{user.name}</p>
-            <Badge className={`text-[10px] ${roleColors[user.role]} border-0`}>
-              {roleLabels[user.role]}
-            </Badge>
-          </div>
-        </div>
-        <button 
-          onClick={onLogout}
-          className="w-full flex items-center justify-center gap-2 px-3 py-2 rounded-lg text-green-200 hover:text-white hover:bg-white/10 transition-colors text-sm border border-green-500/30"
-        >
-          <LogOut className="w-4 h-4" />
-          <span>Log out</span>
+      {/* General Section */}
+      <div className="px-4 pt-4">
+        <p className="text-xs font-medium text-gray-400 uppercase tracking-wider mb-3">General</p>
+      </div>
+      <div className="px-3 pb-2 space-y-1">
+        <button className="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm text-gray-600 hover:bg-gray-50 hover:text-gray-900">
+          <Settings className="w-5 h-5 text-gray-400" />
+          Settings
         </button>
+      </div>
+
+      {/* User Profile Card */}
+      <div className="p-3">
+        <div className="bg-gradient-to-br from-green-800 to-green-900 rounded-xl p-4 text-white">
+          <div className="flex items-center gap-3 mb-3">
+            <div className="w-10 h-10 bg-white/20 rounded-full flex items-center justify-center font-semibold">
+              {user.name?.charAt(0) || 'U'}
+            </div>
+            <div className="flex-1 min-w-0">
+              <p className="text-sm font-medium truncate">{user.name}</p>
+              <p className="text-xs text-green-200">{roleLabels[user.role]}</p>
+            </div>
+          </div>
+          <button 
+            onClick={onLogout}
+            className="w-full flex items-center justify-center gap-2 px-3 py-2 rounded-lg bg-green-600/50 hover:bg-green-600/70 transition-colors text-sm"
+          >
+            <LogOut className="w-4 h-4" />
+            <span>Log out</span>
+          </button>
+        </div>
       </div>
     </div>
   )
