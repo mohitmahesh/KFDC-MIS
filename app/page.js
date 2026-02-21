@@ -764,7 +764,44 @@ function PlantationsView({ user, setView, setSelectedPlantation }) {
   const [plantations, setPlantations] = useState([])
   const [loading, setLoading] = useState(true)
   const [showCreate, setShowCreate] = useState(false)
-  const [form, setForm] = useState({ name: '', species: '', year_of_planting: 2024, total_area_ha: '', village: '', taluk: '', district: '' })
+  const [form, setForm] = useState({ 
+    name: '', 
+    species: '', 
+    year_of_planting: 2024, 
+    total_area_ha: '', 
+    village: '', 
+    taluk: '', 
+    district: '',
+    vidhana_sabha: '',
+    lok_sabha: '',
+    division: '',
+    latitude: '',
+    longitude: '',
+    work_type: 'FW'
+  })
+
+  // Dropdown options from document
+  const vidhana_sabha_options = [
+    "Chikkamagalore", "Kadur", "Sringeri", "Shivamogga", "Koppa", "Bhadravathi",
+    "Sakaleshapura", "Arasikere", "Hassan", "Holenarasipura", "Chennarayapattana",
+    "Malur", "Magadi", "Devanahalli", "Shidlagatta", "Srinivasapura", "Mulabagilu",
+    "Kanakapura", "Shikaripura", "Sagara", "Soraba", "Thirthahalli", "Shimoga Rural", "Sirigere"
+  ]
+
+  const lok_sabha_options = [
+    "Udupi-Chikkamagalore", "Shivamogga", "Dharwad", "Haveri", "Belagavi",
+    "Bengaluru Rural", "Chikkaballapura", "Kolar"
+  ]
+
+  const division_options = [
+    "Dharwad", "Belagavi", "Bengaluru", "Chikkaballapura", "Shivamogga", "Chikkamagalore"
+  ]
+
+  const species_options = [
+    "Eucalyptus pellita", "Eucalyptus", "Acacia springvale", "Acacia auriculiformis",
+    "Acacia citriodora", "Corymbia", "Casurina junguniana", "Subabool",
+    "Marihal Bamboo", "Dowga Bamboo", "Red sanders", "Teak"
+  ]
 
   const load = useCallback(() => {
     setLoading(true)
@@ -777,11 +814,27 @@ function PlantationsView({ user, setView, setSelectedPlantation }) {
     try {
       await api.post('/plantations', form)
       setShowCreate(false)
-      setForm({ name: '', species: '', year_of_planting: 2024, total_area_ha: '', village: '', taluk: '', district: '' })
+      setForm({ 
+        name: '', species: '', year_of_planting: 2024, total_area_ha: '', 
+        village: '', taluk: '', district: '', vidhana_sabha: '', lok_sabha: '',
+        division: '', latitude: '', longitude: '', work_type: 'FW'
+      })
       load()
     } catch (e) {
       alert(e.message)
     }
+  }
+
+  // Determine work type based on year
+  const getWorkType = (yearOfPlanting) => {
+    const currentYear = new Date().getFullYear()
+    const plantingYear = parseInt(yearOfPlanting)
+    // If planted in current financial year (25-26 means 2025-2026), it's Fresh Work
+    // Otherwise it's Maintenance
+    if (currentYear - plantingYear <= 1) {
+      return 'FW'
+    }
+    return 'M'
   }
 
   return (
@@ -796,22 +849,118 @@ function PlantationsView({ user, setView, setSelectedPlantation }) {
             <DialogTrigger asChild>
               <Button className="bg-emerald-700 hover:bg-emerald-800"><Plus className="w-4 h-4 mr-2" /> Add Plantation</Button>
             </DialogTrigger>
-            <DialogContent>
+            <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
               <DialogHeader>
                 <DialogTitle>Create New Plantation</DialogTitle>
                 <DialogDescription>Add a new plantation to your range</DialogDescription>
               </DialogHeader>
               <div className="space-y-4">
-                <div><Label>Plantation Name</Label><Input value={form.name} onChange={e => setForm(f => ({ ...f, name: e.target.value }))} placeholder="e.g., Varavanagalavi" /></div>
-                <div><Label>Species</Label><Input value={form.species} onChange={e => setForm(f => ({ ...f, species: e.target.value }))} placeholder="e.g., Acacia Auriculiformis, Eucalyptus Pellita" /></div>
+                {/* Basic Info */}
                 <div className="grid grid-cols-2 gap-4">
-                  <div><Label>Year of Planting</Label><Input type="number" value={form.year_of_planting} onChange={e => setForm(f => ({ ...f, year_of_planting: e.target.value }))} /></div>
-                  <div><Label>Area (Hectares)</Label><Input type="number" step="0.1" value={form.total_area_ha} onChange={e => setForm(f => ({ ...f, total_area_ha: e.target.value }))} /></div>
+                  <div>
+                    <Label>Plantation Name</Label>
+                    <Input value={form.name} onChange={e => setForm(f => ({ ...f, name: e.target.value }))} placeholder="e.g., Varavanagalavi" />
+                  </div>
+                  <div>
+                    <Label>Species</Label>
+                    <Select value={form.species} onValueChange={v => setForm(f => ({ ...f, species: v }))}>
+                      <SelectTrigger>
+                        <SelectValue placeholder="Select Species" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {species_options.map(s => <SelectItem key={s} value={s}>{s}</SelectItem>)}
+                      </SelectContent>
+                    </Select>
+                  </div>
                 </div>
-                <div><Label>Village Name</Label><Input value={form.village} onChange={e => setForm(f => ({ ...f, village: e.target.value }))} placeholder="e.g., Varavanagalavi" /></div>
+
+                {/* Year, Area, Work Type */}
+                <div className="grid grid-cols-3 gap-4">
+                  <div>
+                    <Label>Year of Planting</Label>
+                    <Input type="number" value={form.year_of_planting} onChange={e => setForm(f => ({ ...f, year_of_planting: e.target.value }))} />
+                  </div>
+                  <div>
+                    <Label>Area (Hectares)</Label>
+                    <Input type="number" step="0.1" value={form.total_area_ha} onChange={e => setForm(f => ({ ...f, total_area_ha: e.target.value }))} />
+                  </div>
+                  <div>
+                    <Label>Work Type</Label>
+                    <Select value={form.work_type} onValueChange={v => setForm(f => ({ ...f, work_type: v }))}>
+                      <SelectTrigger>
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="FW">Fresh Work (FW)</SelectItem>
+                        <SelectItem value="M">Maintenance (M)</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                </div>
+
+                {/* Location - Village, Taluk, District */}
+                <div className="grid grid-cols-3 gap-4">
+                  <div>
+                    <Label>Village Name</Label>
+                    <Input value={form.village} onChange={e => setForm(f => ({ ...f, village: e.target.value }))} placeholder="e.g., Varavanagalavi" />
+                  </div>
+                  <div>
+                    <Label>Taluk</Label>
+                    <Input value={form.taluk} onChange={e => setForm(f => ({ ...f, taluk: e.target.value }))} placeholder="e.g., Dharwad" />
+                  </div>
+                  <div>
+                    <Label>District</Label>
+                    <Input value={form.district} onChange={e => setForm(f => ({ ...f, district: e.target.value }))} placeholder="e.g., Dharwad" />
+                  </div>
+                </div>
+
+                {/* Constituencies and Division */}
+                <div className="grid grid-cols-3 gap-4">
+                  <div>
+                    <Label>Division</Label>
+                    <Select value={form.division} onValueChange={v => setForm(f => ({ ...f, division: v }))}>
+                      <SelectTrigger>
+                        <SelectValue placeholder="Select Division" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {division_options.map(d => <SelectItem key={d} value={d}>{d}</SelectItem>)}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <div>
+                    <Label>Vidhana Sabha</Label>
+                    <Select value={form.vidhana_sabha} onValueChange={v => setForm(f => ({ ...f, vidhana_sabha: v }))}>
+                      <SelectTrigger>
+                        <SelectValue placeholder="Select Constituency" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {vidhana_sabha_options.map(c => <SelectItem key={c} value={c}>{c}</SelectItem>)}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <div>
+                    <Label>Lok Sabha</Label>
+                    <Select value={form.lok_sabha} onValueChange={v => setForm(f => ({ ...f, lok_sabha: v }))}>
+                      <SelectTrigger>
+                        <SelectValue placeholder="Select Constituency" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {lok_sabha_options.map(c => <SelectItem key={c} value={c}>{c}</SelectItem>)}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                </div>
+
+                {/* Lat/Long */}
                 <div className="grid grid-cols-2 gap-4">
-                  <div><Label>Taluk</Label><Input value={form.taluk} onChange={e => setForm(f => ({ ...f, taluk: e.target.value }))} placeholder="e.g., Dharwad, Khanapur" /></div>
-                  <div><Label>District</Label><Input value={form.district} onChange={e => setForm(f => ({ ...f, district: e.target.value }))} placeholder="e.g., Dharwad, Belagavi" /></div>
+                  <div>
+                    <Label>Latitude</Label>
+                    <Input type="number" step="0.000001" value={form.latitude} onChange={e => setForm(f => ({ ...f, latitude: e.target.value }))} placeholder="e.g., 15.3647" />
+                  </div>
+                  <div>
+                    <Label>Longitude</Label>
+                    <Input type="number" step="0.000001" value={form.longitude} onChange={e => setForm(f => ({ ...f, longitude: e.target.value }))} placeholder="e.g., 75.1239" />
+                  </div>
                 </div>
               </div>
               <DialogFooter>
@@ -834,11 +983,22 @@ function PlantationsView({ user, setView, setSelectedPlantation }) {
                   <div className="w-10 h-10 bg-emerald-100 rounded-lg flex items-center justify-center">
                     <Leaf className="w-5 h-5 text-emerald-700" />
                   </div>
-                  <Badge variant="outline" className="text-xs">{p.species}</Badge>
+                  <div className="flex items-center gap-2">
+                    <Badge className={p.work_type === 'FW' ? 'bg-blue-100 text-blue-800' : 'bg-amber-100 text-amber-800'}>
+                      {p.work_type === 'FW' ? 'Fresh Work' : 'Maintenance'}
+                    </Badge>
+                    <Badge variant="outline" className="text-xs">{p.species}</Badge>
+                  </div>
                 </div>
                 <h3 className="font-semibold text-sm mb-1 group-hover:text-emerald-700 transition-colors">{p.name}</h3>
-                <p className="text-xs text-muted-foreground mb-1">{p.range_name} | {p.division_name}</p>
-                {p.village && <p className="text-xs text-muted-foreground mb-3">{p.village}{p.taluk ? `, ${p.taluk}` : ''}{p.district ? ` (${p.district})` : ''}</p>}
+                <p className="text-xs text-muted-foreground mb-1">{p.range_name} | {p.division_name || p.division}</p>
+                {p.village && <p className="text-xs text-muted-foreground mb-1">{p.village}{p.taluk ? `, ${p.taluk}` : ''}{p.district ? ` (${p.district})` : ''}</p>}
+                {(p.vidhana_sabha || p.lok_sabha) && (
+                  <p className="text-xs text-muted-foreground mb-3">
+                    {p.vidhana_sabha && <span>VS: {p.vidhana_sabha}</span>}
+                    {p.lok_sabha && <span className="ml-2">LS: {p.lok_sabha}</span>}
+                  </p>
+                )}
                 <div className="grid grid-cols-3 gap-2">
                   <div className="text-center p-2 bg-muted rounded">
                     <p className="text-xs text-muted-foreground">Age</p>
