@@ -376,17 +376,9 @@ metadata:
 
 test_plan:
   current_focus:
-    - "Complete UI Testing - 8 Test Scenarios"
-    - "RO Login & Dashboard UI"
-    - "Plantations View UI"
-    - "APO Workflow UI (Create & Submit)"
-    - "APO List View UI"
-    - "DM Login & Forward to HO UI"
-    - "Admin Login & Sanction UI"
-    - "ECW Login & Estimates Dashboard UI"
-    - "PS Login & Estimates UI"
-  stuck_tasks:
-    - "Complete UI Testing - 8 Test Scenarios"
+    - "Dynamic Work Type Calculation"
+    - "Plantation with new fields"
+  stuck_tasks: []
   test_all: false
   test_priority: "high_first"
 
