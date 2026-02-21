@@ -825,16 +825,26 @@ function PlantationsView({ user, setView, setSelectedPlantation }) {
     }
   }
 
-  // Determine work type based on year
+  // Determine work type based on financial year (April-March cycle)
+  // FW (Fresh Work) = plantation created in current financial year
+  // M (Maintenance) = plantation from any previous financial year
   const getWorkType = (yearOfPlanting) => {
-    const currentYear = new Date().getFullYear()
+    const now = new Date()
+    const month = now.getMonth() // 0-11
+    const year = now.getFullYear()
+    // Financial year starts in April (month 3)
+    // If we're in Jan-Mar, we're still in the previous FY
+    const currentFYStartYear = month < 3 ? year - 1 : year
     const plantingYear = parseInt(yearOfPlanting)
-    // If planted in current financial year (25-26 means 2025-2026), it's Fresh Work
-    // Otherwise it's Maintenance
-    if (currentYear - plantingYear <= 1) {
-      return 'FW'
-    }
-    return 'M'
+    // If plantation year equals or is after the start year of current FY, it's Fresh Work
+    return plantingYear >= currentFYStartYear ? 'FW' : 'M'
+  }
+
+  // Auto-update work_type when year_of_planting changes
+  const handleYearChange = (e) => {
+    const newYear = e.target.value
+    const autoWorkType = getWorkType(newYear)
+    setForm(f => ({ ...f, year_of_planting: newYear, work_type: autoWorkType }))
   }
 
   return (
