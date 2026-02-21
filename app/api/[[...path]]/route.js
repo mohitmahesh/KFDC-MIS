@@ -553,17 +553,16 @@ async function handleRoute(request, { params }) {
       }
       const body = await request.json()
       
-      // Determine work type based on year of planting
-      const currentYear = new Date().getFullYear()
+      // Determine work type dynamically based on financial year
       const plantingYear = parseInt(body.year_of_planting)
-      const workType = body.work_type || (currentYear - plantingYear <= 1 ? 'FW' : 'M')
+      const workType = getWorkType(plantingYear)
       
       const plantation = {
         id: uuidv4(),
         range_id: user.range_id,
         name: body.name,
         species: body.species,
-        year_of_planting: parseInt(body.year_of_planting),
+        year_of_planting: plantingYear,
         total_area_ha: parseFloat(body.total_area_ha),
         village: body.village || null,
         taluk: body.taluk || null,
