@@ -139,43 +139,54 @@ function LoginPage({ onLogin }) {
     { email: 'md@kfdc.in', role: 'Managing Director', division: 'All' },
   ]
 
-  // Decorative Leaf SVG Component
-  const LeafDecoration = () => (
-    <svg className="absolute -z-10" viewBox="0 0 400 400" width="400" height="400" style={{ left: '-50px', top: '50%', transform: 'translateY(-50%)' }}>
-      {/* Large teal leaf */}
-      <ellipse cx="120" cy="200" rx="80" ry="140" fill="#0d9488" transform="rotate(-30 120 200)" opacity="0.9" />
-      {/* Dark green leaf */}
-      <ellipse cx="180" cy="180" rx="60" ry="120" fill="#166534" transform="rotate(-15 180 180)" opacity="0.85" />
-      {/* Light green leaf */}
-      <ellipse cx="100" cy="280" rx="50" ry="100" fill="#22c55e" transform="rotate(-45 100 280)" opacity="0.7" />
-      {/* Orange accent leaf */}
-      <ellipse cx="150" cy="330" rx="30" ry="60" fill="#f97316" transform="rotate(-60 150 330)" opacity="0.8" />
-      {/* Yellow accent leaf */}
-      <ellipse cx="120" cy="360" rx="25" ry="50" fill="#fbbf24" transform="rotate(-70 120 360)" opacity="0.8" />
-      {/* Small teal dots */}
-      <circle cx="250" cy="120" r="4" fill="#0d9488" />
-      <circle cx="280" cy="140" r="3" fill="#166534" />
-      <circle cx="260" cy="160" r="2" fill="#22c55e" />
-      <circle cx="300" cy="300" r="4" fill="#f97316" />
-      <circle cx="280" cy="320" r="3" fill="#fbbf24" />
-      <circle cx="310" cy="340" r="2" fill="#0d9488" />
-    </svg>
+  // Forest tree silhouette SVG for background
+  const ForestBackground = () => (
+    <div className="absolute inset-0 overflow-hidden pointer-events-none">
+      <svg viewBox="0 0 1920 1080" className="w-full h-full opacity-20" preserveAspectRatio="xMidYMax slice">
+        <defs>
+          <linearGradient id="forestGrad" x1="0%" y1="0%" x2="0%" y2="100%">
+            <stop offset="0%" stopColor="#166534" stopOpacity="0.3" />
+            <stop offset="100%" stopColor="#166534" stopOpacity="0.8" />
+          </linearGradient>
+        </defs>
+        {/* Pine trees silhouette - left side */}
+        <g fill="url(#forestGrad)">
+          {[0, 100, 200, 300, 400].map((x, i) => (
+            <path key={`left-${i}`} d={`M${x + 60} 1080 L${x + 30} 900 L${x + 45} 900 L${x + 20} 750 L${x + 40} 750 L${x + 10} 600 L${x + 60} 500 L${x + 110} 600 L${x + 80} 750 L${x + 100} 750 L${x + 75} 900 L${x + 90} 900 Z`} 
+              style={{ opacity: 0.6 + Math.random() * 0.4 }} />
+          ))}
+          {/* Right side trees */}
+          {[1500, 1600, 1700, 1800].map((x, i) => (
+            <path key={`right-${i}`} d={`M${x + 60} 1080 L${x + 30} 900 L${x + 45} 900 L${x + 20} 750 L${x + 40} 750 L${x + 10} 600 L${x + 60} 500 L${x + 110} 600 L${x + 80} 750 L${x + 100} 750 L${x + 75} 900 L${x + 90} 900 Z`} 
+              style={{ opacity: 0.5 + Math.random() * 0.5 }} />
+          ))}
+        </g>
+        {/* Mountains in background */}
+        <path d="M0 800 Q300 600 600 750 T1200 650 T1920 800 L1920 1080 L0 1080 Z" fill="#166534" opacity="0.15" />
+        <path d="M0 850 Q400 700 800 800 T1600 750 T1920 850 L1920 1080 L0 1080 Z" fill="#166534" opacity="0.1" />
+      </svg>
+    </div>
   )
 
   return (
-    <div className="min-h-screen bg-[#e8f5f0] relative overflow-hidden">
+    <div className="min-h-screen bg-gradient-to-b from-gray-100 to-green-50 relative overflow-hidden">
+      <ForestBackground />
+      
       {/* Header */}
-      <header className="bg-[#115e59] py-3 px-6 flex items-center justify-between relative z-20">
-        <div className="flex items-center gap-2">
-          <div className="w-8 h-8 bg-white/20 rounded-full flex items-center justify-center">
-            <TreePine className="w-5 h-5 text-white" />
+      <header className="relative z-20 py-4 px-6 flex items-center justify-between">
+        <div className="flex items-center gap-3">
+          <div className="w-12 h-12 bg-white rounded-full flex items-center justify-center shadow-md p-1">
+            <img src="/kfdc-logo.png" alt="KFDC iFMS" className="w-full h-full object-contain" />
           </div>
-          <span className="text-white font-semibold text-lg">KFDC <span className="font-normal">iFMS</span></span>
+          <div>
+            <h1 className="font-bold text-gray-800 text-lg">KFDC iFMS</h1>
+            <p className="text-xs text-gray-500">Integrated Forestry Management</p>
+          </div>
         </div>
         <Button 
           variant="outline" 
           size="sm" 
-          className="text-white border-white/30 hover:bg-white/10 hover:text-white"
+          className="bg-white/80 hover:bg-white"
           onClick={handleSeed}
           disabled={seeding}
         >
@@ -185,77 +196,70 @@ function LoginPage({ onLogin }) {
       </header>
 
       {/* Main Content */}
-      <div className="flex items-center justify-center min-h-[calc(100vh-56px)] relative">
-        {/* Decorative Elements */}
-        <LeafDecoration />
-        
-        {/* Small scattered decorations on right */}
-        <div className="absolute right-20 top-1/4">
-          <div className="w-3 h-3 bg-teal-500 rounded-full opacity-60" />
-        </div>
-        <div className="absolute right-32 top-1/3">
-          <div className="w-2 h-2 bg-orange-400 rounded-full opacity-70" />
-        </div>
-        <div className="absolute right-16 bottom-1/3">
-          <div className="w-4 h-4 bg-green-500 rounded-full opacity-50" />
-        </div>
-        <div className="absolute right-40 bottom-1/4">
-          <div className="w-2 h-2 bg-yellow-400 rounded-full opacity-60" />
-        </div>
-
+      <div className="flex items-center justify-center min-h-[calc(100vh-80px)] relative z-10 px-4">
         {/* Login Card */}
-        <Card className="w-full max-w-md shadow-xl border-0 bg-white relative z-10 mx-4">
+        <Card className="w-full max-w-md shadow-2xl border-0 bg-white/95 backdrop-blur">
           <CardHeader className="text-center pb-2 pt-8">
-            <CardTitle className="text-2xl font-medium text-gray-800">Log in</CardTitle>
+            <div className="mx-auto w-20 h-20 bg-green-50 rounded-full flex items-center justify-center mb-4">
+              <img src="/kfdc-logo.png" alt="KFDC" className="w-16 h-16 object-contain" />
+            </div>
+            <CardTitle className="text-2xl font-bold text-gray-800">Welcome Back</CardTitle>
+            <CardDescription>Sign in to KFDC iFMS Portal</CardDescription>
           </CardHeader>
           <CardContent className="px-8 pb-8">
             <form onSubmit={handleLogin} className="space-y-4">
               <div className="space-y-2">
+                <Label htmlFor="email" className="text-gray-700">Email</Label>
                 <Input 
+                  id="email"
                   type="email" 
-                  placeholder="Your email" 
+                  placeholder="your.name@kfdc.in" 
                   value={email} 
                   onChange={e => setEmail(e.target.value)} 
                   required 
-                  className="h-12 bg-gray-50 border-gray-200 rounded-lg focus:ring-2 focus:ring-teal-500 focus:border-transparent"
+                  className="h-11 bg-gray-50 border-gray-200 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent"
                 />
               </div>
               <div className="space-y-2">
+                <Label htmlFor="password" className="text-gray-700">Password</Label>
                 <Input 
+                  id="password"
                   type="password" 
-                  placeholder="Your password" 
+                  placeholder="Enter your password" 
                   value={password} 
                   onChange={e => setPassword(e.target.value)} 
                   required 
-                  className="h-12 bg-gray-50 border-gray-200 rounded-lg focus:ring-2 focus:ring-teal-500 focus:border-transparent"
+                  className="h-11 bg-gray-50 border-gray-200 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent"
                 />
               </div>
               
-              <div className="flex items-center space-x-2">
-                <Checkbox 
-                  id="remember" 
-                  checked={rememberMe}
-                  onCheckedChange={setRememberMe}
-                  className="border-gray-300 data-[state=checked]:bg-teal-600 data-[state=checked]:border-teal-600"
-                />
-                <label htmlFor="remember" className="text-sm text-gray-600 cursor-pointer">
-                  Remember me
-                </label>
+              <div className="flex items-center justify-between">
+                <div className="flex items-center space-x-2">
+                  <Checkbox 
+                    id="remember" 
+                    checked={rememberMe}
+                    onCheckedChange={setRememberMe}
+                    className="border-gray-300 data-[state=checked]:bg-green-600 data-[state=checked]:border-green-600"
+                  />
+                  <label htmlFor="remember" className="text-sm text-gray-600 cursor-pointer">
+                    Remember me
+                  </label>
+                </div>
+                <span className="text-sm text-green-600 hover:text-green-700 cursor-pointer">
+                  Forgot password?
+                </span>
               </div>
 
               {error && <p className="text-sm text-red-600 bg-red-50 p-3 rounded-lg">{error}</p>}
               
               <Button 
                 type="submit" 
-                className="w-full h-12 bg-[#115e59] hover:bg-[#0d4f4a] rounded-full text-base font-medium mt-4" 
+                className="w-full h-11 bg-[#166534] hover:bg-[#14532d] rounded-lg text-base font-medium mt-2" 
                 disabled={loading}
               >
-                {loading ? 'Logging in...' : 'Log in'}
+                {loading ? 'Signing in...' : 'Sign In'}
+                <LogIn className="w-4 h-4 ml-2" />
               </Button>
-              
-              <p className="text-center text-sm text-teal-700 hover:text-teal-800 cursor-pointer mt-2">
-                Forgot password?
-              </p>
             </form>
 
             {/* Demo Accounts Toggle */}
@@ -274,11 +278,11 @@ function LoginPage({ onLogin }) {
                     <button 
                       key={acc.email} 
                       onClick={() => { setEmail(acc.email); setPassword('pass123') }}
-                      className="w-full flex items-center justify-between p-2.5 rounded-lg border border-gray-100 hover:bg-gray-50 hover:border-teal-200 transition-colors text-left group"
+                      className="w-full flex items-center justify-between p-2.5 rounded-lg border border-gray-100 hover:bg-green-50 hover:border-green-200 transition-colors text-left group"
                     >
                       <div className="flex items-center gap-2">
-                        <div className="w-7 h-7 bg-teal-50 rounded-full flex items-center justify-center group-hover:bg-teal-100">
-                          <User className="w-3.5 h-3.5 text-teal-600" />
+                        <div className="w-7 h-7 bg-green-100 rounded-full flex items-center justify-center group-hover:bg-green-200">
+                          <User className="w-3.5 h-3.5 text-green-700" />
                         </div>
                         <div>
                           <div className="text-sm font-medium text-gray-700">{acc.role}</div>
