@@ -438,15 +438,30 @@ function Dashboard({ user }) {
     { name: 'APO Status', value: stats.draft_apos || 1, color: '#166534' },
   ].filter(d => d.value > 0)
 
-  // Forest tree silhouette SVG for header background
+  // Forest tree silhouette SVG for header background - UPRIGHT TREES
   const ForestHeader = () => (
-    <div className="absolute inset-0 overflow-hidden pointer-events-none opacity-10">
+    <div className="absolute inset-0 overflow-hidden pointer-events-none">
       <svg viewBox="0 0 1200 200" className="w-full h-full" preserveAspectRatio="xMidYMax slice">
-        {/* Pine trees silhouette */}
-        <g fill="#166534">
-          {[0, 80, 160, 240, 320, 400, 480, 560, 640, 720, 800, 880, 960, 1040, 1120].map((x, i) => (
-            <path key={i} d={`M${x + 40} 200 L${x + 20} 140 L${x + 30} 140 L${x + 15} 100 L${x + 25} 100 L${x + 10} 60 L${x + 40} 20 L${x + 70} 60 L${x + 55} 100 L${x + 65} 100 L${x + 50} 140 L${x + 60} 140 Z`} 
-              style={{ transform: `scale(${0.6 + Math.random() * 0.5})`, transformOrigin: `${x + 40}px 200px` }} />
+        {/* Upright pine trees - pointing UP */}
+        <g fill="#166534" opacity="0.15">
+          {/* Back row - smaller, lighter */}
+          {[50, 120, 190, 260, 330, 400, 470, 540, 610, 680, 750, 820, 890, 960, 1030, 1100].map((x, i) => (
+            <polygon key={`back-${i}`} points={`${x},200 ${x-15},200 ${x-8},140 ${x-12},140 ${x-5},90 ${x-10},90 ${x},50 ${x+10},90 ${x+5},90 ${x+12},140 ${x+8},140 ${x+15},200`} 
+              style={{ opacity: 0.4 + (i % 3) * 0.1 }} />
+          ))}
+        </g>
+        <g fill="#166534" opacity="0.25">
+          {/* Middle row */}
+          {[80, 160, 240, 320, 400, 480, 560, 640, 720, 800, 880, 960, 1040, 1120].map((x, i) => (
+            <polygon key={`mid-${i}`} points={`${x},200 ${x-18},200 ${x-10},130 ${x-15},130 ${x-6},70 ${x-12},70 ${x},20 ${x+12},70 ${x+6},70 ${x+15},130 ${x+10},130 ${x+18},200`} 
+              style={{ opacity: 0.5 + (i % 2) * 0.2 }} />
+          ))}
+        </g>
+        <g fill="#166534" opacity="0.35">
+          {/* Front row - larger, darker */}
+          {[30, 130, 230, 330, 430, 530, 630, 730, 830, 930, 1030, 1130].map((x, i) => (
+            <polygon key={`front-${i}`} points={`${x},200 ${x-22},200 ${x-12},120 ${x-18},120 ${x-8},60 ${x-14},60 ${x},10 ${x+14},60 ${x+8},60 ${x+18},120 ${x+12},120 ${x+22},200`} 
+              style={{ opacity: 0.6 + (i % 2) * 0.15 }} />
           ))}
         </g>
       </svg>
