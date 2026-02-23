@@ -314,12 +314,11 @@ function Sidebar({ user, currentView, setView, onLogout }) {
 
   return (
     <div className="w-64 bg-white h-screen flex flex-col border-r border-gray-100">
-      {/* Logo */}
-      <div className="p-5 flex items-center gap-3">
-        <div className="w-10 h-10 flex items-center justify-center">
-          <img src="/kfdc-logo.png" alt="KFDC iFMS" className="w-full h-full object-contain" />
+      {/* Logo Only */}
+      <div className="p-5 flex items-center justify-center">
+        <div className="w-12 h-12 flex items-center justify-center">
+          <img src="/kfdc-mis-logo.png" alt="KFDC MIS" className="w-full h-full object-contain" />
         </div>
-        <span className="font-semibold text-gray-800 text-lg">KFDC iFMS</span>
       </div>
 
       {/* Menu Section */}
