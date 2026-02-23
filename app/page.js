@@ -347,17 +347,6 @@ function Sidebar({ user, currentView, setView, onLogout }) {
         ))}
       </nav>
 
-      {/* General Section */}
-      <div className="px-4 pt-4">
-        <p className="text-xs font-medium text-gray-400 uppercase tracking-wider mb-3">General</p>
-      </div>
-      <div className="px-3 pb-2 space-y-1">
-        <button className="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm text-gray-600 hover:bg-gray-50 hover:text-gray-900">
-          <Settings className="w-5 h-5 text-gray-400" />
-          Settings
-        </button>
-      </div>
-
       {/* User Profile Card */}
       <div className="p-3">
         <div className="bg-gradient-to-br from-green-800 to-green-900 rounded-xl p-4 text-white">
