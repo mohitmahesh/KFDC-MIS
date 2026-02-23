@@ -1625,10 +1625,13 @@ async function handleRoute(request, { params }) {
     }
 
     // Route not found
+    logResponse(method, route, 404, Date.now() - startTime)
     return handleCORS(NextResponse.json({ error: `Route ${route} not found` }, { status: 404 }))
 
   } catch (error) {
-    console.error('API Error:', error)
+    // Log error with context
+    logError(error, { route, method })
+    logResponse(method, route, 500, Date.now() - startTime)
     return handleCORS(NextResponse.json({ error: 'Internal server error', detail: error.message }, { status: 500 }))
   }
 }
