@@ -151,13 +151,8 @@ function LoginPage({ onLogin }) {
         {/* Dark Overlay */}
         <div className="absolute inset-0 bg-gradient-to-b from-black/40 via-black/30 to-black/50" />
         
-        {/* Logo and Title */}
+        {/* Title */}
         <div className="relative z-10">
-          <img 
-            src="/kfdc-sidebar-logo.png" 
-            alt="KFDC Logo" 
-            className="w-32 h-32 object-contain mb-6"
-          />
           <h1 className="text-3xl font-bold text-white mb-4">
             Karnataka Forest Department
           </h1>
