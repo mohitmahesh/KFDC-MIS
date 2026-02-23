@@ -18,7 +18,6 @@ import path from 'path'
 // Import shared modules
 import { connectToMongo } from '@/lib/db'
 import { generateId, getCurrentFinancialYear, getWorkType, sanitizeMongoDoc } from '@/lib/helpers'
-import { getUser as getUserFromAuth } from '@/lib/auth'
 import { handleCORS, jsonResponse, errorResponse, createOptionsResponse } from '@/lib/cors'
 import logger, { logRequest, logResponse, logError, logDbOperation } from '@/lib/logger'
 import { handleApiError, ApiError, ErrorTypes } from '@/lib/errorHandler'
