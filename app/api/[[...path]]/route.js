@@ -31,9 +31,15 @@ export async function OPTIONS() {
   return createOptionsResponse()
 }
 
-// Auth middleware helper - uses library function
+// Auth middleware helper - inline version for backward compatibility
 async function getUser(request, db) {
-  return getUserFromAuth(request)
+  const authHeader = request.headers.get('Authorization')
+  if (!authHeader || !authHeader.startsWith('Bearer ')) return null
+  const token = authHeader.split(' ')[1]
+  const session = await db.collection('sessions').findOne({ token })
+  if (!session) return null
+  const user = await db.collection('users').findOne({ id: session.user_id })
+  return user
 }
 
 // ===================== SEED DATA (Real KFDC Data from Excel Masters) =====================
