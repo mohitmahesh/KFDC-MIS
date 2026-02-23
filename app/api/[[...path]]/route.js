@@ -1477,7 +1477,7 @@ async function handleRoute(request, { params }) {
       
       const totalApos = allApos.length
       const draftApos = allApos.filter(a => a.status === 'DRAFT').length
-      const pendingApos = allApos.filter(a => a.status === 'PENDING_APPROVAL').length
+      const pendingApos = allApos.filter(a => a.status.includes('PENDING')).length
       const sanctionedApos = allApos.filter(a => a.status === 'SANCTIONED').length
       const rejectedApos = allApos.filter(a => a.status === 'REJECTED').length
 
@@ -1510,10 +1510,48 @@ async function handleRoute(request, { params }) {
       }
 
       const chartData = Object.entries(budgetByActivity).map(([name, data]) => ({
-        name,
+        name: name.length > 12 ? name.substring(0, 12) + '...' : name,
+        fullName: name,
         sanctioned: data.sanctioned,
         spent: data.spent,
       }))
+
+      // Recent APOs with plantation names
+      const recentApos = allApos
+        .sort((a, b) => new Date(b.created_at || 0) - new Date(a.created_at || 0))
+        .slice(0, 5)
+        .map(apo => {
+          const plantation = plantations.find(p => p.id === apo.plantation_id)
+          return {
+            id: apo.id,
+            plantation_name: plantation?.name || 'Unknown Plantation',
+            financial_year: apo.financial_year,
+            status: apo.status,
+            total_amount: apo.total_sanctioned_amount || apo.total_amount || 0,
+            created_at: apo.created_at,
+          }
+        })
+
+      // APO Timeline (recent activity)
+      const apoTimeline = allApos
+        .filter(a => a.status !== 'DRAFT')
+        .sort((a, b) => new Date(b.updated_at || b.created_at || 0) - new Date(a.updated_at || a.created_at || 0))
+        .slice(0, 4)
+        .map(apo => {
+          const plantation = plantations.find(p => p.id === apo.plantation_id)
+          return {
+            id: apo.id,
+            plantation_name: plantation?.name || 'APO Timeline',
+            status: apo.status,
+            financial_year: apo.financial_year,
+            date: apo.updated_at || apo.created_at,
+          }
+        })
+
+      // Calculate percentages for analytics
+      const utilizationPct = totalSanctioned > 0 ? Math.round((totalExpenditure / totalSanctioned) * 100) : 0
+      const sanctionedPct = totalApos > 0 ? Math.round((sanctionedApos / totalApos) * 100) : 0
+      const reportedPct = totalApos > 0 ? Math.round(((sanctionedApos + pendingApos) / totalApos) * 100) : 0
 
       return handleCORS(NextResponse.json({
         total_plantations: totalPlantations,
@@ -1525,8 +1563,12 @@ async function handleRoute(request, { params }) {
         rejected_apos: rejectedApos,
         total_sanctioned_amount: totalSanctioned,
         total_expenditure: totalExpenditure,
-        utilization_pct: totalSanctioned > 0 ? Math.round((totalExpenditure / totalSanctioned) * 100) : 0,
+        utilization_pct: utilizationPct,
+        sanctioned_pct: sanctionedPct,
+        reported_pct: reportedPct,
         budget_chart: chartData,
+        recent_apos: recentApos,
+        apo_timeline: apoTimeline,
       }))
     }
 
