@@ -31,39 +31,9 @@ export async function OPTIONS() {
   return createOptionsResponse()
 }
 
-// Auth middleware helper
+// Auth middleware helper - uses library function
 async function getUser(request, db) {
-  const authHeader = request.headers.get('Authorization')
-  if (!authHeader || !authHeader.startsWith('Bearer ')) return null
-  const token = authHeader.split(' ')[1]
-  const session = await db.collection('sessions').findOne({ token })
-  if (!session) return null
-  const user = await db.collection('users').findOne({ id: session.user_id })
-  return user
-}
-
-// Helper: Get current financial year (April-March cycle)
-// Returns format like "2025-26" for April 2025 to March 2026
-function getCurrentFinancialYear() {
-  const now = new Date()
-  const month = now.getMonth() // 0-11
-  const year = now.getFullYear()
-  // Financial year starts in April (month 3)
-  // If we're in Jan-Mar, we're still in the previous FY
-  if (month < 3) {
-    return `${year - 1}-${String(year).slice(-2)}`
-  }
-  return `${year}-${String(year + 1).slice(-2)}`
-}
-
-// Helper: Determine work type dynamically based on planting year
-// FW (Fresh Work) = plantation created in current financial year
-// M (Maintenance) = plantation from any previous financial year
-function getWorkType(yearOfPlanting) {
-  const currentFY = getCurrentFinancialYear()
-  const currentFYStartYear = parseInt(currentFY.split('-')[0])
-  // If plantation year equals the start year of current FY, it's Fresh Work
-  return yearOfPlanting >= currentFYStartYear ? 'FW' : 'M'
+  return getUserFromAuth(request)
 }
 
 // ===================== SEED DATA (Real KFDC Data from Excel Masters) =====================
