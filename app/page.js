@@ -165,14 +165,16 @@ function LoginPage({ onLogin }) {
             Log In
           </h1>
           
-          {/* Logo Image - Blends with Background */}
+          {/* Logo Image - Seamlessly Blended */}
           <div className="relative mb-6">
             <img 
               src="/kfdc-mis-logo.png" 
               alt="KFDC MIS Logo" 
-              className="w-52 h-52 object-contain rounded-2xl"
+              className="w-52 h-52 object-contain"
               style={{ 
-                filter: 'drop-shadow(0 0 50px rgba(45, 212, 191, 0.2))',
+                filter: 'drop-shadow(0 0 60px rgba(100, 200, 200, 0.3))',
+                mixBlendMode: 'normal',
+                borderRadius: '20px',
               }}
             />
           </div>
