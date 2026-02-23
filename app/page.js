@@ -138,140 +138,175 @@ function LoginPage({ onLogin }) {
   ]
 
   return (
-    <div className="min-h-screen w-full flex relative overflow-hidden">
-      {/* Left Side - Login Form Panel - Exact match to logo background */}
+    <div className="min-h-screen w-full flex">
+      {/* Left Side - Forest Background with Overlay */}
       <div 
-        className="w-full lg:w-[50%] min-h-screen relative z-10"
+        className="hidden lg:flex w-1/2 min-h-screen relative flex-col justify-between p-10"
         style={{
-          background: 'linear-gradient(155deg, #3d7a85 0%, #4a8e95 25%, #559da3 50%, #60a9ae 75%, #6bb5b8 100%)',
-          clipPath: 'polygon(0 0, 100% 0, 85% 100%, 0 100%)'
+          backgroundImage: `url('/forest-bg.jpg')`,
+          backgroundSize: 'cover',
+          backgroundPosition: 'center',
         }}
       >
-        {/* Initialize Demo Data Button */}
-        <div className="absolute top-6 right-20 z-20">
+        {/* Dark Overlay */}
+        <div className="absolute inset-0 bg-gradient-to-b from-black/40 via-black/30 to-black/50" />
+        
+        {/* Logo and Title */}
+        <div className="relative z-10">
+          <img 
+            src="/kfdc-sidebar-logo.png" 
+            alt="KFDC Logo" 
+            className="w-32 h-32 object-contain mb-6"
+          />
+          <h1 className="text-3xl font-bold text-white mb-4">
+            Karnataka Forest Department
+          </h1>
+          <p className="text-white/80 text-lg leading-relaxed max-w-md">
+            Management Information System for efficient forest resource management, conservation, and administrative operations.
+          </p>
+        </div>
+
+        {/* Initialize Demo Data - Bottom Left */}
+        <div className="relative z-10">
           <button 
             onClick={handleSeed}
             disabled={seeding}
-            className="text-white/60 hover:text-white text-sm transition-colors"
+            className="text-white/60 hover:text-white text-sm transition-colors underline"
           >
-            {seeding ? 'Initializing...' : 'Initialize Demo Data'}
+            {seeding ? 'Initializing Demo Data...' : 'Initialize Demo Data'}
           </button>
-        </div>
-
-        {/* Content */}
-        <div className="flex flex-col items-center justify-center min-h-screen px-12 lg:px-20 py-12">
-          {/* Log In Title - Elegant serif font style */}
-          <h1 className="text-5xl font-light text-white mb-10 tracking-wide" style={{ fontFamily: 'Georgia, serif' }}>
-            Log In
-          </h1>
-          
-          {/* Logo Image - Seamlessly Blended */}
-          <div className="relative mb-6">
-            <img 
-              src="/kfdc-mis-logo.png" 
-              alt="KFDC MIS Logo" 
-              className="w-52 h-52 object-contain"
-              style={{ 
-                filter: 'drop-shadow(0 0 60px rgba(100, 200, 200, 0.3))',
-                mixBlendMode: 'normal',
-                borderRadius: '20px',
-              }}
-            />
-          </div>
-          
-          {/* KFDC MIS Text */}
-          <div className="text-center mb-10">
-            <h2 className="text-2xl font-semibold text-teal-300 tracking-widest">KFDC MIS</h2>
-            <p className="text-sm text-white/50 mt-1 tracking-wide">Management Information System</p>
-          </div>
-
-          {/* Login Form */}
-          <form onSubmit={handleLogin} className="w-full max-w-xs space-y-8">
-            {/* Email Field */}
-            <div>
-              <label className="text-white/80 text-sm tracking-wide block mb-2">Email</label>
-              <input 
-                type="email" 
-                value={email} 
-                onChange={e => setEmail(e.target.value)} 
-                required 
-                className="w-full bg-transparent border-0 border-b-2 border-white/30 focus:border-teal-400 text-white py-2 outline-none transition-all duration-300 placeholder:text-white/40"
-                placeholder="your.name@kfdc.in"
-              />
-            </div>
-            
-            {/* Password Field */}
-            <div>
-              <label className="text-white/80 text-sm tracking-wide block mb-2">Password</label>
-              <input 
-                type="password" 
-                value={password} 
-                onChange={e => setPassword(e.target.value)} 
-                required 
-                className="w-full bg-transparent border-0 border-b-2 border-white/30 focus:border-teal-400 text-white py-2 outline-none transition-all duration-300 placeholder:text-white/40"
-                placeholder="Enter your password"
-              />
-            </div>
-
-            {error && <p className="text-sm text-red-400 py-2">{error}</p>}
-            
-            {/* Login Button */}
-            <Button 
-              type="submit" 
-              className="w-full h-14 bg-gradient-to-r from-green-500 via-emerald-500 to-green-600 hover:from-green-600 hover:via-emerald-600 hover:to-green-700 text-white font-bold text-base rounded-md shadow-xl shadow-green-600/30 mt-6 transition-all duration-300 border-2 border-green-400/30" 
-              disabled={loading}
-            >
-              {loading ? 'LOGGING IN...' : 'LOG IN'}
-            </Button>
-          </form>
-
-          {/* Demo Accounts */}
-          <div className="w-full max-w-xs mt-8">
-            <button 
-              onClick={() => setShowDemoAccounts(!showDemoAccounts)}
-              className="w-full flex items-center justify-between text-sm text-white/50 hover:text-white/70 transition-colors"
-            >
-              <span>Demo Accounts (password: pass123)</span>
-              {showDemoAccounts ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
-            </button>
-            
-            {showDemoAccounts && (
-              <div className="mt-3 max-h-40 overflow-y-auto space-y-1">
-                {demoAccounts.map(acc => (
-                  <button 
-                    key={acc.email} 
-                    onClick={() => { setEmail(acc.email); setPassword('pass123') }}
-                    className="w-full flex items-center justify-between p-2 rounded border border-white/10 hover:bg-white/5 transition-colors text-left text-sm"
-                  >
-                    <div>
-                      <div className="text-white/80">{acc.role}</div>
-                      <div className="text-xs text-white/40">{acc.email}</div>
-                    </div>
-                    <span className="text-xs text-teal-400">{acc.division}</span>
-                  </button>
-                ))}
-              </div>
-            )}
-          </div>
         </div>
       </div>
 
-      {/* Right Side - Full HD Forest Image */}
-      <div 
-        className="hidden lg:block absolute top-0 right-0 w-[65%] h-full"
-        style={{
-          backgroundImage: `url('https://images.pexels.com/photos/29697943/pexels-photo-29697943.jpeg?auto=compress&cs=tinysrgb&dpr=3&h=1920&w=2880')`,
-          backgroundSize: 'cover',
-          backgroundPosition: 'center right',
-        }}
-      >
-        {/* Gradient overlay for smooth blending */}
-        <div 
-          className="absolute inset-0"
-          style={{
-            background: 'linear-gradient(to right, rgba(29, 78, 95, 0.95) 0%, rgba(29, 78, 95, 0.4) 15%, transparent 35%)',
-          }}
-        />
+      {/* Right Side - Login Form */}
+      <div className="w-full lg:w-1/2 min-h-screen bg-gray-100 flex flex-col">
+        {/* Header */}
+        <div className="text-center pt-8 pb-4">
+          <h2 className="text-xl text-gray-700 font-medium">
+            Karnataka Forest Development Corporation Ltd., (KFDC)
+          </h2>
+          <div className="flex items-center justify-center gap-2 mt-2">
+            <Leaf className="w-5 h-5 text-green-600" />
+            <span className="text-green-600 font-semibold text-lg">Forest Department MIS</span>
+          </div>
+        </div>
+
+        {/* Login Card */}
+        <div className="flex-1 flex items-center justify-center px-6 pb-8">
+          <div className="w-full max-w-md">
+            <Card className="shadow-lg border-0">
+              <CardHeader className="text-center pb-2">
+                <CardTitle className="text-xl font-bold text-gray-800">Login to Your Account</CardTitle>
+                <CardDescription className="text-gray-500">Enter your credentials to access the system</CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-5">
+                <form onSubmit={handleLogin} className="space-y-5">
+                  {/* Employee ID Field */}
+                  <div className="space-y-2">
+                    <Label className="text-gray-700 font-medium">Employee ID / Username</Label>
+                    <div className="relative">
+                      <User className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
+                      <Input 
+                        type="email" 
+                        value={email} 
+                        onChange={e => setEmail(e.target.value)} 
+                        required 
+                        placeholder="Enter your employee ID"
+                        className="pl-10 h-12 bg-gray-50 border-gray-200 focus:border-green-500 focus:ring-green-500"
+                      />
+                    </div>
+                  </div>
+
+                  {/* Password Field */}
+                  <div className="space-y-2">
+                    <Label className="text-gray-700 font-medium">Password</Label>
+                    <div className="relative">
+                      <Shield className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
+                      <Input 
+                        type="password" 
+                        value={password} 
+                        onChange={e => setPassword(e.target.value)} 
+                        required 
+                        placeholder="Enter your password"
+                        className="pl-10 h-12 bg-gray-50 border-gray-200 focus:border-green-500 focus:ring-green-500"
+                      />
+                    </div>
+                  </div>
+
+                  {/* Remember Me & Forgot Password */}
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-2">
+                      <Checkbox 
+                        id="remember" 
+                        className="border-gray-300 data-[state=checked]:bg-green-600"
+                      />
+                      <label htmlFor="remember" className="text-sm text-gray-600 cursor-pointer">
+                        Remember me
+                      </label>
+                    </div>
+                    <span className="text-sm text-green-600 hover:text-green-700 cursor-pointer">
+                      Forgot password?
+                    </span>
+                  </div>
+
+                  {error && (
+                    <p className="text-sm text-red-600 bg-red-50 p-3 rounded-lg border border-red-200">{error}</p>
+                  )}
+
+                  {/* Sign In Button */}
+                  <Button 
+                    type="submit" 
+                    className="w-full h-12 bg-green-600 hover:bg-green-700 text-white font-semibold text-base rounded-lg" 
+                    disabled={loading}
+                  >
+                    {loading ? 'Signing In...' : 'Sign In'}
+                  </Button>
+                </form>
+
+                {/* Need Help */}
+                <div className="text-center pt-2">
+                  <span className="text-gray-500 text-sm">Need help? </span>
+                  <span className="text-green-600 text-sm cursor-pointer hover:underline">Contact IT Support</span>
+                </div>
+
+                {/* Demo Accounts Toggle */}
+                <div className="border-t pt-4">
+                  <button 
+                    onClick={() => setShowDemoAccounts(!showDemoAccounts)}
+                    className="w-full flex items-center justify-between text-sm text-gray-500 hover:text-gray-700"
+                  >
+                    <span>Demo Accounts (password: pass123)</span>
+                    {showDemoAccounts ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
+                  </button>
+                  
+                  {showDemoAccounts && (
+                    <div className="mt-3 max-h-40 overflow-y-auto space-y-1">
+                      {demoAccounts.map(acc => (
+                        <button 
+                          key={acc.email} 
+                          onClick={() => { setEmail(acc.email); setPassword('pass123') }}
+                          className="w-full flex items-center justify-between p-2 rounded border border-gray-200 hover:bg-gray-50 transition-colors text-left text-sm"
+                        >
+                          <div>
+                            <div className="text-gray-700 font-medium">{acc.role}</div>
+                            <div className="text-xs text-gray-400">{acc.email}</div>
+                          </div>
+                          <span className="text-xs text-green-600">{acc.division}</span>
+                        </button>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              </CardContent>
+            </Card>
+          </div>
+        </div>
+
+        {/* Footer */}
+        <div className="text-center pb-6 px-4">
+          <p className="text-gray-500 text-sm">© 2026 Government of India. All rights reserved.</p>
+          <p className="text-gray-400 text-xs mt-1">For official use only. Unauthorized access is prohibited.</p>
+        </div>
       </div>
     </div>
   )
