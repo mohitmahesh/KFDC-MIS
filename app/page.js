@@ -315,9 +315,9 @@ function Sidebar({ user, currentView, setView, onLogout }) {
   return (
     <div className="w-64 bg-white h-screen flex flex-col border-r border-gray-100">
       {/* Logo Only */}
-      <div className="p-5 flex items-center justify-center">
-        <div className="w-12 h-12 flex items-center justify-center">
-          <img src="/kfdc-mis-logo.png" alt="KFDC MIS" className="w-full h-full object-contain" />
+      <div className="p-4 flex items-center justify-center">
+        <div className="w-14 h-14 flex items-center justify-center">
+          <img src="/kfdc-sidebar-logo.png" alt="KFDC MIS" className="w-full h-full object-contain" />
         </div>
       </div>
 
