@@ -141,9 +141,9 @@ function LoginPage({ onLogin }) {
     <div className="min-h-screen w-full flex">
       {/* Left Side - Forest Background with Overlay */}
       <div 
-        className="hidden lg:flex w-1/2 min-h-screen relative flex-col justify-between p-10"
+        className="hidden lg:flex w-1/2 min-h-screen relative flex-col items-center justify-center p-10"
         style={{
-          backgroundImage: `url('/forest-bg.jpg')`,
+          backgroundImage: `url('/forest-bg.webp')`,
           backgroundSize: 'cover',
           backgroundPosition: 'center',
         }}
@@ -151,18 +151,18 @@ function LoginPage({ onLogin }) {
         {/* Dark Overlay */}
         <div className="absolute inset-0 bg-gradient-to-b from-black/40 via-black/30 to-black/50" />
         
-        {/* Title */}
-        <div className="relative z-10">
-          <h1 className="text-3xl font-bold text-white mb-4">
+        {/* Title - Centered */}
+        <div className="relative z-10 text-center max-w-lg">
+          <h1 className="text-4xl font-bold text-white mb-6">
             Karnataka Forest Department
           </h1>
-          <p className="text-white/80 text-lg leading-relaxed max-w-md">
+          <p className="text-white/80 text-lg leading-relaxed">
             Management Information System for efficient forest resource management, conservation, and administrative operations.
           </p>
         </div>
 
         {/* Initialize Demo Data - Bottom Left */}
-        <div className="relative z-10">
+        <div className="absolute bottom-10 left-10 z-10">
           <button 
             onClick={handleSeed}
             disabled={seeding}
