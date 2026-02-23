@@ -143,7 +143,7 @@ function LoginPage({ onLogin }) {
       <div 
         className="w-full lg:w-[50%] min-h-screen relative z-10"
         style={{
-          background: 'linear-gradient(135deg, #1a4a5e 0%, #2d6b7a 50%, #3d8090 100%)',
+          background: 'linear-gradient(145deg, #1a5868 0%, #2a7585 40%, #3d8a98 100%)',
           clipPath: 'polygon(0 0, 100% 0, 85% 100%, 0 100%)'
         }}
       >
