@@ -280,12 +280,17 @@ const SEED_DATA = {
 
 // ===================== ROUTE HANDLER =====================
 async function handleRoute(request, { params }) {
+  const startTime = Date.now()
   const { path: pathSegments = [] } = params
   const route = `/${pathSegments.join('/')}`
   const method = request.method
 
+  // Log incoming request
+  logRequest(method, route)
+
   try {
     const db = await connectToMongo()
+    logDbOperation('connect', 'database')
 
     // =================== ROOT ===================
     if ((route === '/' || route === '/root') && method === 'GET') {
