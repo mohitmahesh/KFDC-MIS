@@ -423,18 +423,6 @@ function Dashboard({ user }) {
         </div>
         <div className="flex items-center gap-4">
           <span className="text-sm text-gray-500">Date: {currentDate}</span>
-          <div className="flex items-center gap-2">
-            <Button variant="ghost" size="icon" className="text-gray-500">
-              <CheckSquare className="w-5 h-5" />
-            </Button>
-            <Button variant="ghost" size="icon" className="relative text-gray-500">
-              <Bell className="w-5 h-5" />
-              <span className="absolute -top-0.5 -right-0.5 w-2 h-2 bg-red-500 rounded-full" />
-            </Button>
-            <Button variant="ghost" size="icon" className="text-gray-500">
-              <User className="w-5 h-5" />
-            </Button>
-          </div>
         </div>
       </div>
 
