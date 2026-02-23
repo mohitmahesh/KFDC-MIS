@@ -165,18 +165,14 @@ function LoginPage({ onLogin }) {
             Log In
           </h1>
           
-          {/* Logo Image with Glow Effect - No Box */}
-          <div className="relative mb-8">
-            {/* Soft glow behind logo */}
-            <div className="absolute inset-0 flex items-center justify-center">
-              <div className="w-48 h-48 bg-cyan-400/15 rounded-full blur-3xl" />
-            </div>
+          {/* Logo Image - Blends with Background */}
+          <div className="relative mb-6">
             <img 
               src="/kfdc-mis-logo.png" 
               alt="KFDC MIS Logo" 
-              className="relative w-56 h-56 object-contain"
+              className="w-52 h-52 object-contain rounded-2xl"
               style={{ 
-                filter: 'drop-shadow(0 0 40px rgba(45, 212, 191, 0.25))',
+                filter: 'drop-shadow(0 0 50px rgba(45, 212, 191, 0.2))',
               }}
             />
           </div>
