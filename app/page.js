@@ -137,166 +137,93 @@ function LoginPage({ onLogin }) {
     { email: 'md@kfdc.in', role: 'Managing Director', division: 'All' },
   ]
 
-  // Integrated Logo Component - Tree with M and Growth Arrow
-  const IntegratedLogo = () => (
-    <div className="relative w-48 h-48 mx-auto mb-6">
-      {/* Glow effect behind logo */}
-      <div className="absolute inset-0 flex items-center justify-center">
-        <div className="w-40 h-40 bg-cyan-400/30 rounded-full blur-3xl" />
-      </div>
-      <div className="absolute inset-0 flex items-center justify-center">
-        <div className="w-32 h-32 bg-cyan-300/20 rounded-full blur-2xl" />
-      </div>
-      
-      {/* Logo SVG */}
-      <svg viewBox="0 0 200 200" className="relative z-10 w-full h-full drop-shadow-2xl">
-        <defs>
-          <linearGradient id="leafGradient" x1="0%" y1="0%" x2="100%" y2="100%">
-            <stop offset="0%" stopColor="#2dd4bf" />
-            <stop offset="100%" stopColor="#14b8a6" />
-          </linearGradient>
-          <linearGradient id="trunkGradient" x1="0%" y1="0%" x2="100%" y2="100%">
-            <stop offset="0%" stopColor="#0891b2" />
-            <stop offset="100%" stopColor="#0e7490" />
-          </linearGradient>
-          <linearGradient id="arrowGradient" x1="0%" y1="100%" x2="100%" y2="0%">
-            <stop offset="0%" stopColor="#0891b2" />
-            <stop offset="100%" stopColor="#06b6d4" />
-          </linearGradient>
-          <filter id="glow">
-            <feGaussianBlur stdDeviation="2" result="coloredBlur"/>
-            <feMerge>
-              <feMergeNode in="coloredBlur"/>
-              <feMergeNode in="SourceGraphic"/>
-            </feMerge>
-          </filter>
-        </defs>
-        
-        {/* Leaves - circular arrangement */}
-        <g filter="url(#glow)">
-          {/* Top leaves */}
-          <ellipse cx="100" cy="35" rx="8" ry="14" fill="url(#leafGradient)" transform="rotate(0 100 35)" />
-          <ellipse cx="120" cy="40" rx="7" ry="12" fill="url(#leafGradient)" transform="rotate(30 120 40)" />
-          <ellipse cx="135" cy="55" rx="7" ry="12" fill="url(#leafGradient)" transform="rotate(60 135 55)" />
-          <ellipse cx="140" cy="75" rx="7" ry="12" fill="url(#leafGradient)" transform="rotate(90 140 75)" />
-          <ellipse cx="80" cy="40" rx="7" ry="12" fill="url(#leafGradient)" transform="rotate(-30 80 40)" />
-          <ellipse cx="65" cy="55" rx="7" ry="12" fill="url(#leafGradient)" transform="rotate(-60 65 55)" />
-          <ellipse cx="60" cy="75" rx="7" ry="12" fill="url(#leafGradient)" transform="rotate(-90 60 75)" />
-          
-          {/* Side leaves */}
-          <ellipse cx="55" cy="95" rx="6" ry="10" fill="url(#leafGradient)" transform="rotate(-100 55 95)" />
-          <ellipse cx="145" cy="95" rx="6" ry="10" fill="url(#leafGradient)" transform="rotate(100 145 95)" />
-        </g>
-        
-        {/* Tree trunk forming M shape */}
-        <g filter="url(#glow)">
-          {/* Left trunk */}
-          <path d="M70 95 L70 170 Q70 175 75 175 L85 175 Q90 175 90 170 L90 120 L100 140 L110 120 L110 170 Q110 175 115 175 L125 175 Q130 175 130 170 L130 95" 
-                fill="url(#trunkGradient)" />
-        </g>
-        
-        {/* Roots */}
-        <g opacity="0.9">
-          <path d="M75 175 Q60 185 50 195" stroke="url(#trunkGradient)" strokeWidth="4" fill="none" strokeLinecap="round" />
-          <path d="M85 175 Q75 190 70 200" stroke="url(#trunkGradient)" strokeWidth="3" fill="none" strokeLinecap="round" />
-          <path d="M100 175 Q100 190 100 200" stroke="url(#trunkGradient)" strokeWidth="3" fill="none" strokeLinecap="round" />
-          <path d="M115 175 Q125 190 130 200" stroke="url(#trunkGradient)" strokeWidth="3" fill="none" strokeLinecap="round" />
-          <path d="M125 175 Q140 185 150 195" stroke="url(#trunkGradient)" strokeWidth="4" fill="none" strokeLinecap="round" />
-        </g>
-        
-        {/* Growth Arrow */}
-        <g filter="url(#glow)">
-          <path d="M145 100 L165 60 L155 65 L165 40 L145 70 L155 65 L135 105" 
-                fill="url(#arrowGradient)" />
-        </g>
-      </svg>
-    </div>
-  )
-
   return (
-    <div className="min-h-screen flex">
-      {/* Left Side - Login Form with Dark Teal Gradient */}
-      <div className="w-full lg:w-[45%] min-h-screen relative overflow-hidden">
-        {/* Background gradient */}
-        <div className="absolute inset-0 bg-gradient-to-br from-[#1a3a4a] via-[#1e4d5c] to-[#2a5f6f]" />
-        
-        {/* Diagonal clip overlay for larger screens */}
-        <div className="hidden lg:block absolute inset-0">
-          <svg className="absolute right-0 top-0 h-full w-auto" viewBox="0 0 100 100" preserveAspectRatio="none" style={{width: '150px'}}>
-            <polygon points="100,0 100,100 0,100" fill="#1a3a4a" fillOpacity="0.3" />
-          </svg>
-        </div>
-        
-        {/* Initialize Demo Data Button - Top Right */}
-        <div className="absolute top-4 right-4 z-20">
-          <Button 
-            variant="ghost" 
-            size="sm" 
-            className="text-white/60 hover:text-white hover:bg-white/10 text-xs"
+    <div className="min-h-screen w-full flex relative overflow-hidden">
+      {/* Left Side - Login Form Panel */}
+      <div 
+        className="w-full lg:w-[50%] min-h-screen relative z-10"
+        style={{
+          background: 'linear-gradient(135deg, #1a4a5e 0%, #2d6b7a 50%, #3d8090 100%)',
+          clipPath: 'polygon(0 0, 100% 0, 85% 100%, 0 100%)'
+        }}
+      >
+        {/* Initialize Demo Data Button */}
+        <div className="absolute top-6 right-20 z-20">
+          <button 
             onClick={handleSeed}
             disabled={seeding}
+            className="text-white/60 hover:text-white text-sm transition-colors"
           >
-            {seeding ? <RefreshCw className="w-3 h-3 mr-1.5 animate-spin" /> : null}
             {seeding ? 'Initializing...' : 'Initialize Demo Data'}
-          </Button>
+          </button>
         </div>
 
-        {/* Content Container */}
-        <div className="relative z-10 flex flex-col items-center justify-center min-h-screen px-8 lg:px-16 py-12">
-          {/* Log In Title */}
-          <h1 className="text-4xl lg:text-5xl font-light text-white mb-2 tracking-wide">Log In</h1>
+        {/* Content */}
+        <div className="flex flex-col items-center justify-center min-h-screen px-12 lg:px-20 py-12">
+          {/* Log In Title - Elegant serif font style */}
+          <h1 className="text-5xl font-light text-white mb-10 tracking-wide" style={{ fontFamily: 'Georgia, serif' }}>
+            Log In
+          </h1>
           
-          {/* Integrated Logo */}
-          <IntegratedLogo />
+          {/* Logo Image with Glow Effect */}
+          <div className="relative mb-8">
+            <div className="absolute inset-0 blur-3xl bg-cyan-400/20 rounded-full scale-150" />
+            <img 
+              src="/kfdc-mis-logo.png" 
+              alt="KFDC MIS Logo" 
+              className="relative w-52 h-52 object-contain drop-shadow-2xl"
+              style={{ filter: 'drop-shadow(0 0 30px rgba(45, 212, 191, 0.3))' }}
+            />
+          </div>
           
-          {/* KFDC MIS Text - Integrated below logo */}
-          <div className="text-center mb-8">
-            <h2 className="text-2xl font-semibold text-cyan-300 tracking-wider">KFDC MIS</h2>
-            <p className="text-sm text-white/50 mt-1">Management Information System</p>
+          {/* KFDC MIS Text */}
+          <div className="text-center mb-10">
+            <h2 className="text-2xl font-semibold text-teal-300 tracking-widest">KFDC MIS</h2>
+            <p className="text-sm text-white/50 mt-1 tracking-wide">Management Information System</p>
           </div>
 
           {/* Login Form */}
-          <form onSubmit={handleLogin} className="w-full max-w-sm space-y-6">
+          <form onSubmit={handleLogin} className="w-full max-w-xs space-y-8">
             {/* Email Field */}
-            <div className="space-y-2">
-              <label className="text-white/70 text-sm">Email</label>
+            <div>
+              <label className="text-white/80 text-sm tracking-wide block mb-2">Email</label>
               <input 
                 type="email" 
                 value={email} 
                 onChange={e => setEmail(e.target.value)} 
                 required 
-                className="w-full bg-transparent border-b-2 border-white/30 focus:border-cyan-400 text-white py-3 outline-none transition-colors placeholder:text-white/30"
+                className="w-full bg-transparent border-0 border-b-2 border-white/30 focus:border-teal-400 text-white py-2 outline-none transition-all duration-300 placeholder:text-white/40"
                 placeholder="your.name@kfdc.in"
               />
             </div>
             
             {/* Password Field */}
-            <div className="space-y-2">
-              <label className="text-white/70 text-sm">Password</label>
+            <div>
+              <label className="text-white/80 text-sm tracking-wide block mb-2">Password</label>
               <input 
                 type="password" 
                 value={password} 
                 onChange={e => setPassword(e.target.value)} 
                 required 
-                className="w-full bg-transparent border-b-2 border-white/30 focus:border-cyan-400 text-white py-3 outline-none transition-colors placeholder:text-white/30"
+                className="w-full bg-transparent border-0 border-b-2 border-white/30 focus:border-teal-400 text-white py-2 outline-none transition-all duration-300 placeholder:text-white/40"
                 placeholder="Enter your password"
               />
             </div>
 
-            {error && <p className="text-sm text-red-400 bg-red-500/10 p-3 rounded-lg border border-red-500/20">{error}</p>}
+            {error && <p className="text-sm text-red-400 py-2">{error}</p>}
             
             {/* Login Button */}
             <Button 
               type="submit" 
-              className="w-full h-14 bg-gradient-to-r from-green-500 to-emerald-600 hover:from-green-600 hover:to-emerald-700 text-white font-bold text-lg rounded-lg shadow-lg shadow-green-500/25 mt-4 transition-all duration-300" 
+              className="w-full h-14 bg-gradient-to-r from-green-500 via-emerald-500 to-green-600 hover:from-green-600 hover:via-emerald-600 hover:to-green-700 text-white font-bold text-base rounded-md shadow-xl shadow-green-600/30 mt-6 transition-all duration-300 border-2 border-green-400/30" 
               disabled={loading}
             >
               {loading ? 'LOGGING IN...' : 'LOG IN'}
             </Button>
           </form>
 
-          {/* Demo Accounts Toggle */}
-          <div className="w-full max-w-sm mt-8">
+          {/* Demo Accounts */}
+          <div className="w-full max-w-xs mt-8">
             <button 
               onClick={() => setShowDemoAccounts(!showDemoAccounts)}
               className="w-full flex items-center justify-between text-sm text-white/50 hover:text-white/70 transition-colors"
@@ -306,23 +233,18 @@ function LoginPage({ onLogin }) {
             </button>
             
             {showDemoAccounts && (
-              <div className="mt-3 max-h-48 overflow-y-auto space-y-1.5">
+              <div className="mt-3 max-h-40 overflow-y-auto space-y-1">
                 {demoAccounts.map(acc => (
                   <button 
                     key={acc.email} 
                     onClick={() => { setEmail(acc.email); setPassword('pass123') }}
-                    className="w-full flex items-center justify-between p-3 rounded-lg border border-white/10 hover:bg-white/5 transition-colors text-left"
+                    className="w-full flex items-center justify-between p-2 rounded border border-white/10 hover:bg-white/5 transition-colors text-left text-sm"
                   >
-                    <div className="flex items-center gap-3">
-                      <div className="w-8 h-8 bg-cyan-500/20 rounded-full flex items-center justify-center">
-                        <User className="w-4 h-4 text-cyan-400" />
-                      </div>
-                      <div>
-                        <div className="text-sm font-medium text-white/90">{acc.role}</div>
-                        <div className="text-xs text-white/40">{acc.email}</div>
-                      </div>
+                    <div>
+                      <div className="text-white/80">{acc.role}</div>
+                      <div className="text-xs text-white/40">{acc.email}</div>
                     </div>
-                    <Badge variant="outline" className="text-xs bg-cyan-500/10 text-cyan-400 border-cyan-500/30">{acc.division}</Badge>
+                    <span className="text-xs text-teal-400">{acc.division}</span>
                   </button>
                 ))}
               </div>
@@ -331,23 +253,22 @@ function LoginPage({ onLogin }) {
         </div>
       </div>
 
-      {/* Right Side - HD Forest Image */}
-      <div className="hidden lg:block w-[55%] min-h-screen relative">
-        {/* HD Forest Background Image */}
+      {/* Right Side - Full HD Forest Image */}
+      <div 
+        className="hidden lg:block absolute top-0 right-0 w-[65%] h-full"
+        style={{
+          backgroundImage: `url('https://images.pexels.com/photos/29697943/pexels-photo-29697943.jpeg?auto=compress&cs=tinysrgb&dpr=3&h=1920&w=2880')`,
+          backgroundSize: 'cover',
+          backgroundPosition: 'center right',
+        }}
+      >
+        {/* Gradient overlay for smooth blending */}
         <div 
-          className="absolute inset-0 bg-cover bg-center bg-no-repeat"
+          className="absolute inset-0"
           style={{
-            backgroundImage: `url('https://images.pexels.com/photos/29697943/pexels-photo-29697943.jpeg?auto=compress&cs=tinysrgb&dpr=2&h=1200&w=1920')`,
+            background: 'linear-gradient(to right, rgba(29, 78, 95, 0.95) 0%, rgba(29, 78, 95, 0.4) 15%, transparent 35%)',
           }}
         />
-        
-        {/* Diagonal overlay to create the split effect */}
-        <svg className="absolute left-0 top-0 h-full" viewBox="0 0 100 100" preserveAspectRatio="none" style={{width: '120px'}}>
-          <polygon points="0,0 100,0 0,100" fill="#1a3a4a" />
-        </svg>
-        
-        {/* Subtle gradient overlay for better blending */}
-        <div className="absolute inset-0 bg-gradient-to-r from-[#1a3a4a]/30 via-transparent to-transparent" />
       </div>
     </div>
   )
