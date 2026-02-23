@@ -1,32 +1,34 @@
-import { MongoClient } from 'mongodb'
-import { v4 as uuidv4 } from 'uuid'
+/**
+ * KFDC iFMS API Routes
+ * Main API handler for all backend endpoints
+ * 
+ * Architecture: Modular design with shared libraries
+ * - /lib/db.js - Database connection
+ * - /lib/logger.js - Application logging
+ * - /lib/helpers.js - Utility functions
+ * - /lib/auth.js - Authentication
+ * - /lib/cors.js - CORS handling
+ * - /lib/errorHandler.js - Error handling
+ */
+
 import { NextResponse } from 'next/server'
 import { writeFile, mkdir } from 'fs/promises'
 import path from 'path'
 
-// MongoDB connection
-let client
-let db
+// Import shared modules
+import { connectToMongo } from '@/lib/db'
+import { generateId, getCurrentFinancialYear, getWorkType, sanitizeMongoDoc } from '@/lib/helpers'
+import { getUser as getUserFromAuth } from '@/lib/auth'
+import { handleCORS, jsonResponse, errorResponse, createOptionsResponse } from '@/lib/cors'
+import logger, { logRequest, logResponse, logError, logDbOperation } from '@/lib/logger'
+import { handleApiError, ApiError, ErrorTypes } from '@/lib/errorHandler'
 
-async function connectToMongo() {
-  if (!client) {
-    client = new MongoClient(process.env.MONGO_URL)
-    await client.connect()
-    db = client.db(process.env.DB_NAME)
-  }
-  return db
-}
+// Re-export for backward compatibility
+const uuidv4 = generateId
 
-function handleCORS(response) {
-  response.headers.set('Access-Control-Allow-Origin', process.env.CORS_ORIGINS || '*')
-  response.headers.set('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS, PATCH')
-  response.headers.set('Access-Control-Allow-Headers', 'Content-Type, Authorization')
-  response.headers.set('Access-Control-Allow-Credentials', 'true')
-  return response
-}
-
+// OPTIONS handler for CORS preflight
 export async function OPTIONS() {
-  return handleCORS(new NextResponse(null, { status: 200 }))
+  return createOptionsResponse()
 }
 
 // Auth middleware helper
