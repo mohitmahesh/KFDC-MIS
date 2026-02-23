@@ -94,7 +94,6 @@ const formatCurrency = (n) => {
 function LoginPage({ onLogin }) {
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
-  const [rememberMe, setRememberMe] = useState(false)
   const [error, setError] = useState('')
   const [loading, setLoading] = useState(false)
   const [seeding, setSeeding] = useState(false)
@@ -138,254 +137,217 @@ function LoginPage({ onLogin }) {
     { email: 'md@kfdc.in', role: 'Managing Director', division: 'All' },
   ]
 
-  // Green Forest Landscape Background
-  const GreenForestBackground = () => (
-    <div className="absolute inset-0 overflow-hidden">
-      <svg viewBox="0 0 1920 1080" className="w-full h-full" preserveAspectRatio="xMidYMid slice">
+  // Integrated Logo Component - Tree with M and Growth Arrow
+  const IntegratedLogo = () => (
+    <div className="relative w-48 h-48 mx-auto mb-6">
+      {/* Glow effect behind logo */}
+      <div className="absolute inset-0 flex items-center justify-center">
+        <div className="w-40 h-40 bg-cyan-400/30 rounded-full blur-3xl" />
+      </div>
+      <div className="absolute inset-0 flex items-center justify-center">
+        <div className="w-32 h-32 bg-cyan-300/20 rounded-full blur-2xl" />
+      </div>
+      
+      {/* Logo SVG */}
+      <svg viewBox="0 0 200 200" className="relative z-10 w-full h-full drop-shadow-2xl">
         <defs>
-          {/* Sky gradient - soft morning green/blue */}
-          <linearGradient id="skyGradient" x1="0%" y1="0%" x2="0%" y2="100%">
-            <stop offset="0%" stopColor="#134e4a" />
-            <stop offset="30%" stopColor="#115e59" />
-            <stop offset="50%" stopColor="#0f766e" />
-            <stop offset="70%" stopColor="#14b8a6" />
-            <stop offset="100%" stopColor="#5eead4" />
+          <linearGradient id="leafGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+            <stop offset="0%" stopColor="#2dd4bf" />
+            <stop offset="100%" stopColor="#14b8a6" />
           </linearGradient>
-          {/* Water gradient */}
-          <linearGradient id="waterGradient" x1="0%" y1="0%" x2="0%" y2="100%">
-            <stop offset="0%" stopColor="#134e4a" />
-            <stop offset="100%" stopColor="#0f3d3a" />
+          <linearGradient id="trunkGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+            <stop offset="0%" stopColor="#0891b2" />
+            <stop offset="100%" stopColor="#0e7490" />
           </linearGradient>
-          {/* Mountain gradients */}
-          <linearGradient id="mountain1" x1="0%" y1="0%" x2="0%" y2="100%">
-            <stop offset="0%" stopColor="#166534" />
-            <stop offset="100%" stopColor="#14532d" />
+          <linearGradient id="arrowGradient" x1="0%" y1="100%" x2="100%" y2="0%">
+            <stop offset="0%" stopColor="#0891b2" />
+            <stop offset="100%" stopColor="#06b6d4" />
           </linearGradient>
-          <linearGradient id="mountain2" x1="0%" y1="0%" x2="0%" y2="100%">
-            <stop offset="0%" stopColor="#15803d" />
-            <stop offset="100%" stopColor="#166534" />
-          </linearGradient>
+          <filter id="glow">
+            <feGaussianBlur stdDeviation="2" result="coloredBlur"/>
+            <feMerge>
+              <feMergeNode in="coloredBlur"/>
+              <feMergeNode in="SourceGraphic"/>
+            </feMerge>
+          </filter>
         </defs>
         
-        {/* Sky */}
-        <rect width="1920" height="1080" fill="url(#skyGradient)" />
-        
-        {/* Clouds */}
-        <ellipse cx="250" cy="120" rx="100" ry="30" fill="white" opacity="0.25" />
-        <ellipse cx="320" cy="115" rx="70" ry="25" fill="white" opacity="0.3" />
-        <ellipse cx="1600" cy="140" rx="90" ry="28" fill="white" opacity="0.25" />
-        <ellipse cx="1680" cy="135" rx="60" ry="22" fill="white" opacity="0.3" />
-        <ellipse cx="960" cy="80" rx="50" ry="18" fill="white" opacity="0.2" />
-        
-        {/* Back mountains with mist effect */}
-        <path d="M-100 650 L150 380 L300 480 L450 320 L600 450 L750 350 L900 480 L1050 300 L1200 420 L1350 350 L1500 450 L1650 320 L1800 400 L2020 350 L2020 650 Z" fill="url(#mountain1)" opacity="0.6" />
-        
-        {/* Middle mountains */}
-        <path d="M-100 700 L80 480 L250 580 L400 450 L550 530 L700 420 L850 550 L1000 470 L1150 580 L1300 450 L1450 540 L1600 420 L1750 530 L1920 450 L2020 700 Z" fill="url(#mountain2)" opacity="0.8" />
-        
-        {/* Light green trees - back row LEFT */}
-        <g>
-          {[40, 110, 180, 250, 320, 390, 460].map((x, i) => (
-            <polygon key={`bl-${i}`} points={`${x},820 ${x-22},820 ${x-14},700 ${x-20},700 ${x-10},590 ${x-16},590 ${x},500 ${x+16},590 ${x+10},590 ${x+20},700 ${x+14},700 ${x+22},820`} 
-              fill="#22c55e" opacity={0.5 + (i % 3) * 0.1} />
-          ))}
+        {/* Leaves - circular arrangement */}
+        <g filter="url(#glow)">
+          {/* Top leaves */}
+          <ellipse cx="100" cy="35" rx="8" ry="14" fill="url(#leafGradient)" transform="rotate(0 100 35)" />
+          <ellipse cx="120" cy="40" rx="7" ry="12" fill="url(#leafGradient)" transform="rotate(30 120 40)" />
+          <ellipse cx="135" cy="55" rx="7" ry="12" fill="url(#leafGradient)" transform="rotate(60 135 55)" />
+          <ellipse cx="140" cy="75" rx="7" ry="12" fill="url(#leafGradient)" transform="rotate(90 140 75)" />
+          <ellipse cx="80" cy="40" rx="7" ry="12" fill="url(#leafGradient)" transform="rotate(-30 80 40)" />
+          <ellipse cx="65" cy="55" rx="7" ry="12" fill="url(#leafGradient)" transform="rotate(-60 65 55)" />
+          <ellipse cx="60" cy="75" rx="7" ry="12" fill="url(#leafGradient)" transform="rotate(-90 60 75)" />
+          
+          {/* Side leaves */}
+          <ellipse cx="55" cy="95" rx="6" ry="10" fill="url(#leafGradient)" transform="rotate(-100 55 95)" />
+          <ellipse cx="145" cy="95" rx="6" ry="10" fill="url(#leafGradient)" transform="rotate(100 145 95)" />
         </g>
         
-        {/* Light green trees - back row RIGHT */}
-        <g>
-          {[1460, 1530, 1600, 1670, 1740, 1810, 1880].map((x, i) => (
-            <polygon key={`br-${i}`} points={`${x},820 ${x-22},820 ${x-14},700 ${x-20},700 ${x-10},590 ${x-16},590 ${x},500 ${x+16},590 ${x+10},590 ${x+20},700 ${x+14},700 ${x+22},820`} 
-              fill="#22c55e" opacity={0.5 + (i % 3) * 0.1} />
-          ))}
+        {/* Tree trunk forming M shape */}
+        <g filter="url(#glow)">
+          {/* Left trunk */}
+          <path d="M70 95 L70 170 Q70 175 75 175 L85 175 Q90 175 90 170 L90 120 L100 140 L110 120 L110 170 Q110 175 115 175 L125 175 Q130 175 130 170 L130 95" 
+                fill="url(#trunkGradient)" />
         </g>
         
-        {/* Medium green trees - middle row LEFT */}
-        <g>
-          {[70, 150, 230, 310, 390, 470].map((x, i) => (
-            <polygon key={`ml-${i}`} points={`${x},850 ${x-26},850 ${x-16},710 ${x-24},710 ${x-12},580 ${x-20},580 ${x},470 ${x+20},580 ${x+12},580 ${x+24},710 ${x+16},710 ${x+26},850`} 
-              fill="#16a34a" opacity={0.7 + (i % 2) * 0.1} />
-          ))}
+        {/* Roots */}
+        <g opacity="0.9">
+          <path d="M75 175 Q60 185 50 195" stroke="url(#trunkGradient)" strokeWidth="4" fill="none" strokeLinecap="round" />
+          <path d="M85 175 Q75 190 70 200" stroke="url(#trunkGradient)" strokeWidth="3" fill="none" strokeLinecap="round" />
+          <path d="M100 175 Q100 190 100 200" stroke="url(#trunkGradient)" strokeWidth="3" fill="none" strokeLinecap="round" />
+          <path d="M115 175 Q125 190 130 200" stroke="url(#trunkGradient)" strokeWidth="3" fill="none" strokeLinecap="round" />
+          <path d="M125 175 Q140 185 150 195" stroke="url(#trunkGradient)" strokeWidth="4" fill="none" strokeLinecap="round" />
         </g>
         
-        {/* Medium green trees - middle row RIGHT */}
-        <g>
-          {[1450, 1530, 1610, 1690, 1770, 1850].map((x, i) => (
-            <polygon key={`mr-${i}`} points={`${x},850 ${x-26},850 ${x-16},710 ${x-24},710 ${x-12},580 ${x-20},580 ${x},470 ${x+20},580 ${x+12},580 ${x+24},710 ${x+16},710 ${x+26},850`} 
-              fill="#16a34a" opacity={0.7 + (i % 2) * 0.1} />
-          ))}
+        {/* Growth Arrow */}
+        <g filter="url(#glow)">
+          <path d="M145 100 L165 60 L155 65 L165 40 L145 70 L155 65 L135 105" 
+                fill="url(#arrowGradient)" />
         </g>
-        
-        {/* Dark green trees - front row LEFT */}
-        <g>
-          {[30, 120, 210, 300, 390, 480].map((x, i) => (
-            <polygon key={`fl-${i}`} points={`${x},900 ${x-32},900 ${x-20},740 ${x-28},740 ${x-14},590 ${x-24},590 ${x},460 ${x+24},590 ${x+14},590 ${x+28},740 ${x+20},740 ${x+32},900`} 
-              fill="#15803d" opacity="0.95" />
-          ))}
-        </g>
-        
-        {/* Dark green trees - front row RIGHT */}
-        <g>
-          {[1440, 1530, 1620, 1710, 1800, 1890].map((x, i) => (
-            <polygon key={`fr-${i}`} points={`${x},900 ${x-32},900 ${x-20},740 ${x-28},740 ${x-14},590 ${x-24},590 ${x},460 ${x+24},590 ${x+14},590 ${x+28},740 ${x+20},740 ${x+32},900`} 
-              fill="#15803d" opacity="0.95" />
-          ))}
-        </g>
-        
-        {/* Darkest trees - foreground LEFT */}
-        <g>
-          {[0, 100, 200, 300, 400, 500].map((x, i) => (
-            <polygon key={`df-l-${i}`} points={`${x},950 ${x-35},950 ${x-22},770 ${x-32},770 ${x-16},600 ${x-26},600 ${x},450 ${x+26},600 ${x+16},600 ${x+32},770 ${x+22},770 ${x+35},950`} 
-              fill="#14532d" />
-          ))}
-        </g>
-        
-        {/* Darkest trees - foreground RIGHT */}
-        <g>
-          {[1420, 1520, 1620, 1720, 1820, 1920].map((x, i) => (
-            <polygon key={`df-r-${i}`} points={`${x},950 ${x-35},950 ${x-22},770 ${x-32},770 ${x-16},600 ${x-26},600 ${x},450 ${x+26},600 ${x+16},600 ${x+32},770 ${x+22},770 ${x+35},950`} 
-              fill="#14532d" />
-          ))}
-        </g>
-        
-        {/* Water/Lake */}
-        <rect x="0" y="920" width="1920" height="160" fill="url(#waterGradient)" />
-        
-        {/* Water reflections */}
-        <rect x="0" y="930" width="1920" height="2" fill="#5eead4" opacity="0.2" />
-        <rect x="0" y="960" width="1920" height="1" fill="#14b8a6" opacity="0.15" />
-        <rect x="0" y="990" width="1920" height="1" fill="#0f766e" opacity="0.1" />
-        
-        {/* Mist/fog effect at tree base */}
-        <ellipse cx="200" cy="900" rx="250" ry="40" fill="white" opacity="0.08" />
-        <ellipse cx="1720" cy="900" rx="250" ry="40" fill="white" opacity="0.08" />
-        <ellipse cx="960" cy="920" rx="400" ry="30" fill="white" opacity="0.05" />
       </svg>
     </div>
   )
 
   return (
-    <div className="min-h-screen relative overflow-hidden">
-      <GreenForestBackground />
-      
-      {/* Header - Clean and Professional */}
-      <header className="relative z-20 py-5 px-8 flex items-center justify-between">
-        <div className="flex items-center gap-4">
-          <img src="/kfdc-logo.png" alt="KFDC" className="w-10 h-10 object-contain drop-shadow-lg" />
-          <div className="flex flex-col">
-            <span className="font-bold text-white text-xl tracking-tight drop-shadow-md">KFDC iFMS</span>
-            <span className="text-xs text-white/70">Integrated Forestry Management</span>
+    <div className="min-h-screen flex">
+      {/* Left Side - Login Form with Dark Teal Gradient */}
+      <div className="w-full lg:w-[45%] min-h-screen relative overflow-hidden">
+        {/* Background gradient */}
+        <div className="absolute inset-0 bg-gradient-to-br from-[#1a3a4a] via-[#1e4d5c] to-[#2a5f6f]" />
+        
+        {/* Diagonal clip overlay for larger screens */}
+        <div className="hidden lg:block absolute inset-0">
+          <svg className="absolute right-0 top-0 h-full w-auto" viewBox="0 0 100 100" preserveAspectRatio="none" style={{width: '150px'}}>
+            <polygon points="100,0 100,100 0,100" fill="#1a3a4a" fillOpacity="0.3" />
+          </svg>
+        </div>
+        
+        {/* Initialize Demo Data Button - Top Right */}
+        <div className="absolute top-4 right-4 z-20">
+          <Button 
+            variant="ghost" 
+            size="sm" 
+            className="text-white/60 hover:text-white hover:bg-white/10 text-xs"
+            onClick={handleSeed}
+            disabled={seeding}
+          >
+            {seeding ? <RefreshCw className="w-3 h-3 mr-1.5 animate-spin" /> : null}
+            {seeding ? 'Initializing...' : 'Initialize Demo Data'}
+          </Button>
+        </div>
+
+        {/* Content Container */}
+        <div className="relative z-10 flex flex-col items-center justify-center min-h-screen px-8 lg:px-16 py-12">
+          {/* Log In Title */}
+          <h1 className="text-4xl lg:text-5xl font-light text-white mb-2 tracking-wide">Log In</h1>
+          
+          {/* Integrated Logo */}
+          <IntegratedLogo />
+          
+          {/* KFDC MIS Text - Integrated below logo */}
+          <div className="text-center mb-8">
+            <h2 className="text-2xl font-semibold text-cyan-300 tracking-wider">KFDC MIS</h2>
+            <p className="text-sm text-white/50 mt-1">Management Information System</p>
+          </div>
+
+          {/* Login Form */}
+          <form onSubmit={handleLogin} className="w-full max-w-sm space-y-6">
+            {/* Email Field */}
+            <div className="space-y-2">
+              <label className="text-white/70 text-sm">Email</label>
+              <input 
+                type="email" 
+                value={email} 
+                onChange={e => setEmail(e.target.value)} 
+                required 
+                className="w-full bg-transparent border-b-2 border-white/30 focus:border-cyan-400 text-white py-3 outline-none transition-colors placeholder:text-white/30"
+                placeholder="your.name@kfdc.in"
+              />
+            </div>
+            
+            {/* Password Field */}
+            <div className="space-y-2">
+              <label className="text-white/70 text-sm">Password</label>
+              <input 
+                type="password" 
+                value={password} 
+                onChange={e => setPassword(e.target.value)} 
+                required 
+                className="w-full bg-transparent border-b-2 border-white/30 focus:border-cyan-400 text-white py-3 outline-none transition-colors placeholder:text-white/30"
+                placeholder="Enter your password"
+              />
+            </div>
+
+            {error && <p className="text-sm text-red-400 bg-red-500/10 p-3 rounded-lg border border-red-500/20">{error}</p>}
+            
+            {/* Login Button */}
+            <Button 
+              type="submit" 
+              className="w-full h-14 bg-gradient-to-r from-green-500 to-emerald-600 hover:from-green-600 hover:to-emerald-700 text-white font-bold text-lg rounded-lg shadow-lg shadow-green-500/25 mt-4 transition-all duration-300" 
+              disabled={loading}
+            >
+              {loading ? 'LOGGING IN...' : 'LOG IN'}
+            </Button>
+          </form>
+
+          {/* Demo Accounts Toggle */}
+          <div className="w-full max-w-sm mt-8">
+            <button 
+              onClick={() => setShowDemoAccounts(!showDemoAccounts)}
+              className="w-full flex items-center justify-between text-sm text-white/50 hover:text-white/70 transition-colors"
+            >
+              <span>Demo Accounts (password: pass123)</span>
+              {showDemoAccounts ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
+            </button>
+            
+            {showDemoAccounts && (
+              <div className="mt-3 max-h-48 overflow-y-auto space-y-1.5">
+                {demoAccounts.map(acc => (
+                  <button 
+                    key={acc.email} 
+                    onClick={() => { setEmail(acc.email); setPassword('pass123') }}
+                    className="w-full flex items-center justify-between p-3 rounded-lg border border-white/10 hover:bg-white/5 transition-colors text-left"
+                  >
+                    <div className="flex items-center gap-3">
+                      <div className="w-8 h-8 bg-cyan-500/20 rounded-full flex items-center justify-center">
+                        <User className="w-4 h-4 text-cyan-400" />
+                      </div>
+                      <div>
+                        <div className="text-sm font-medium text-white/90">{acc.role}</div>
+                        <div className="text-xs text-white/40">{acc.email}</div>
+                      </div>
+                    </div>
+                    <Badge variant="outline" className="text-xs bg-cyan-500/10 text-cyan-400 border-cyan-500/30">{acc.division}</Badge>
+                  </button>
+                ))}
+              </div>
+            )}
           </div>
         </div>
-        <Button 
-          variant="outline" 
-          size="sm" 
-          className="bg-white/10 border-white/20 text-white hover:bg-white/20 backdrop-blur-sm text-xs"
-          onClick={handleSeed}
-          disabled={seeding}
-        >
-          {seeding ? <RefreshCw className="w-3 h-3 mr-1.5 animate-spin" /> : null}
-          {seeding ? 'Initializing...' : 'Initialize Demo Data'}
-        </Button>
-      </header>
+      </div>
 
-      {/* Main Content */}
-      <div className="flex items-center justify-center min-h-[calc(100vh-90px)] relative z-10 px-4">
-        {/* Glassmorphism Login Card */}
-        <Card className="w-full max-w-md shadow-2xl border border-white/20 bg-white/10 backdrop-blur-xl rounded-3xl">
-          <CardHeader className="text-center pb-2 pt-8">
-            <CardTitle className="text-3xl font-bold text-white">Sign In</CardTitle>
-            <CardDescription className="text-white/70">Welcome to KFDC iFMS Portal</CardDescription>
-          </CardHeader>
-          <CardContent className="px-8 pb-8">
-            <form onSubmit={handleLogin} className="space-y-5">
-              <div className="space-y-2">
-                <Label htmlFor="email" className="text-white/90">Email</Label>
-                <Input 
-                  id="email"
-                  type="email" 
-                  placeholder="your.name@kfdc.in" 
-                  value={email} 
-                  onChange={e => setEmail(e.target.value)} 
-                  required 
-                  className="h-12 bg-white/10 border-white/20 rounded-xl text-white placeholder:text-white/50 focus:ring-2 focus:ring-emerald-400 focus:border-transparent"
-                />
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="password" className="text-white/90">Password</Label>
-                <Input 
-                  id="password"
-                  type="password" 
-                  placeholder="Enter your password" 
-                  value={password} 
-                  onChange={e => setPassword(e.target.value)} 
-                  required 
-                  className="h-12 bg-white/10 border-white/20 rounded-xl text-white placeholder:text-white/50 focus:ring-2 focus:ring-emerald-400 focus:border-transparent"
-                />
-              </div>
-              
-              <div className="flex items-center justify-between">
-                <div className="flex items-center space-x-2">
-                  <Checkbox 
-                    id="remember" 
-                    checked={rememberMe}
-                    onCheckedChange={setRememberMe}
-                    className="border-white/30 data-[state=checked]:bg-emerald-500 data-[state=checked]:border-emerald-500"
-                  />
-                  <label htmlFor="remember" className="text-sm text-white/80 cursor-pointer">
-                    Remember me
-                  </label>
-                </div>
-                <span className="text-sm text-emerald-300 hover:text-emerald-200 cursor-pointer">
-                  Forgot password?
-                </span>
-              </div>
-
-              {error && <p className="text-sm text-red-300 bg-red-500/20 p-3 rounded-xl">{error}</p>}
-              
-              <Button 
-                type="submit" 
-                className="w-full h-12 bg-gradient-to-r from-emerald-500 to-green-600 hover:from-emerald-600 hover:to-green-700 rounded-xl text-base font-semibold mt-2 shadow-lg" 
-                disabled={loading}
-              >
-                {loading ? 'Signing in...' : 'Sign In'}
-              </Button>
-            </form>
-
-            {/* Demo Accounts Toggle */}
-            <div className="mt-6 pt-4 border-t border-white/10">
-              <button 
-                onClick={() => setShowDemoAccounts(!showDemoAccounts)}
-                className="w-full flex items-center justify-between text-sm text-white/60 hover:text-white/80"
-              >
-                <span>Demo Accounts (password: pass123)</span>
-                {showDemoAccounts ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
-              </button>
-              
-              {showDemoAccounts && (
-                <div className="mt-3 max-h-48 overflow-y-auto space-y-1.5">
-                  {demoAccounts.map(acc => (
-                    <button 
-                      key={acc.email} 
-                      onClick={() => { setEmail(acc.email); setPassword('pass123') }}
-                      className="w-full flex items-center justify-between p-2.5 rounded-xl border border-white/10 hover:bg-white/10 transition-colors text-left group"
-                    >
-                      <div className="flex items-center gap-2">
-                        <div className="w-7 h-7 bg-white/20 rounded-full flex items-center justify-center">
-                          <User className="w-3.5 h-3.5 text-white" />
-                        </div>
-                        <div>
-                          <div className="text-sm font-medium text-white/90">{acc.role}</div>
-                          <div className="text-xs text-white/50">{acc.email}</div>
-                        </div>
-                      </div>
-                      <Badge variant="outline" className="text-xs bg-white/10 text-white/70 border-white/20">{acc.division}</Badge>
-                    </button>
-                  ))}
-                </div>
-              )}
-            </div>
-          </CardContent>
-        </Card>
+      {/* Right Side - HD Forest Image */}
+      <div className="hidden lg:block w-[55%] min-h-screen relative">
+        {/* HD Forest Background Image */}
+        <div 
+          className="absolute inset-0 bg-cover bg-center bg-no-repeat"
+          style={{
+            backgroundImage: `url('https://images.pexels.com/photos/29697943/pexels-photo-29697943.jpeg?auto=compress&cs=tinysrgb&dpr=2&h=1200&w=1920')`,
+          }}
+        />
+        
+        {/* Diagonal overlay to create the split effect */}
+        <svg className="absolute left-0 top-0 h-full" viewBox="0 0 100 100" preserveAspectRatio="none" style={{width: '120px'}}>
+          <polygon points="0,0 100,0 0,100" fill="#1a3a4a" />
+        </svg>
+        
+        {/* Subtle gradient overlay for better blending */}
+        <div className="absolute inset-0 bg-gradient-to-r from-[#1a3a4a]/30 via-transparent to-transparent" />
       </div>
     </div>
   )
