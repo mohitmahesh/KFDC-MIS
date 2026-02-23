@@ -139,11 +139,11 @@ function LoginPage({ onLogin }) {
 
   return (
     <div className="min-h-screen w-full flex relative overflow-hidden">
-      {/* Left Side - Login Form Panel - Matching logo background color */}
+      {/* Left Side - Login Form Panel - Dark teal to match logo */}
       <div 
         className="w-full lg:w-[50%] min-h-screen relative z-10"
         style={{
-          background: 'linear-gradient(150deg, #3a7d8c 0%, #4a9099 30%, #5aa5a8 60%, #6ab5b0 100%)',
+          background: 'linear-gradient(160deg, #2d5f6a 0%, #3a7580 35%, #478a92 65%, #559aa0 100%)',
           clipPath: 'polygon(0 0, 100% 0, 85% 100%, 0 100%)'
         }}
       >
