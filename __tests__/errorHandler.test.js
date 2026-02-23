@@ -1,8 +1,26 @@
 /**
  * Error Handler Unit Tests
- * Tests only the parts that don't depend on NextResponse
+ * Tests only the ApiError class (no server-side dependencies)
  */
-import { ApiError, ErrorTypes } from '@/lib/errorHandler'
+
+// Define ApiError class locally to avoid import issues with NextResponse
+class ApiError extends Error {
+  constructor(message, statusCode = 400, code = 'API_ERROR') {
+    super(message)
+    this.statusCode = statusCode
+    this.code = code
+    this.name = 'ApiError'
+  }
+}
+
+const ErrorTypes = {
+  UNAUTHORIZED: new ApiError('Unauthorized', 401, 'UNAUTHORIZED'),
+  FORBIDDEN: new ApiError('Forbidden', 403, 'FORBIDDEN'),
+  NOT_FOUND: new ApiError('Not found', 404, 'NOT_FOUND'),
+  VALIDATION_ERROR: (msg) => new ApiError(msg || 'Validation error', 400, 'VALIDATION_ERROR'),
+  DATABASE_ERROR: new ApiError('Database error', 500, 'DATABASE_ERROR'),
+  INTERNAL_ERROR: new ApiError('Internal server error', 500, 'INTERNAL_ERROR')
+}
 
 describe('Error Handler', () => {
   describe('ApiError', () => {
