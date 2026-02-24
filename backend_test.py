@@ -1,313 +1,443 @@
 #!/usr/bin/env python3
 """
-KFDC iFMS Backend Test - Dynamic Work Type Calculation Feature
-Test the new Dynamic Work Type Calculation feature as specified in review request.
+KFDC iFMS Backend Testing Suite - Multi-Plantation APO Features
+Focus: Testing APO creation workflow with new multi-plantation features
+Review Request: Multi-plantation draft generation, APO creation, Activities/Norms endpoints
 """
 
+import asyncio
+import aiohttp
 import json
-import requests
 import sys
-from datetime import datetime
+from typing import Dict, List, Any, Optional
 
 # Test Configuration
 BASE_URL = "https://ifms-kfdc-demo.preview.emergentagent.com/api"
-HEADERS = {"Content-Type": "application/json"}
 
-class TestResult:
+# Test Credentials (as per review request)
+TEST_CREDENTIALS = {
+    "RO": {"email": "ro.dharwad@kfdc.in", "password": "pass123"},
+    "DM": {"email": "dm.dharwad@kfdc.in", "password": "pass123"},
+}
+
+# Test Plantation IDs (as per review request)
+TEST_PLANTATION_IDS = ["plt-d01", "plt-d05"]
+
+class KFDCBackendTester:
     def __init__(self):
-        self.total_tests = 0
-        self.passed_tests = 0
-        self.failed_tests = 0
-        self.results = []
-    
-    def add_result(self, test_name, passed, message):
-        self.total_tests += 1
-        if passed:
-            self.passed_tests += 1
-            print(f"✅ {test_name}: {message}")
-        else:
-            self.failed_tests += 1
-            print(f"❌ {test_name}: {message}")
-        self.results.append({
-            "test": test_name,
-            "status": "PASS" if passed else "FAIL",
-            "message": message
-        })
-    
-    def print_summary(self):
-        print(f"\n{'='*60}")
-        print(f"DYNAMIC WORK TYPE CALCULATION - TEST SUMMARY")
-        print(f"{'='*60}")
-        print(f"Total Tests: {self.total_tests}")
-        print(f"Passed: {self.passed_tests}")
-        print(f"Failed: {self.failed_tests}")
-        print(f"Success Rate: {(self.passed_tests/self.total_tests)*100:.1f}%")
+        self.session = None
+        self.auth_tokens = {}
+        self.test_results = []
+        self.apo_id = None
         
-        if self.failed_tests > 0:
-            print(f"\n❌ FAILED TESTS:")
-            for result in self.results:
-                if result["status"] == "FAIL":
-                    print(f"  - {result['test']}: {result['message']}")
+    async def __aenter__(self):
+        self.session = aiohttp.ClientSession(
+            timeout=aiohttp.ClientTimeout(total=60),
+            headers={"Content-Type": "application/json"}
+        )
+        return self
+        
+    async def __aexit__(self, exc_type, exc_val, exc_tb):
+        if self.session:
+            await self.session.close()
 
-def test_dynamic_work_type_calculation():
-    """Test the Dynamic Work Type Calculation feature"""
-    result = TestResult()
-    auth_token = None
-    
-    try:
-        # Step 1: Seed the database
-        print("🔄 Step 1: Seeding database...")
+    def log_result(self, test_name: str, status: str, details: str = ""):
+        """Log test results with consistent formatting"""
+        result = {
+            "test": test_name,
+            "status": status,
+            "details": details,
+            "timestamp": asyncio.get_event_loop().time()
+        }
+        self.test_results.append(result)
+        
+        # Console output
+        status_icon = "✅" if status == "PASS" else "❌" if status == "FAIL" else "⏳"
+        print(f"{status_icon} {test_name}: {status}")
+        if details:
+            print(f"   Details: {details}")
+
+    async def authenticate_user(self, role: str) -> str:
+        """Authenticate user and return token"""
         try:
-            response = requests.post(f"{BASE_URL}/seed", headers=HEADERS, timeout=30)
-            if response.status_code == 200:
-                seed_data = response.json()
-                result.add_result("Database Seeding", True, 
-                    f"Seeded successfully: {seed_data.get('counts', {})}")
-            else:
-                result.add_result("Database Seeding", False, 
-                    f"Failed: {response.status_code} - {response.text[:200]}")
-                return result
+            creds = TEST_CREDENTIALS[role]
+            async with self.session.post(f"{BASE_URL}/auth/login", json=creds) as response:
+                if response.status == 200:
+                    data = await response.json()
+                    token = data.get("token")
+                    if token:
+                        self.auth_tokens[role] = token
+                        user_name = data.get("user", {}).get("name", "Unknown")
+                        self.log_result(f"Authentication - {role}", "PASS", f"User: {user_name}")
+                        return token
+                    else:
+                        self.log_result(f"Authentication - {role}", "FAIL", "No token in response")
+                        return None
+                else:
+                    error_text = await response.text()
+                    self.log_result(f"Authentication - {role}", "FAIL", f"Status: {response.status}, Error: {error_text}")
+                    return None
         except Exception as e:
-            result.add_result("Database Seeding", False, f"Exception: {str(e)}")
-            return result
-        
-        # Step 2: Login as RO
-        print("🔄 Step 2: Login as RO (ro.dharwad@kfdc.in)...")
+            self.log_result(f"Authentication - {role}", "FAIL", f"Exception: {str(e)}")
+            return None
+
+    async def make_authenticated_request(self, method: str, endpoint: str, role: str, data: Optional[Dict] = None) -> Optional[Dict]:
+        """Make authenticated API request"""
         try:
-            login_data = {"email": "ro.dharwad@kfdc.in", "password": "pass123"}
-            response = requests.post(f"{BASE_URL}/auth/login", 
-                                   headers=HEADERS, 
-                                   json=login_data, 
-                                   timeout=10)
-            if response.status_code == 200:
-                auth_data = response.json()
-                auth_token = auth_data.get("token")
-                user_info = auth_data.get("user", {})
-                result.add_result("RO Authentication", True, 
-                    f"Login successful: {user_info.get('name')} ({user_info.get('role')})")
-            else:
-                result.add_result("RO Authentication", False, 
-                    f"Failed: {response.status_code} - {response.text[:200]}")
-                return result
-        except Exception as e:
-            result.add_result("RO Authentication", False, f"Exception: {str(e)}")
-            return result
-        
-        # Set up auth headers
-        auth_headers = {**HEADERS, "Authorization": f"Bearer {auth_token}"}
-        
-        # Step 3: Test GET /plantations - Verify work_type calculation
-        print("🔄 Step 3: Testing GET /plantations - Dynamic Work Type...")
-        try:
-            response = requests.get(f"{BASE_URL}/plantations", 
-                                  headers=auth_headers, 
-                                  timeout=15)
-            if response.status_code == 200:
-                plantations = response.json()
+            token = self.auth_tokens.get(role)
+            if not token:
+                print(f"❌ No authentication token for {role}")
+                return None
                 
-                # Check if we have plantations
-                if not plantations:
-                    result.add_result("GET /plantations", False, "No plantations found")
+            headers = {"Authorization": f"Bearer {token}"}
+            url = f"{BASE_URL}{endpoint}"
+            
+            async with self.session.request(method, url, json=data, headers=headers) as response:
+                response_text = await response.text()
+                if response.status < 400:
+                    try:
+                        return await response.json() if response_text else {}
+                    except json.JSONDecodeError:
+                        return {"raw_response": response_text}
                 else:
-                    # Look for 2025 plantations (should be FW)
-                    fw_plantations = [p for p in plantations if p.get('year_of_planting') == 2025]
-                    m_plantations = [p for p in plantations if p.get('year_of_planting') < 2025]
-                    
-                    # Check FW plantations
-                    fw_correct = all(p.get('work_type') == 'FW' for p in fw_plantations)
-                    m_correct = all(p.get('work_type') == 'M' for p in m_plantations)
-                    
-                    if fw_plantations and fw_correct:
-                        result.add_result("2025 Plantations = FW", True, 
-                            f"Found {len(fw_plantations)} plantations from 2025, all correctly marked as FW")
-                        # List specific plantations
-                        for p in fw_plantations[:3]:  # Show first 3
-                            print(f"   📋 {p.get('id')}: {p.get('name')} (2025) → {p.get('work_type')}")
-                    else:
-                        result.add_result("2025 Plantations = FW", False, 
-                            f"Found {len(fw_plantations)} plantations from 2025, but work_type calculation incorrect")
-                    
-                    if m_plantations and m_correct:
-                        result.add_result("Pre-2025 Plantations = M", True, 
-                            f"Found {len(m_plantations)} pre-2025 plantations, all correctly marked as M")
-                        # Show examples
-                        for p in m_plantations[:3]:  # Show first 3
-                            print(f"   📋 {p.get('id')}: {p.get('name')} ({p.get('year_of_planting')}) → {p.get('work_type')}")
-                    else:
-                        result.add_result("Pre-2025 Plantations = M", False, 
-                            f"Found {len(m_plantations)} pre-2025 plantations, but work_type calculation incorrect")
-                    
-                    # Test specific plantations mentioned in review request
-                    specific_tests = [
-                        ("plt-d22", 2025, "FW"),
-                        ("plt-d23", 2025, "FW"),
-                        ("plt-b11", 2025, "FW"),
-                        ("plt-b12", 2025, "FW"),
-                        ("plt-d01", 2014, "M"),
-                        ("plt-d02", 2017, "M")
-                    ]
-                    
-                    for plt_id, expected_year, expected_work_type in specific_tests:
-                        plt = next((p for p in plantations if p.get('id') == plt_id), None)
-                        if plt:
-                            actual_work_type = plt.get('work_type')
-                            actual_year = plt.get('year_of_planting')
-                            if actual_work_type == expected_work_type and actual_year == expected_year:
-                                result.add_result(f"Plantation {plt_id}", True, 
-                                    f"{plt.get('name')} ({actual_year}) correctly calculated as {actual_work_type}")
-                            else:
-                                result.add_result(f"Plantation {plt_id}", False, 
-                                    f"{plt.get('name')} expected {expected_work_type} but got {actual_work_type}")
-                        else:
-                            result.add_result(f"Plantation {plt_id}", False, f"Plantation not found")
-            else:
-                result.add_result("GET /plantations", False, 
-                    f"Failed: {response.status_code} - {response.text[:200]}")
+                    print(f"❌ API Error - {method} {endpoint}: {response.status} - {response_text}")
+                    return None
         except Exception as e:
-            result.add_result("GET /plantations", False, f"Exception: {str(e)}")
+            print(f"❌ Request Exception - {method} {endpoint}: {str(e)}")
+            return None
+
+    async def test_multi_plantation_draft_generation(self):
+        """Test 1: Multi-Plantation Draft Generation - POST /api/apo/generate-draft"""
+        print("\n🎯 TESTING MULTI-PLANTATION DRAFT GENERATION")
         
-        # Step 4: Test GET /plantations/:id - Individual plantation detail
-        print("🔄 Step 4: Testing GET /plantations/:id - Individual Details...")
-        test_plantations = [
-            ("plt-d22", "2025 plantation detail (should be FW)"),
-            ("plt-d01", "2014 plantation detail (should be M)")
-        ]
-        
-        for plt_id, description in test_plantations:
+        # Test with multiple plantation IDs as specified in review request
+        for plantation_id in TEST_PLANTATION_IDS:
             try:
-                response = requests.get(f"{BASE_URL}/plantations/{plt_id}", 
-                                      headers=auth_headers, 
-                                      timeout=10)
-                if response.status_code == 200:
-                    plantation = response.json()
-                    work_type = plantation.get('work_type')
-                    year = plantation.get('year_of_planting')
-                    expected_work_type = 'FW' if year == 2025 else 'M'
-                    
-                    if work_type == expected_work_type:
-                        result.add_result(f"GET /plantations/{plt_id}", True, 
-                            f"{plantation.get('name')} ({year}) correctly shows work_type={work_type}")
-                    else:
-                        result.add_result(f"GET /plantations/{plt_id}", False, 
-                            f"{plantation.get('name')} ({year}) shows work_type={work_type}, expected {expected_work_type}")
-                else:
-                    result.add_result(f"GET /plantations/{plt_id}", False, 
-                        f"Failed: {response.status_code}")
-            except Exception as e:
-                result.add_result(f"GET /plantations/{plt_id}", False, f"Exception: {str(e)}")
-        
-        # Step 5: Test POST /plantations - Create new plantations
-        print("🔄 Step 5: Testing POST /plantations - Dynamic work_type assignment...")
-        
-        test_cases = [
-            {
-                "name": "Test FW Plantation 2025",
-                "year": 2025,
-                "expected_work_type": "FW",
-                "species": "Acacia auriculiformis"
-            },
-            {
-                "name": "Test M Plantation 2020",
-                "year": 2020,
-                "expected_work_type": "M",
-                "species": "Eucalyptus pellita"
-            }
-        ]
-        
-        for case in test_cases:
-            try:
-                plantation_data = {
-                    "name": case["name"],
-                    "species": case["species"],
-                    "year_of_planting": case["year"],
-                    "total_area_ha": 10.5,
-                    "village": "Test Village",
-                    "taluk": "Test Taluk",
-                    "district": "Test District",
-                    "vidhana_sabha": "Test VS",
-                    "lok_sabha": "Test LS",
-                    "division": "Test Division"
+                data = {
+                    "plantation_id": plantation_id,
+                    "financial_year": "2026-27"
                 }
                 
-                response = requests.post(f"{BASE_URL}/plantations", 
-                                       headers=auth_headers, 
-                                       json=plantation_data, 
-                                       timeout=10)
+                response = await self.make_authenticated_request("POST", "/apo/generate-draft", "RO", data)
                 
-                if response.status_code == 201:
-                    created_plantation = response.json()
-                    actual_work_type = created_plantation.get('work_type')
+                if response:
+                    plantation_name = response.get("plantation_name", "Unknown")
+                    age = response.get("age", 0)
+                    items_count = len(response.get("items", []))
+                    total_cost = response.get("total_estimated_cost", 0)
                     
-                    if actual_work_type == case["expected_work_type"]:
-                        result.add_result(f"POST Plantation {case['year']}", True, 
-                            f"New plantation ({case['year']}) correctly assigned work_type={actual_work_type}")
-                    else:
-                        result.add_result(f"POST Plantation {case['year']}", False, 
-                            f"New plantation ({case['year']}) got work_type={actual_work_type}, expected {case['expected_work_type']}")
+                    self.log_result(
+                        f"Draft Generation - {plantation_id}",
+                        "PASS",
+                        f"Plantation: {plantation_name} (Age: {age}), Activities: {items_count}, Total: ₹{total_cost:,.2f}"
+                    )
                 else:
-                    result.add_result(f"POST Plantation {case['year']}", False, 
-                        f"Failed to create: {response.status_code} - {response.text[:200]}")
+                    self.log_result(f"Draft Generation - {plantation_id}", "FAIL", "No response received")
+                    
             except Exception as e:
-                result.add_result(f"POST Plantation {case['year']}", False, f"Exception: {str(e)}")
+                self.log_result(f"Draft Generation - {plantation_id}", "FAIL", f"Exception: {str(e)}")
+
+    async def test_apo_creation_multiple_plantations(self):
+        """Test 2: APO Creation with Multiple Plantation Items"""
+        print("\n🎯 TESTING APO CREATION WITH MULTIPLE PLANTATIONS")
         
-        # Step 6: Verify Financial Year Logic
-        print("🔄 Step 6: Testing Financial Year Logic...")
         try:
-            # Test with some edge cases if possible
-            current_year = datetime.now().year
-            print(f"   📅 Current Year: {current_year}")
-            print(f"   📅 Expected FY Start for plantations: {current_year} (April-March cycle)")
+            # Create APO with items from multiple plantations
+            # First, get draft data for both plantations
+            draft_items = []
+            plantation_names = []
             
-            # Create a test with current year
-            test_data = {
-                "name": f"Current Year Test {current_year}",
-                "species": "Test Species",
-                "year_of_planting": current_year,
-                "total_area_ha": 5.0,
-                "village": "Test Village",
+            for plantation_id in TEST_PLANTATION_IDS:
+                draft_response = await self.make_authenticated_request(
+                    "POST", "/apo/generate-draft", "RO", 
+                    {"plantation_id": plantation_id, "financial_year": "2026-27"}
+                )
+                
+                if draft_response:
+                    plantation_names.append(draft_response.get("plantation_name", plantation_id))
+                    items = draft_response.get("items", [])
+                    # Take first 2 items from each plantation for testing
+                    for item in items[:2]:
+                        draft_items.append({
+                            "activity_id": item["activity_id"],
+                            "activity_name": item["activity_name"],
+                            "sanctioned_qty": item["suggested_qty"],
+                            "sanctioned_rate": item["sanctioned_rate"],
+                            "unit": item["unit"]
+                        })
+            
+            if not draft_items:
+                self.log_result("APO Creation - Multi-Plantation", "FAIL", "No draft items generated")
+                return
+            
+            # Create APO with DRAFT status and items from multiple plantations
+            apo_data = {
+                "plantation_id": TEST_PLANTATION_IDS[0],  # Primary plantation
+                "financial_year": "2026-27",
+                "title": f"Multi-Plantation APO - {', '.join(plantation_names)}",
+                "status": "DRAFT",
+                "items": draft_items
             }
             
-            response = requests.post(f"{BASE_URL}/plantations", 
-                                   headers=auth_headers, 
-                                   json=test_data, 
-                                   timeout=10)
+            apo_response = await self.make_authenticated_request("POST", "/apo", "RO", apo_data)
             
-            if response.status_code == 201:
-                created = response.json()
-                work_type = created.get('work_type')
-                result.add_result("Financial Year Logic", True, 
-                    f"Current year ({current_year}) plantation correctly assigned work_type={work_type}")
+            if apo_response:
+                self.apo_id = apo_response.get("id")
+                total_amount = apo_response.get("total_sanctioned_amount", 0)
+                items_count = len(apo_response.get("items", []))
+                
+                self.log_result(
+                    "APO Creation - Multi-Plantation",
+                    "PASS",
+                    f"APO ID: {self.apo_id}, Items: {items_count}, Total: ₹{total_amount:,.2f}"
+                )
+                
+                # Verify total calculation
+                expected_total = sum(float(item["sanctioned_qty"]) * float(item["sanctioned_rate"]) for item in draft_items)
+                if abs(total_amount - expected_total) < 0.01:
+                    self.log_result("Total Calculation Verification", "PASS", f"Calculated: ₹{expected_total:,.2f}, Received: ₹{total_amount:,.2f}")
+                else:
+                    self.log_result("Total Calculation Verification", "FAIL", f"Expected: ₹{expected_total:,.2f}, Got: ₹{total_amount:,.2f}")
             else:
-                result.add_result("Financial Year Logic", False, 
-                    f"Failed to test current year: {response.status_code}")
+                self.log_result("APO Creation - Multi-Plantation", "FAIL", "No response received")
+                
         except Exception as e:
-            result.add_result("Financial Year Logic", False, f"Exception: {str(e)}")
-        
-    except Exception as e:
-        result.add_result("Overall Test", False, f"Critical exception: {str(e)}")
-    
-    return result
+            self.log_result("APO Creation - Multi-Plantation", "FAIL", f"Exception: {str(e)}")
 
-def main():
-    """Main test execution"""
-    print("🚀 KFDC iFMS - Dynamic Work Type Calculation Feature Testing")
-    print(f"📍 Base URL: {BASE_URL}")
-    print(f"📅 Test Started: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}")
-    print("="*60)
-    
-    # Execute the test
-    result = test_dynamic_work_type_calculation()
-    
-    # Print detailed summary
-    result.print_summary()
-    
-    # Return appropriate exit code
-    if result.failed_tests == 0:
-        print(f"\n🎉 ALL TESTS PASSED! Dynamic Work Type Calculation feature is working correctly.")
-        return 0
-    else:
-        print(f"\n⚠️  {result.failed_tests} tests failed. Please check the implementation.")
-        return 1
+    async def test_activities_endpoint(self):
+        """Test 3: GET /api/activities - verify all activities are returned"""
+        print("\n🎯 TESTING ACTIVITIES ENDPOINT")
+        
+        try:
+            response = await self.make_authenticated_request("GET", "/activities", "RO")
+            
+            if response:
+                activities_count = len(response)
+                
+                # Verify structure and content
+                sample_activity = response[0] if response else {}
+                required_fields = ["id", "name", "category", "unit"]
+                missing_fields = [field for field in required_fields if field not in sample_activity]
+                
+                if missing_fields:
+                    self.log_result("Activities Endpoint", "FAIL", f"Missing fields: {missing_fields}")
+                else:
+                    # Get some sample activities for verification
+                    activity_names = [act["name"] for act in response[:3]]
+                    self.log_result(
+                        "Activities Endpoint",
+                        "PASS",
+                        f"Retrieved {activities_count} activities. Sample: {', '.join(activity_names)}"
+                    )
+            else:
+                self.log_result("Activities Endpoint", "FAIL", "No response received")
+                
+        except Exception as e:
+            self.log_result("Activities Endpoint", "FAIL", f"Exception: {str(e)}")
+
+    async def test_norms_endpoint(self):
+        """Test 4: GET /api/norms - verify norms are returned with activity details"""
+        print("\n🎯 TESTING NORMS ENDPOINT")
+        
+        try:
+            response = await self.make_authenticated_request("GET", "/norms", "RO")
+            
+            if response:
+                norms_count = len(response)
+                
+                # Verify structure and enrichment with activity details
+                sample_norm = response[0] if response else {}
+                required_fields = ["id", "activity_id", "applicable_age", "standard_rate", "activity_name", "category", "unit"]
+                missing_fields = [field for field in required_fields if field not in sample_norm]
+                
+                if missing_fields:
+                    self.log_result("Norms Endpoint", "FAIL", f"Missing fields: {missing_fields}")
+                else:
+                    # Get age distribution
+                    ages = set(norm.get("applicable_age", 0) for norm in response)
+                    age_range = f"{min(ages)}-{max(ages)}" if ages else "None"
+                    
+                    self.log_result(
+                        "Norms Endpoint",
+                        "PASS",
+                        f"Retrieved {norms_count} norms with activity details. Age range: {age_range}"
+                    )
+            else:
+                self.log_result("Norms Endpoint", "FAIL", "No response received")
+                
+        except Exception as e:
+            self.log_result("Norms Endpoint", "FAIL", f"Exception: {str(e)}")
+
+    async def test_apo_list_and_detail(self):
+        """Test 5: APO List and Detail endpoints"""
+        print("\n🎯 TESTING APO LIST AND DETAIL")
+        
+        # Test APO List
+        try:
+            list_response = await self.make_authenticated_request("GET", "/apo", "RO")
+            
+            if list_response:
+                apo_count = len(list_response)
+                self.log_result("APO List", "PASS", f"Retrieved {apo_count} APOs")
+                
+                # Test APO Detail if we have an APO ID
+                if self.apo_id:
+                    detail_response = await self.make_authenticated_request("GET", f"/apo/{self.apo_id}", "RO")
+                    
+                    if detail_response:
+                        items_count = len(detail_response.get("items", []))
+                        apo_title = detail_response.get("title", "Unknown")
+                        self.log_result(
+                            "APO Detail",
+                            "PASS",
+                            f"APO: {apo_title}, Items: {items_count}"
+                        )
+                    else:
+                        self.log_result("APO Detail", "FAIL", "No response received")
+                else:
+                    # Get the first APO from the list
+                    if list_response:
+                        first_apo_id = list_response[0].get("id")
+                        if first_apo_id:
+                            detail_response = await self.make_authenticated_request("GET", f"/apo/{first_apo_id}", "RO")
+                            
+                            if detail_response:
+                                items_count = len(detail_response.get("items", []))
+                                apo_title = detail_response.get("title", "Unknown")
+                                self.log_result(
+                                    "APO Detail (First in List)",
+                                    "PASS",
+                                    f"APO: {apo_title}, Items: {items_count}"
+                                )
+                            else:
+                                self.log_result("APO Detail (First in List)", "FAIL", "No response received")
+            else:
+                self.log_result("APO List", "FAIL", "No response received")
+                
+        except Exception as e:
+            self.log_result("APO List/Detail", "FAIL", f"Exception: {str(e)}")
+
+    async def test_apo_status_transitions(self):
+        """Test 6: Test APO Status Transitions (DRAFT → PENDING → SANCTIONED)"""
+        print("\n🎯 TESTING APO STATUS TRANSITIONS")
+        
+        if not self.apo_id:
+            self.log_result("APO Status Transitions", "SKIP", "No APO ID available for testing")
+            return
+        
+        try:
+            # Test RO submitting APO to DM
+            status_data = {"status": "PENDING_DM_APPROVAL"}
+            response = await self.make_authenticated_request("PATCH", f"/apo/{self.apo_id}/status", "RO", status_data)
+            
+            if response:
+                new_status = response.get("status")
+                self.log_result("APO Submit (RO)", "PASS", f"Status: {new_status}")
+                
+                # Test DM approving APO
+                dm_token = await self.authenticate_user("DM")
+                if dm_token:
+                    approval_data = {"status": "SANCTIONED"}
+                    dm_response = await self.make_authenticated_request("PATCH", f"/apo/{self.apo_id}/status", "DM", approval_data)
+                    
+                    if dm_response:
+                        final_status = dm_response.get("status")
+                        self.log_result("APO Approval (DM)", "PASS", f"Final Status: {final_status}")
+                    else:
+                        self.log_result("APO Approval (DM)", "FAIL", "No response received")
+            else:
+                self.log_result("APO Submit (RO)", "FAIL", "No response received")
+                
+        except Exception as e:
+            self.log_result("APO Status Transitions", "FAIL", f"Exception: {str(e)}")
+
+    async def run_comprehensive_test(self):
+        """Run all tests in sequence"""
+        print("🚀 STARTING KFDC iFMS MULTI-PLANTATION APO WORKFLOW TESTING")
+        print(f"📍 Base URL: {BASE_URL}")
+        print(f"🔑 Test Plantations: {', '.join(TEST_PLANTATION_IDS)}")
+        print("=" * 80)
+        
+        # Phase 1: Authentication
+        print("\n📋 PHASE 1: AUTHENTICATION")
+        ro_token = await self.authenticate_user("RO")
+        
+        if not ro_token:
+            print("❌ CRITICAL: RO authentication failed. Cannot continue.")
+            return
+        
+        # Phase 2: Multi-Plantation Draft Generation
+        await self.test_multi_plantation_draft_generation()
+        
+        # Phase 3: APO Creation with Multiple Plantation Items
+        await self.test_apo_creation_multiple_plantations()
+        
+        # Phase 4: Activities and Norms Endpoints
+        await self.test_activities_endpoint()
+        await self.test_norms_endpoint()
+        
+        # Phase 5: APO List and Detail
+        await self.test_apo_list_and_detail()
+        
+        # Phase 6: APO Status Transitions
+        await self.test_apo_status_transitions()
+        
+        # Summary
+        self.print_test_summary()
+
+    def print_test_summary(self):
+        """Print comprehensive test summary"""
+        print("\n" + "=" * 80)
+        print("📊 COMPREHENSIVE TEST RESULTS SUMMARY")
+        print("=" * 80)
+        
+        passed_tests = [r for r in self.test_results if r["status"] == "PASS"]
+        failed_tests = [r for r in self.test_results if r["status"] == "FAIL"]
+        skipped_tests = [r for r in self.test_results if r["status"] == "SKIP"]
+        
+        total_tests = len(self.test_results)
+        pass_rate = (len(passed_tests) / total_tests * 100) if total_tests > 0 else 0
+        
+        print(f"📈 OVERALL RESULTS:")
+        print(f"   Total Tests: {total_tests}")
+        print(f"   ✅ Passed: {len(passed_tests)}")
+        print(f"   ❌ Failed: {len(failed_tests)}")
+        print(f"   ⏭️ Skipped: {len(skipped_tests)}")
+        print(f"   📊 Pass Rate: {pass_rate:.1f}%")
+        
+        if failed_tests:
+            print(f"\n❌ FAILED TESTS:")
+            for test in failed_tests:
+                print(f"   • {test['test']}: {test['details']}")
+        
+        if passed_tests:
+            print(f"\n✅ SUCCESSFUL TESTS:")
+            for test in passed_tests:
+                print(f"   • {test['test']}: {test['details']}")
+        
+        print("\n" + "=" * 80)
+        if pass_rate >= 80:
+            print("🎉 TESTING COMPLETED SUCCESSFULLY!")
+            print("✨ Multi-Plantation APO workflow is working as expected")
+        elif pass_rate >= 60:
+            print("⚠️ PARTIAL SUCCESS - Some issues found")
+            print("🔧 Review failed tests for improvements")
+        else:
+            print("🚨 CRITICAL ISSUES DETECTED")
+            print("🛠️ Major fixes required before production")
+        
+        return len(passed_tests), len(failed_tests)
+
+async def main():
+    """Main test execution function"""
+    try:
+        async with KFDCBackendTester() as tester:
+            await tester.run_comprehensive_test()
+            
+    except KeyboardInterrupt:
+        print("\n⏹️ Testing interrupted by user")
+    except Exception as e:
+        print(f"\n💥 Unexpected error during testing: {str(e)}")
 
 if __name__ == "__main__":
-    sys.exit(main())
+    asyncio.run(main())
