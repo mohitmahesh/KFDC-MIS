@@ -5,8 +5,7 @@ Focus: Testing APO creation workflow with new multi-plantation features
 Review Request: Multi-plantation draft generation, APO creation, Activities/Norms endpoints
 """
 
-import asyncio
-import aiohttp
+import requests
 import json
 import sys
 from typing import Dict, List, Any, Optional
@@ -25,29 +24,16 @@ TEST_PLANTATION_IDS = ["plt-d01", "plt-d05"]
 
 class KFDCBackendTester:
     def __init__(self):
-        self.session = None
         self.auth_tokens = {}
         self.test_results = []
         self.apo_id = None
         
-    async def __aenter__(self):
-        self.session = aiohttp.ClientSession(
-            timeout=aiohttp.ClientTimeout(total=60),
-            headers={"Content-Type": "application/json"}
-        )
-        return self
-        
-    async def __aexit__(self, exc_type, exc_val, exc_tb):
-        if self.session:
-            await self.session.close()
-
     def log_result(self, test_name: str, status: str, details: str = ""):
         """Log test results with consistent formatting"""
         result = {
             "test": test_name,
             "status": status,
-            "details": details,
-            "timestamp": asyncio.get_event_loop().time()
+            "details": details
         }
         self.test_results.append(result)
         
@@ -57,31 +43,31 @@ class KFDCBackendTester:
         if details:
             print(f"   Details: {details}")
 
-    async def authenticate_user(self, role: str) -> str:
+    def authenticate_user(self, role: str) -> str:
         """Authenticate user and return token"""
         try:
             creds = TEST_CREDENTIALS[role]
-            async with self.session.post(f"{BASE_URL}/auth/login", json=creds) as response:
-                if response.status == 200:
-                    data = await response.json()
-                    token = data.get("token")
-                    if token:
-                        self.auth_tokens[role] = token
-                        user_name = data.get("user", {}).get("name", "Unknown")
-                        self.log_result(f"Authentication - {role}", "PASS", f"User: {user_name}")
-                        return token
-                    else:
-                        self.log_result(f"Authentication - {role}", "FAIL", "No token in response")
-                        return None
+            response = requests.post(f"{BASE_URL}/auth/login", json=creds, timeout=30)
+            
+            if response.status_code == 200:
+                data = response.json()
+                token = data.get("token")
+                if token:
+                    self.auth_tokens[role] = token
+                    user_name = data.get("user", {}).get("name", "Unknown")
+                    self.log_result(f"Authentication - {role}", "PASS", f"User: {user_name}")
+                    return token
                 else:
-                    error_text = await response.text()
-                    self.log_result(f"Authentication - {role}", "FAIL", f"Status: {response.status}, Error: {error_text}")
+                    self.log_result(f"Authentication - {role}", "FAIL", "No token in response")
                     return None
+            else:
+                self.log_result(f"Authentication - {role}", "FAIL", f"Status: {response.status_code}, Error: {response.text}")
+                return None
         except Exception as e:
             self.log_result(f"Authentication - {role}", "FAIL", f"Exception: {str(e)}")
             return None
 
-    async def make_authenticated_request(self, method: str, endpoint: str, role: str, data: Optional[Dict] = None) -> Optional[Dict]:
+    def make_authenticated_request(self, method: str, endpoint: str, role: str, data: Optional[Dict] = None) -> Optional[Dict]:
         """Make authenticated API request"""
         try:
             token = self.auth_tokens.get(role)
@@ -89,24 +75,27 @@ class KFDCBackendTester:
                 print(f"❌ No authentication token for {role}")
                 return None
                 
-            headers = {"Authorization": f"Bearer {token}"}
+            headers = {
+                "Authorization": f"Bearer {token}",
+                "Content-Type": "application/json"
+            }
             url = f"{BASE_URL}{endpoint}"
             
-            async with self.session.request(method, url, json=data, headers=headers) as response:
-                response_text = await response.text()
-                if response.status < 400:
-                    try:
-                        return await response.json() if response_text else {}
-                    except json.JSONDecodeError:
-                        return {"raw_response": response_text}
-                else:
-                    print(f"❌ API Error - {method} {endpoint}: {response.status} - {response_text}")
-                    return None
+            response = requests.request(method, url, json=data, headers=headers, timeout=30)
+            
+            if response.status_code < 400:
+                try:
+                    return response.json() if response.text else {}
+                except json.JSONDecodeError:
+                    return {"raw_response": response.text}
+            else:
+                print(f"❌ API Error - {method} {endpoint}: {response.status_code} - {response.text}")
+                return None
         except Exception as e:
             print(f"❌ Request Exception - {method} {endpoint}: {str(e)}")
             return None
 
-    async def test_multi_plantation_draft_generation(self):
+    def test_multi_plantation_draft_generation(self):
         """Test 1: Multi-Plantation Draft Generation - POST /api/apo/generate-draft"""
         print("\n🎯 TESTING MULTI-PLANTATION DRAFT GENERATION")
         
@@ -118,7 +107,7 @@ class KFDCBackendTester:
                     "financial_year": "2026-27"
                 }
                 
-                response = await self.make_authenticated_request("POST", "/apo/generate-draft", "RO", data)
+                response = self.make_authenticated_request("POST", "/apo/generate-draft", "RO", data)
                 
                 if response:
                     plantation_name = response.get("plantation_name", "Unknown")
@@ -137,7 +126,7 @@ class KFDCBackendTester:
             except Exception as e:
                 self.log_result(f"Draft Generation - {plantation_id}", "FAIL", f"Exception: {str(e)}")
 
-    async def test_apo_creation_multiple_plantations(self):
+    def test_apo_creation_multiple_plantations(self):
         """Test 2: APO Creation with Multiple Plantation Items"""
         print("\n🎯 TESTING APO CREATION WITH MULTIPLE PLANTATIONS")
         
@@ -148,7 +137,7 @@ class KFDCBackendTester:
             plantation_names = []
             
             for plantation_id in TEST_PLANTATION_IDS:
-                draft_response = await self.make_authenticated_request(
+                draft_response = self.make_authenticated_request(
                     "POST", "/apo/generate-draft", "RO", 
                     {"plantation_id": plantation_id, "financial_year": "2026-27"}
                 )
@@ -179,7 +168,7 @@ class KFDCBackendTester:
                 "items": draft_items
             }
             
-            apo_response = await self.make_authenticated_request("POST", "/apo", "RO", apo_data)
+            apo_response = self.make_authenticated_request("POST", "/apo", "RO", apo_data)
             
             if apo_response:
                 self.apo_id = apo_response.get("id")
@@ -204,12 +193,12 @@ class KFDCBackendTester:
         except Exception as e:
             self.log_result("APO Creation - Multi-Plantation", "FAIL", f"Exception: {str(e)}")
 
-    async def test_activities_endpoint(self):
+    def test_activities_endpoint(self):
         """Test 3: GET /api/activities - verify all activities are returned"""
         print("\n🎯 TESTING ACTIVITIES ENDPOINT")
         
         try:
-            response = await self.make_authenticated_request("GET", "/activities", "RO")
+            response = self.make_authenticated_request("GET", "/activities", "RO")
             
             if response:
                 activities_count = len(response)
@@ -235,12 +224,12 @@ class KFDCBackendTester:
         except Exception as e:
             self.log_result("Activities Endpoint", "FAIL", f"Exception: {str(e)}")
 
-    async def test_norms_endpoint(self):
+    def test_norms_endpoint(self):
         """Test 4: GET /api/norms - verify norms are returned with activity details"""
         print("\n🎯 TESTING NORMS ENDPOINT")
         
         try:
-            response = await self.make_authenticated_request("GET", "/norms", "RO")
+            response = self.make_authenticated_request("GET", "/norms", "RO")
             
             if response:
                 norms_count = len(response)
@@ -268,13 +257,13 @@ class KFDCBackendTester:
         except Exception as e:
             self.log_result("Norms Endpoint", "FAIL", f"Exception: {str(e)}")
 
-    async def test_apo_list_and_detail(self):
+    def test_apo_list_and_detail(self):
         """Test 5: APO List and Detail endpoints"""
         print("\n🎯 TESTING APO LIST AND DETAIL")
         
         # Test APO List
         try:
-            list_response = await self.make_authenticated_request("GET", "/apo", "RO")
+            list_response = self.make_authenticated_request("GET", "/apo", "RO")
             
             if list_response:
                 apo_count = len(list_response)
@@ -282,7 +271,7 @@ class KFDCBackendTester:
                 
                 # Test APO Detail if we have an APO ID
                 if self.apo_id:
-                    detail_response = await self.make_authenticated_request("GET", f"/apo/{self.apo_id}", "RO")
+                    detail_response = self.make_authenticated_request("GET", f"/apo/{self.apo_id}", "RO")
                     
                     if detail_response:
                         items_count = len(detail_response.get("items", []))
@@ -299,7 +288,7 @@ class KFDCBackendTester:
                     if list_response:
                         first_apo_id = list_response[0].get("id")
                         if first_apo_id:
-                            detail_response = await self.make_authenticated_request("GET", f"/apo/{first_apo_id}", "RO")
+                            detail_response = self.make_authenticated_request("GET", f"/apo/{first_apo_id}", "RO")
                             
                             if detail_response:
                                 items_count = len(detail_response.get("items", []))
@@ -317,7 +306,7 @@ class KFDCBackendTester:
         except Exception as e:
             self.log_result("APO List/Detail", "FAIL", f"Exception: {str(e)}")
 
-    async def test_apo_status_transitions(self):
+    def test_apo_status_transitions(self):
         """Test 6: Test APO Status Transitions (DRAFT → PENDING → SANCTIONED)"""
         print("\n🎯 TESTING APO STATUS TRANSITIONS")
         
@@ -328,17 +317,17 @@ class KFDCBackendTester:
         try:
             # Test RO submitting APO to DM
             status_data = {"status": "PENDING_DM_APPROVAL"}
-            response = await self.make_authenticated_request("PATCH", f"/apo/{self.apo_id}/status", "RO", status_data)
+            response = self.make_authenticated_request("PATCH", f"/apo/{self.apo_id}/status", "RO", status_data)
             
             if response:
                 new_status = response.get("status")
                 self.log_result("APO Submit (RO)", "PASS", f"Status: {new_status}")
                 
                 # Test DM approving APO
-                dm_token = await self.authenticate_user("DM")
+                dm_token = self.authenticate_user("DM")
                 if dm_token:
                     approval_data = {"status": "SANCTIONED"}
-                    dm_response = await self.make_authenticated_request("PATCH", f"/apo/{self.apo_id}/status", "DM", approval_data)
+                    dm_response = self.make_authenticated_request("PATCH", f"/apo/{self.apo_id}/status", "DM", approval_data)
                     
                     if dm_response:
                         final_status = dm_response.get("status")
@@ -351,7 +340,7 @@ class KFDCBackendTester:
         except Exception as e:
             self.log_result("APO Status Transitions", "FAIL", f"Exception: {str(e)}")
 
-    async def run_comprehensive_test(self):
+    def run_comprehensive_test(self):
         """Run all tests in sequence"""
         print("🚀 STARTING KFDC iFMS MULTI-PLANTATION APO WORKFLOW TESTING")
         print(f"📍 Base URL: {BASE_URL}")
@@ -360,27 +349,27 @@ class KFDCBackendTester:
         
         # Phase 1: Authentication
         print("\n📋 PHASE 1: AUTHENTICATION")
-        ro_token = await self.authenticate_user("RO")
+        ro_token = self.authenticate_user("RO")
         
         if not ro_token:
             print("❌ CRITICAL: RO authentication failed. Cannot continue.")
             return
         
         # Phase 2: Multi-Plantation Draft Generation
-        await self.test_multi_plantation_draft_generation()
+        self.test_multi_plantation_draft_generation()
         
         # Phase 3: APO Creation with Multiple Plantation Items
-        await self.test_apo_creation_multiple_plantations()
+        self.test_apo_creation_multiple_plantations()
         
         # Phase 4: Activities and Norms Endpoints
-        await self.test_activities_endpoint()
-        await self.test_norms_endpoint()
+        self.test_activities_endpoint()
+        self.test_norms_endpoint()
         
         # Phase 5: APO List and Detail
-        await self.test_apo_list_and_detail()
+        self.test_apo_list_and_detail()
         
         # Phase 6: APO Status Transitions
-        await self.test_apo_status_transitions()
+        self.test_apo_status_transitions()
         
         # Summary
         self.print_test_summary()
@@ -428,11 +417,11 @@ class KFDCBackendTester:
         
         return len(passed_tests), len(failed_tests)
 
-async def main():
+def main():
     """Main test execution function"""
     try:
-        async with KFDCBackendTester() as tester:
-            await tester.run_comprehensive_test()
+        tester = KFDCBackendTester()
+        tester.run_comprehensive_test()
             
     except KeyboardInterrupt:
         print("\n⏹️ Testing interrupted by user")
@@ -440,4 +429,4 @@ async def main():
         print(f"\n💥 Unexpected error during testing: {str(e)}")
 
 if __name__ == "__main__":
-    asyncio.run(main())
+    main()
