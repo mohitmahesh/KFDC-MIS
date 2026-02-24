@@ -467,6 +467,29 @@ async function handleRoute(request, { params }) {
       return handleCORS(NextResponse.json(ranges.map(({ _id, ...r }) => r)))
     }
 
+    // =================== DISTRICTS & TALUKS ===================
+    // GET /districts - Returns all districts with their taluks
+    if (route === '/districts' && method === 'GET') {
+      // Return from seed data (static list)
+      return handleCORS(NextResponse.json(SEED_DATA.districts_taluks))
+    }
+
+    // GET /taluks?district=Dharwad - Returns taluks for a specific district
+    if (route === '/taluks' && method === 'GET') {
+      const url = new URL(request.url)
+      const districtName = url.searchParams.get('district')
+      if (!districtName) {
+        // Return all taluks flat list
+        const allTaluks = SEED_DATA.districts_taluks.flatMap(d => d.taluks)
+        return handleCORS(NextResponse.json(allTaluks))
+      }
+      const district = SEED_DATA.districts_taluks.find(d => d.district.toLowerCase() === districtName.toLowerCase())
+      if (!district) {
+        return handleCORS(NextResponse.json({ error: 'District not found' }, { status: 404 }))
+      }
+      return handleCORS(NextResponse.json(district.taluks))
+    }
+
     // =================== ACTIVITIES ===================
     if (route === '/activities' && method === 'GET') {
       const activities = await db.collection('activity_master').find({}).toArray()
