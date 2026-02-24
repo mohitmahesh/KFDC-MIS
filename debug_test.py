@@ -4,7 +4,7 @@
 import requests
 import json
 
-BASE_URL = "https://kfdc-green-deploy.preview.emergentagent.com/api"
+BASE_URL = "https://ifms-kfdc-demo.preview.emergentagent.com/api"
 
 def debug_ro_plantations():
     """Debug RO plantation access"""
