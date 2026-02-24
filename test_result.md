@@ -379,7 +379,8 @@ metadata:
 
 test_plan:
   current_focus:
-    - "Plantation with new fields"
+    - "Multi-Plantation Selection in APO Wizard"
+    - "Add Activity from Rate Card in Step 2"
   stuck_tasks: []
   test_all: false
   test_priority: "high_first"
