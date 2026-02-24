@@ -89,6 +89,20 @@ const SEED_DATA = {
     { id: 'usr-ed1', email: 'ed@kfdc.in', password: 'pass123', name: 'Rajesh Naik ED', role: 'ED', division_id: null, range_id: null },
     { id: 'usr-md1', email: 'md@kfdc.in', password: 'pass123', name: 'Dr. Shivakumar MD', role: 'MD', division_id: null, range_id: null },
   ],
+  // Districts and Taluks from KFDC Document
+  districts_taluks: [
+    { district: 'Shivamogga', taluks: ['Shivamogga', 'Bhadravathi', 'Nidige', 'Shikaripura', 'Sagara', 'Soraba', 'Thirthahalli', 'Hosanagara', 'Honnali'] },
+    { district: 'Chikkamagalore', taluks: ['Chikkamagalore', 'Kadur', 'N.R.Pura'] },
+    { district: 'Hassan', taluks: ['Hassan', 'Sakaleshapura', 'Arasikere', 'Holenarasipura', 'Chennarayapattana'] },
+    { district: 'Dharwad', taluks: ['Dharwad', 'Kalagatagi'] },
+    { district: 'Belagavi', taluks: ['Khanapura', 'Kittur'] },
+    { district: 'Haveri', taluks: ['Shiggaon', 'Hanagal'] },
+    { district: 'Uttara Kannada', taluks: ['Sirsi', 'Siddapura', 'Mundgod', 'Joida', 'Yellapur', 'Khanapur'] },
+    { district: 'Kolar', taluks: ['Kolar', 'Malur', 'Mulabagilu', 'Srinivasapura', 'S.V. Pura', 'Bangarpet'] },
+    { district: 'Ramanagara', taluks: ['Ramanagara', 'Bangalore rural', 'Nelamangala', 'Devanahalli', 'Magadi', 'Kanakapura'] },
+    { district: 'Chikkaballapura', taluks: ['Chikkaballapura', 'Shidlaghatta'] },
+    { district: 'Doddaballapura', taluks: ['Doddaballapura', 'D.V. Halli'] },
+  ],
   // Real KFDC Activities with SSR Numbers from Masters Excel
   activities: [
     { id: 'act-survey', name: 'Survey & Demarcation', category: 'Advance Works', unit: 'Per Km', ssr_no: '71' },
