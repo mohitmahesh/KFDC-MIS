@@ -1133,24 +1133,81 @@ function PlantationDetail({ plantation, setView }) {
 function ApoWizard({ user, setView }) {
   const [step, setStep] = useState(1)
   const [plantations, setPlantations] = useState([])
-  const [selectedPlantation, setSelectedPlt] = useState(null)
+  const [selectedPlantations, setSelectedPlantations] = useState([]) // Changed to array for multi-select
   const [financialYear, setFinancialYear] = useState('2026-27')
-  const [draft, setDraft] = useState(null)
-  const [items, setItems] = useState([])
+  const [plantationDrafts, setPlantationDrafts] = useState([]) // Array of drafts, one per plantation
+  const [items, setItems] = useState([]) // All items with plantation_id attached
   const [loading, setLoading] = useState(false)
   const [submitting, setSubmitting] = useState(false)
+  const [searchTerm, setSearchTerm] = useState('')
+  
+  // Add Activity Modal State
+  const [showAddActivity, setShowAddActivity] = useState(false)
+  const [allActivities, setAllActivities] = useState([])
+  const [allNorms, setAllNorms] = useState([])
+  const [showAllActivities, setShowAllActivities] = useState(false) // Override toggle
+  const [activitySearch, setActivitySearch] = useState('')
+  const [selectedActivityPlantation, setSelectedActivityPlantation] = useState(null)
 
   useEffect(() => {
     api.get('/plantations').then(setPlantations).catch(console.error)
+    // Load activities and norms for the Add Activity feature
+    Promise.all([api.get('/activities'), api.get('/norms')])
+      .then(([acts, norms]) => {
+        setAllActivities(acts)
+        setAllNorms(norms)
+      })
+      .catch(console.error)
   }, [])
 
+  // Toggle plantation selection
+  const togglePlantation = (plantationId) => {
+    setSelectedPlantations(prev => {
+      if (prev.includes(plantationId)) {
+        return prev.filter(id => id !== plantationId)
+      } else {
+        return [...prev, plantationId]
+      }
+    })
+  }
+
+  // Select/Deselect all plantations
+  const toggleAllPlantations = () => {
+    const filteredPlantations = plantations.filter(p => 
+      p.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      p.species.toLowerCase().includes(searchTerm.toLowerCase())
+    )
+    if (selectedPlantations.length === filteredPlantations.length) {
+      setSelectedPlantations([])
+    } else {
+      setSelectedPlantations(filteredPlantations.map(p => p.id))
+    }
+  }
+
+  // Generate drafts for all selected plantations
   const generateDraft = async () => {
-    if (!selectedPlantation) return
+    if (selectedPlantations.length === 0) return
     setLoading(true)
     try {
-      const data = await api.post('/apo/generate-draft', { plantation_id: selectedPlantation, financial_year: financialYear })
-      setDraft(data)
-      setItems(data.items.map(i => ({ ...i, sanctioned_qty: i.suggested_qty })))
+      const drafts = []
+      const allItems = []
+      
+      for (const plantationId of selectedPlantations) {
+        const data = await api.post('/apo/generate-draft', { plantation_id: plantationId, financial_year: financialYear })
+        drafts.push(data)
+        // Add plantation info to each item
+        const itemsWithPlantation = data.items.map(i => ({
+          ...i,
+          sanctioned_qty: i.suggested_qty,
+          plantation_id: plantationId,
+          plantation_name: data.plantation_name,
+          plantation_age: data.age
+        }))
+        allItems.push(...itemsWithPlantation)
+      }
+      
+      setPlantationDrafts(drafts)
+      setItems(allItems)
       setStep(2)
     } catch (e) {
       alert(e.message)
@@ -1158,6 +1215,7 @@ function ApoWizard({ user, setView }) {
     setLoading(false)
   }
 
+  // Update quantity for a specific item
   const updateQty = (index, qty) => {
     setItems(prev => prev.map((item, i) => {
       if (i !== index) return item
@@ -1166,21 +1224,118 @@ function ApoWizard({ user, setView }) {
     }))
   }
 
+  // Remove an item
+  const removeItem = (index) => {
+    setItems(prev => prev.filter((_, i) => i !== index))
+  }
+
+  // Get activities relevant to selected plantations' ages
+  const getRelevantActivities = () => {
+    if (showAllActivities) {
+      // Show ALL activities from norms
+      const uniqueActivities = {}
+      allNorms.forEach(norm => {
+        const activity = allActivities.find(a => a.id === norm.activity_id)
+        if (activity && !uniqueActivities[norm.activity_id]) {
+          uniqueActivities[norm.activity_id] = {
+            ...activity,
+            activity_id: activity.id,
+            standard_rate: norm.standard_rate,
+            applicable_age: norm.applicable_age,
+            financial_year: norm.financial_year
+          }
+        }
+      })
+      return Object.values(uniqueActivities)
+    }
+    
+    // Get ages of selected plantation (for Add Activity context)
+    const targetPlantation = plantationDrafts.find(d => d.plantation_id === selectedActivityPlantation)
+    if (!targetPlantation) return []
+    
+    const plantationAge = targetPlantation.age
+    
+    // Get norms for this age
+    const relevantNorms = allNorms.filter(n => n.applicable_age === plantationAge)
+    
+    return relevantNorms.map(norm => {
+      const activity = allActivities.find(a => a.id === norm.activity_id)
+      return {
+        ...activity,
+        activity_id: activity?.id,
+        standard_rate: norm.standard_rate,
+        applicable_age: norm.applicable_age,
+        financial_year: norm.financial_year
+      }
+    }).filter(a => a.activity_id)
+  }
+
+  // Add activity from rate card
+  const addActivityFromRateCard = (activity) => {
+    const targetPlantation = plantationDrafts.find(d => d.plantation_id === selectedActivityPlantation)
+    if (!targetPlantation) return
+    
+    const newItem = {
+      activity_id: activity.activity_id,
+      activity_name: activity.name,
+      category: activity.category,
+      unit: activity.unit,
+      sanctioned_rate: activity.standard_rate,
+      sanctioned_qty: targetPlantation.total_area_ha,
+      total_cost: activity.standard_rate * targetPlantation.total_area_ha,
+      plantation_id: selectedActivityPlantation,
+      plantation_name: targetPlantation.plantation_name,
+      plantation_age: targetPlantation.age,
+      is_custom: true // Mark as manually added
+    }
+    
+    setItems(prev => [...prev, newItem])
+    setShowAddActivity(false)
+    setActivitySearch('')
+  }
+
+  // Filter activities by search
+  const filteredActivities = getRelevantActivities().filter(a => 
+    a.name?.toLowerCase().includes(activitySearch.toLowerCase()) ||
+    a.category?.toLowerCase().includes(activitySearch.toLowerCase())
+  )
+
   const totalCost = items.reduce((sum, i) => sum + (i.total_cost || 0), 0)
+
+  // Group items by plantation for display
+  const itemsByPlantation = items.reduce((acc, item) => {
+    if (!acc[item.plantation_id]) {
+      acc[item.plantation_id] = {
+        plantation_id: item.plantation_id,
+        plantation_name: item.plantation_name,
+        plantation_age: item.plantation_age,
+        items: []
+      }
+    }
+    acc[item.plantation_id].items.push(item)
+    return acc
+  }, {})
 
   const submitApo = async (status) => {
     setSubmitting(true)
     try {
+      // Create one APO with all items (backend handles the structure)
+      // For multiple plantations, we include all items with their plantation references
+      const primaryPlantation = selectedPlantations[0]
+      
       await api.post('/apo', {
-        plantation_id: selectedPlantation,
+        plantation_id: primaryPlantation, // Primary plantation for APO header
         financial_year: financialYear,
         status,
+        title: selectedPlantations.length > 1 ? `Multi-Plantation APO (${selectedPlantations.length} plantations)` : 'APO',
         items: items.map(i => ({
           activity_id: i.activity_id,
           activity_name: i.activity_name,
           sanctioned_qty: i.sanctioned_qty,
           sanctioned_rate: i.sanctioned_rate,
           unit: i.unit,
+          plantation_id: i.plantation_id,
+          plantation_name: i.plantation_name,
         })),
       })
       setStep(4)
@@ -1190,7 +1345,13 @@ function ApoWizard({ user, setView }) {
     setSubmitting(false)
   }
 
-  const selectedPlt = plantations.find(p => p.id === selectedPlantation)
+  // Filter plantations by search
+  const filteredPlantations = plantations.filter(p => 
+    p.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    p.species.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    p.village?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    p.district?.toLowerCase().includes(searchTerm.toLowerCase())
+  )
 
   return (
     <div className="space-y-6">
@@ -1200,130 +1361,323 @@ function ApoWizard({ user, setView }) {
       </div>
 
       {/* Steps indicator */}
-      <div className="flex items-center gap-2">
+      <div className="flex items-center gap-2 flex-wrap">
         {[1, 2, 3, 4].map(s => (
           <div key={s} className="flex items-center gap-2">
             <div className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-medium ${step >= s ? 'bg-emerald-700 text-white' : 'bg-muted text-muted-foreground'
               }`}>{s}</div>
             <span className={`text-sm ${step >= s ? 'font-medium' : 'text-muted-foreground'}`}>
-              {s === 1 ? 'Select Plantation' : s === 2 ? 'Review Activities' : s === 3 ? 'Confirm & Submit' : 'Done'}
+              {s === 1 ? 'Select Plantations' : s === 2 ? 'Review Activities' : s === 3 ? 'Confirm & Submit' : 'Done'}
             </span>
             {s < 4 && <ChevronRight className="w-4 h-4 text-muted-foreground" />}
           </div>
         ))}
       </div>
 
-      {/* Step 1: Select Plantation */}
+      {/* Step 1: Select Multiple Plantations */}
       {step === 1 && (
         <Card>
           <CardHeader>
-            <CardTitle>Step 1: Select Plantation & Financial Year</CardTitle>
-            <CardDescription>Choose the plantation for which you want to generate the APO</CardDescription>
+            <CardTitle>Step 1: Select Plantations & Financial Year</CardTitle>
+            <CardDescription>Choose one or more plantations for which you want to generate the APO</CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
-            <div>
-              <Label>Plantation</Label>
-              <Select value={selectedPlantation || ''} onValueChange={setSelectedPlt}>
-                <SelectTrigger><SelectValue placeholder="Select a plantation" /></SelectTrigger>
-                <SelectContent>
-                  {plantations.map(p => (
-                    <SelectItem key={p.id} value={p.id}>
-                      {p.name} ({p.species}, {p.age} yr old, {p.total_area_ha} Ha)
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-            <div>
-              <Label>Financial Year</Label>
-              <Select value={financialYear} onValueChange={setFinancialYear}>
-                <SelectTrigger><SelectValue /></SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="2026-27">2026-27</SelectItem>
-                  <SelectItem value="2025-26">2025-26</SelectItem>
-                </SelectContent>
-              </Select>
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <Label>Financial Year</Label>
+                <Select value={financialYear} onValueChange={setFinancialYear}>
+                  <SelectTrigger><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="2026-27">2026-27</SelectItem>
+                    <SelectItem value="2025-26">2025-26</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              <div>
+                <Label>Search Plantations</Label>
+                <div className="relative">
+                  <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
+                  <Input 
+                    placeholder="Search by name, species, village..." 
+                    className="pl-9"
+                    value={searchTerm}
+                    onChange={(e) => setSearchTerm(e.target.value)}
+                  />
+                </div>
+              </div>
             </div>
 
-            {selectedPlt && (
-              <div className="p-4 bg-emerald-50 rounded-lg border border-emerald-200">
-                <h4 className="font-medium text-sm text-emerald-800 mb-2">Selected Plantation Info</h4>
-                <div className="grid grid-cols-4 gap-3 text-sm">
-                  <div><span className="text-muted-foreground">Species:</span> <strong>{selectedPlt.species}</strong></div>
-                  <div><span className="text-muted-foreground">Age:</span> <strong>{selectedPlt.age} years</strong></div>
-                  <div><span className="text-muted-foreground">Area:</span> <strong>{selectedPlt.total_area_ha} Ha</strong></div>
-                  <div><span className="text-muted-foreground">Range:</span> <strong>{selectedPlt.range_name}</strong></div>
+            {/* Selection summary */}
+            {selectedPlantations.length > 0 && (
+              <div className="p-3 bg-emerald-50 rounded-lg border border-emerald-200">
+                <div className="flex items-center justify-between">
+                  <span className="text-sm text-emerald-800">
+                    <strong>{selectedPlantations.length}</strong> plantation{selectedPlantations.length > 1 ? 's' : ''} selected
+                  </span>
+                  <Button variant="ghost" size="sm" onClick={() => setSelectedPlantations([])}>
+                    Clear Selection
+                  </Button>
                 </div>
               </div>
             )}
+
+            {/* Plantations list with checkboxes */}
+            <div className="border rounded-lg">
+              <div className="p-3 bg-muted/50 border-b flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <Checkbox 
+                    checked={selectedPlantations.length === filteredPlantations.length && filteredPlantations.length > 0}
+                    onCheckedChange={toggleAllPlantations}
+                  />
+                  <span className="text-sm font-medium">Select All ({filteredPlantations.length})</span>
+                </div>
+              </div>
+              <div className="max-h-[400px] overflow-y-auto">
+                {filteredPlantations.length === 0 ? (
+                  <div className="p-6 text-center text-muted-foreground">
+                    No plantations found matching your search
+                  </div>
+                ) : (
+                  filteredPlantations.map(p => (
+                    <div 
+                      key={p.id} 
+                      className={`p-3 border-b last:border-b-0 hover:bg-accent/50 cursor-pointer transition-colors ${
+                        selectedPlantations.includes(p.id) ? 'bg-emerald-50' : ''
+                      }`}
+                      onClick={() => togglePlantation(p.id)}
+                    >
+                      <div className="flex items-start gap-3">
+                        <Checkbox 
+                          checked={selectedPlantations.includes(p.id)}
+                          onCheckedChange={() => togglePlantation(p.id)}
+                          onClick={(e) => e.stopPropagation()}
+                        />
+                        <div className="flex-1">
+                          <div className="flex items-center gap-2">
+                            <span className="font-medium">{p.name}</span>
+                            <Badge variant="outline" className={p.work_type === 'FW' ? 'bg-blue-50 text-blue-700' : 'bg-amber-50 text-amber-700'}>
+                              {p.work_type === 'FW' ? 'Fresh Work' : 'Maintenance'}
+                            </Badge>
+                          </div>
+                          <div className="flex items-center gap-4 text-xs text-muted-foreground mt-1">
+                            <span>{p.species}</span>
+                            <span>•</span>
+                            <span>{p.age} yr old</span>
+                            <span>•</span>
+                            <span>{p.total_area_ha} Ha</span>
+                            <span>•</span>
+                            <span>{p.village || p.district}</span>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  ))
+                )}
+              </div>
+            </div>
           </CardContent>
           <CardFooter>
-            <Button className="bg-emerald-700 hover:bg-emerald-800" onClick={generateDraft} disabled={!selectedPlantation || loading}>
-              {loading ? <><RefreshCw className="w-4 h-4 mr-2 animate-spin" /> Generating...</> : <>Generate Draft <ChevronRight className="w-4 h-4 ml-2" /></>}
+            <Button className="bg-emerald-700 hover:bg-emerald-800" onClick={generateDraft} disabled={selectedPlantations.length === 0 || loading}>
+              {loading ? (
+                <><RefreshCw className="w-4 h-4 mr-2 animate-spin" /> Generating for {selectedPlantations.length} plantation{selectedPlantations.length > 1 ? 's' : ''}...</>
+              ) : (
+                <>Generate Draft for {selectedPlantations.length} Plantation{selectedPlantations.length > 1 ? 's' : ''} <ChevronRight className="w-4 h-4 ml-2" /></>
+              )}
             </Button>
           </CardFooter>
         </Card>
       )}
 
-      {/* Step 2: Review Activities with locked rates */}
-      {step === 2 && draft && (
+      {/* Step 2: Review Activities - Grouped by Plantation */}
+      {step === 2 && (
         <Card>
           <CardHeader>
-            <CardTitle>Step 2: Review Standard Works</CardTitle>
-            <CardDescription>
-              Based on plantation age ({draft.age} years), the system has auto-filled standard activities and rates.
-              <span className="text-amber-600 font-medium"> Unit rates are locked and cannot be modified.</span>
-            </CardDescription>
-          </CardHeader>
-          <CardContent>
-            <div className="rounded-lg border overflow-hidden">
-              <Table>
-                <TableHeader>
-                  <TableRow className="bg-muted/50">
-                    <TableHead className="w-[30%]">Activity</TableHead>
-                    <TableHead>Category</TableHead>
-                    <TableHead>Unit</TableHead>
-                    <TableHead className="text-right">Unit Rate (₹)</TableHead>
-                    <TableHead className="text-right w-[120px]">Quantity</TableHead>
-                    <TableHead className="text-right">Total Cost (₹)</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {items.map((item, idx) => (
-                    <TableRow key={idx}>
-                      <TableCell className="font-medium">{item.activity_name}</TableCell>
-                      <TableCell><Badge variant="outline" className="text-xs">{item.category}</Badge></TableCell>
-                      <TableCell className="text-sm text-muted-foreground">{item.unit}</TableCell>
-                      <TableCell className="text-right">
-                        <span className="bg-gray-100 text-gray-600 px-2 py-1 rounded text-sm font-mono cursor-not-allowed">
-                          {item.sanctioned_rate.toLocaleString('en-IN')}
-                        </span>
-                      </TableCell>
-                      <TableCell className="text-right">
-                        <Input type="number" step="0.1" className="w-24 text-right ml-auto" value={item.sanctioned_qty}
-                          onChange={e => updateQty(idx, e.target.value)} />
-                      </TableCell>
-                      <TableCell className="text-right font-semibold">{formatCurrency(item.total_cost)}</TableCell>
-                    </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
-            </div>
-            <div className="flex justify-end mt-4 p-4 bg-emerald-50 rounded-lg border border-emerald-200">
+            <div className="flex items-start justify-between">
+              <div>
+                <CardTitle>Step 2: Review Activities</CardTitle>
+                <CardDescription>
+                  Activities are grouped by plantation. You can add more activities from the Rate Card.
+                  <span className="text-amber-600 font-medium"> Unit rates are locked.</span>
+                </CardDescription>
+              </div>
               <div className="text-right">
                 <p className="text-sm text-muted-foreground">Total Estimated Cost</p>
                 <p className="text-2xl font-bold text-emerald-800">{formatCurrency(totalCost)}</p>
               </div>
             </div>
+          </CardHeader>
+          <CardContent className="space-y-6">
+            {Object.values(itemsByPlantation).map((group, groupIdx) => (
+              <div key={group.plantation_id} className="border rounded-lg overflow-hidden">
+                {/* Plantation Header */}
+                <div className="p-4 bg-emerald-50 border-b flex items-center justify-between">
+                  <div>
+                    <h4 className="font-semibold text-emerald-800">{group.plantation_name}</h4>
+                    <p className="text-xs text-emerald-600">Age: {group.plantation_age} years • {group.items.length} activities</p>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <span className="text-sm font-medium text-emerald-700">
+                      Subtotal: {formatCurrency(group.items.reduce((sum, i) => sum + (i.total_cost || 0), 0))}
+                    </span>
+                    <Button 
+                      size="sm" 
+                      variant="outline" 
+                      className="border-emerald-300 text-emerald-700 hover:bg-emerald-100"
+                      onClick={() => { setSelectedActivityPlantation(group.plantation_id); setShowAddActivity(true); }}
+                    >
+                      <Plus className="w-3 h-3 mr-1" /> Add Activity
+                    </Button>
+                  </div>
+                </div>
+                
+                {/* Activities Table */}
+                <Table>
+                  <TableHeader>
+                    <TableRow className="bg-muted/30">
+                      <TableHead className="w-[30%]">Activity</TableHead>
+                      <TableHead>Category</TableHead>
+                      <TableHead>Unit</TableHead>
+                      <TableHead className="text-right">Unit Rate (₹)</TableHead>
+                      <TableHead className="text-right w-[100px]">Quantity</TableHead>
+                      <TableHead className="text-right">Total (₹)</TableHead>
+                      <TableHead className="w-[50px]"></TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {group.items.map((item, idx) => {
+                      const globalIdx = items.findIndex(i => i === item)
+                      return (
+                        <TableRow key={idx} className={item.is_custom ? 'bg-blue-50/50' : ''}>
+                          <TableCell className="font-medium">
+                            {item.activity_name}
+                            {item.is_custom && <Badge variant="outline" className="ml-2 text-xs bg-blue-100 text-blue-700">Custom</Badge>}
+                          </TableCell>
+                          <TableCell><Badge variant="outline" className="text-xs">{item.category}</Badge></TableCell>
+                          <TableCell className="text-sm text-muted-foreground">{item.unit}</TableCell>
+                          <TableCell className="text-right">
+                            <span className="bg-gray-100 text-gray-600 px-2 py-1 rounded text-sm font-mono">
+                              {item.sanctioned_rate?.toLocaleString('en-IN')}
+                            </span>
+                          </TableCell>
+                          <TableCell className="text-right">
+                            <Input 
+                              type="number" 
+                              step="0.1" 
+                              className="w-20 text-right ml-auto" 
+                              value={item.sanctioned_qty}
+                              onChange={e => updateQty(globalIdx, e.target.value)} 
+                            />
+                          </TableCell>
+                          <TableCell className="text-right font-semibold">{formatCurrency(item.total_cost)}</TableCell>
+                          <TableCell>
+                            <Button 
+                              variant="ghost" 
+                              size="sm" 
+                              className="h-8 w-8 p-0 text-red-500 hover:text-red-700 hover:bg-red-50"
+                              onClick={() => removeItem(globalIdx)}
+                            >
+                              <Trash2 className="w-4 h-4" />
+                            </Button>
+                          </TableCell>
+                        </TableRow>
+                      )
+                    })}
+                  </TableBody>
+                </Table>
+              </div>
+            ))}
           </CardContent>
           <CardFooter className="flex justify-between">
             <Button variant="outline" onClick={() => setStep(1)}>Back</Button>
-            <Button className="bg-emerald-700 hover:bg-emerald-800" onClick={() => setStep(3)}>
+            <Button className="bg-emerald-700 hover:bg-emerald-800" onClick={() => setStep(3)} disabled={items.length === 0}>
               Review & Submit <ChevronRight className="w-4 h-4 ml-2" />
             </Button>
           </CardFooter>
         </Card>
       )}
+
+      {/* Add Activity Modal */}
+      <Dialog open={showAddActivity} onOpenChange={setShowAddActivity}>
+        <DialogContent className="max-w-2xl max-h-[80vh]">
+          <DialogHeader>
+            <DialogTitle>Add Activity from Rate Card</DialogTitle>
+            <DialogDescription>
+              Select an activity to add to the plantation. 
+              {selectedActivityPlantation && (
+                <span className="font-medium text-emerald-700">
+                  {' '}Adding to: {plantationDrafts.find(d => d.plantation_id === selectedActivityPlantation)?.plantation_name}
+                </span>
+              )}
+            </DialogDescription>
+          </DialogHeader>
+          
+          <div className="space-y-4">
+            {/* Search and Override Toggle */}
+            <div className="flex items-center gap-4">
+              <div className="flex-1 relative">
+                <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
+                <Input 
+                  placeholder="Search activities..." 
+                  className="pl-9"
+                  value={activitySearch}
+                  onChange={(e) => setActivitySearch(e.target.value)}
+                />
+              </div>
+              <div className="flex items-center gap-2">
+                <Checkbox 
+                  id="showAll"
+                  checked={showAllActivities}
+                  onCheckedChange={setShowAllActivities}
+                />
+                <Label htmlFor="showAll" className="text-sm cursor-pointer">Show All Activities</Label>
+              </div>
+            </div>
+
+            {/* Info banner */}
+            <div className={`p-3 rounded-lg text-sm ${showAllActivities ? 'bg-amber-50 text-amber-800 border border-amber-200' : 'bg-blue-50 text-blue-800 border border-blue-200'}`}>
+              {showAllActivities ? (
+                <><AlertTriangle className="w-4 h-4 inline mr-2" />Showing ALL activities from Rate Card. Some may not be applicable to the plantation age.</>
+              ) : (
+                <>Showing activities relevant to plantation age ({plantationDrafts.find(d => d.plantation_id === selectedActivityPlantation)?.age} years). Toggle "Show All" to see more options.</>
+              )}
+            </div>
+
+            {/* Activities List */}
+            <div className="border rounded-lg max-h-[350px] overflow-y-auto">
+              {filteredActivities.length === 0 ? (
+                <div className="p-6 text-center text-muted-foreground">
+                  No activities found. Try enabling "Show All Activities".
+                </div>
+              ) : (
+                filteredActivities.map((activity, idx) => (
+                  <div 
+                    key={idx}
+                    className="p-3 border-b last:border-b-0 hover:bg-accent/50 cursor-pointer transition-colors flex items-center justify-between"
+                    onClick={() => addActivityFromRateCard(activity)}
+                  >
+                    <div>
+                      <div className="font-medium">{activity.name}</div>
+                      <div className="flex items-center gap-3 text-xs text-muted-foreground mt-1">
+                        <Badge variant="outline" className="text-xs">{activity.category}</Badge>
+                        <span>{activity.unit}</span>
+                        {showAllActivities && <span className="text-amber-600">Age: {activity.applicable_age} yr</span>}
+                      </div>
+                    </div>
+                    <div className="text-right">
+                      <div className="font-semibold text-emerald-700">{formatCurrency(activity.standard_rate)}</div>
+                      <div className="text-xs text-muted-foreground">per {activity.unit}</div>
+                    </div>
+                  </div>
+                ))
+              )}
+            </div>
+          </div>
+          
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setShowAddActivity(false)}>Cancel</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
 
       {/* Step 3: Confirm */}
       {step === 3 && (
@@ -1333,14 +1687,14 @@ function ApoWizard({ user, setView }) {
             <CardDescription>Review the APO summary before submission</CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
               <div className="p-4 bg-muted rounded-lg">
-                <p className="text-xs text-muted-foreground">Plantation</p>
-                <p className="font-semibold">{draft?.plantation_name}</p>
+                <p className="text-xs text-muted-foreground">Plantations</p>
+                <p className="font-semibold">{selectedPlantations.length}</p>
               </div>
               <div className="p-4 bg-muted rounded-lg">
                 <p className="text-xs text-muted-foreground">Financial Year</p>
-                <p className="font-semibold">{draft?.financial_year}</p>
+                <p className="font-semibold">{financialYear}</p>
               </div>
               <div className="p-4 bg-muted rounded-lg">
                 <p className="text-xs text-muted-foreground">Total Activities</p>
@@ -1351,28 +1705,36 @@ function ApoWizard({ user, setView }) {
                 <p className="font-bold text-lg text-emerald-800">{formatCurrency(totalCost)}</p>
               </div>
             </div>
-            <div className="rounded-lg border overflow-hidden">
-              <Table>
-                <TableHeader>
-                  <TableRow className="bg-muted/50">
-                    <TableHead>Activity</TableHead>
-                    <TableHead className="text-right">Rate</TableHead>
-                    <TableHead className="text-right">Qty</TableHead>
-                    <TableHead className="text-right">Cost</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {items.map((item, idx) => (
-                    <TableRow key={idx}>
-                      <TableCell className="font-medium">{item.activity_name}</TableCell>
-                      <TableCell className="text-right">{formatCurrency(item.sanctioned_rate)}</TableCell>
-                      <TableCell className="text-right">{item.sanctioned_qty}</TableCell>
-                      <TableCell className="text-right font-semibold">{formatCurrency(item.total_cost)}</TableCell>
+
+            {/* Summary by plantation */}
+            {Object.values(itemsByPlantation).map((group) => (
+              <div key={group.plantation_id} className="border rounded-lg overflow-hidden">
+                <div className="p-3 bg-emerald-50 border-b flex items-center justify-between">
+                  <span className="font-medium text-emerald-800">{group.plantation_name}</span>
+                  <span className="text-sm text-emerald-700">{formatCurrency(group.items.reduce((sum, i) => sum + (i.total_cost || 0), 0))}</span>
+                </div>
+                <Table>
+                  <TableHeader>
+                    <TableRow className="bg-muted/30">
+                      <TableHead>Activity</TableHead>
+                      <TableHead className="text-right">Rate</TableHead>
+                      <TableHead className="text-right">Qty</TableHead>
+                      <TableHead className="text-right">Cost</TableHead>
                     </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
-            </div>
+                  </TableHeader>
+                  <TableBody>
+                    {group.items.map((item, idx) => (
+                      <TableRow key={idx}>
+                        <TableCell className="font-medium">{item.activity_name}</TableCell>
+                        <TableCell className="text-right">{formatCurrency(item.sanctioned_rate)}</TableCell>
+                        <TableCell className="text-right">{item.sanctioned_qty}</TableCell>
+                        <TableCell className="text-right font-semibold">{formatCurrency(item.total_cost)}</TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              </div>
+            ))}
           </CardContent>
           <CardFooter className="flex justify-between">
             <Button variant="outline" onClick={() => setStep(2)}>Back</Button>
@@ -1396,13 +1758,15 @@ function ApoWizard({ user, setView }) {
               <CheckCircle className="w-8 h-8 text-emerald-700" />
             </div>
             <h3 className="text-xl font-bold mb-2">APO Submitted Successfully!</h3>
-            <p className="text-muted-foreground mb-6">Your APO has been submitted to the Division Manager for approval.</p>
+            <p className="text-muted-foreground mb-6">
+              Your APO for {selectedPlantations.length} plantation{selectedPlantations.length > 1 ? 's' : ''} has been submitted to the Division Manager for approval.
+            </p>
             <div className="bg-blue-50 rounded-lg p-4 mb-6 text-sm text-blue-800">
               <strong>Approval Hierarchy:</strong> RO → DM → Head Office (Admin)
             </div>
             <div className="flex gap-3 justify-center">
               <Button variant="outline" onClick={() => setView('apo-list')}>View All APOs</Button>
-              <Button className="bg-emerald-700 hover:bg-emerald-800" onClick={() => { setStep(1); setDraft(null); setItems([]); setSelectedPlt(null) }}>
+              <Button className="bg-emerald-700 hover:bg-emerald-800" onClick={() => { setStep(1); setPlantationDrafts([]); setItems([]); setSelectedPlantations([]) }}>
                 Create Another APO
               </Button>
             </div>
