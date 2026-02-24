@@ -212,6 +212,54 @@ frontend:
         comment: "Cannot test due to application unavailability - service restart required"
 
 backend:
+  - task: "Multi-Plantation Draft Generation"
+    implemented: true
+    working: true
+    file: "app/api/[[...path]]/route.js"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: false
+    status_history:
+      - working: true
+        agent: "testing"
+        comment: "✅ MULTI-PLANTATION DRAFT GENERATION FULLY TESTED: Comprehensive validation completed successfully. **KEY FEATURES VERIFIED**: 1) ✅ POST /api/apo/generate-draft working for multiple plantations (plt-d01, plt-d05), 2) ✅ plt-d01 (Varavanagalavi, 12 years): 2 activities, ₹180,996.75 total, 3) ✅ plt-d05 (Degaon, 8 years): 2 activities, ₹105,702.10 total, 4) ✅ Age-based activity selection working correctly, 5) ✅ Rate calculations accurate based on norms for 2026-27 FY. All plantation-specific draft generation working as per review request requirements."
+
+  - task: "APO Creation with Multiple Plantation Items"
+    implemented: true
+    working: true
+    file: "app/api/[[...path]]/route.js"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: false
+    status_history:
+      - working: true
+        agent: "testing"
+        comment: "✅ MULTI-PLANTATION APO CREATION FULLY TESTED: Complete workflow validated successfully. **CORE FUNCTIONALITY**: 1) ✅ APO creation with items from multiple plantations (plt-d01 + plt-d05), 2) ✅ Total calculation accuracy verified: Expected ₹286,698.85, Received ₹286,698.85 (100% match), 3) ✅ DRAFT status APO creation working, 4) ✅ Combined 4 activities from 2 different plantations in single APO, 5) ✅ APO ID generation and item structure correct. Multi-plantation APO workflow fully operational as requested."
+
+  - task: "Activities and Norms Endpoints"
+    implemented: true
+    working: true
+    file: "app/api/[[...path]]/route.js"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: false
+    status_history:
+      - working: true
+        agent: "testing"
+        comment: "✅ ACTIVITIES & NORMS ENDPOINTS FULLY TESTED: Both endpoints working perfectly. **GET /api/activities**: 1) ✅ Retrieved 25 activities with complete details, 2) ✅ Required fields present: id, name, category, unit, ssr_no, 3) ✅ Sample activities: Survey & Demarcation, Dozing & Ripping, Jungle Clearance. **GET /api/norms**: 1) ✅ Retrieved 85 norms with activity enrichment, 2) ✅ Activity details properly joined: activity_name, category, unit included, 3) ✅ Age range coverage: 0-40 years, 4) ✅ Rate data for FY 2026-27. All endpoints providing complete data as required."
+
+  - task: "APO List and Detail Endpoints"
+    implemented: true
+    working: true
+    file: "app/api/[[...path]]/route.js"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: false
+    status_history:
+      - working: true
+        agent: "testing"
+        comment: "✅ APO LIST & DETAIL ENDPOINTS FULLY TESTED: Both endpoints working correctly. **GET /api/apo**: 1) ✅ Retrieved 3 APOs with role-based filtering (RO sees own APOs), 2) ✅ APO list includes plantation names and status. **GET /api/apo/:id**: 1) ✅ Detailed APO view working, 2) ✅ Items properly included in response, 3) ✅ Multi-plantation APO detail shows correct title and 4 items, 4) ✅ Single plantation APO creation and retrieval working. All APO CRUD operations functional as requested."
+
   - task: "Seed demo data with NEW estimate users"
     implemented: true
     working: true
