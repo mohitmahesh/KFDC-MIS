@@ -952,12 +952,34 @@ function PlantationsView({ user, setView, setSelectedPlantation }) {
                     <Input value={form.village} onChange={e => setForm(f => ({ ...f, village: e.target.value }))} placeholder="e.g., Varavanagalavi" />
                   </div>
                   <div>
-                    <Label>Taluk</Label>
-                    <Input value={form.taluk} onChange={e => setForm(f => ({ ...f, taluk: e.target.value }))} placeholder="e.g., Dharwad" />
+                    <Label>District <span className="text-red-500">*</span></Label>
+                    <Select value={form.district} onValueChange={v => setForm(f => ({ ...f, district: v }))}>
+                      <SelectTrigger>
+                        <SelectValue placeholder="Select District" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {districtsData.map(d => (
+                          <SelectItem key={d.district} value={d.district}>{d.district}</SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
                   </div>
                   <div>
-                    <Label>District</Label>
-                    <Input value={form.district} onChange={e => setForm(f => ({ ...f, district: e.target.value }))} placeholder="e.g., Dharwad" />
+                    <Label>Taluk <span className="text-red-500">*</span></Label>
+                    <Select 
+                      value={form.taluk} 
+                      onValueChange={v => setForm(f => ({ ...f, taluk: v }))}
+                      disabled={!form.district}
+                    >
+                      <SelectTrigger className={!form.district ? 'opacity-50' : ''}>
+                        <SelectValue placeholder={form.district ? "Select Taluk" : "Select District first"} />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {availableTaluks.map(t => (
+                          <SelectItem key={t} value={t}>{t}</SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
                   </div>
                 </div>
 
