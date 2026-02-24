@@ -879,3 +879,51 @@ agent_communication:
     message: "🚀 FUND INDENT WORKFLOW TESTING COMPLETED - 100% SUCCESS! Comprehensive testing of the complete Fund Indent workflow for KFDC iFMS completed successfully as per review request. **VERIFIED WORKFLOW**: RFO → DCF → ED → MD approval hierarchy working perfectly. **KEY ACHIEVEMENTS**: ✅ All 4 Fund Indent users authenticated (rfo.dharwad@kfdc.in, dcf.dharwad@kfdc.in, ed@kfdc.in, md@kfdc.in), ✅ RFO generates Fund Indent from SANCTIONED APO works (GFI process), ✅ Complete approval chain: DCF approves → ED approves → MD final approval, ✅ Status transitions correct: PENDING_DCF → PENDING_ED → PENDING_MD → APPROVED, ✅ RBAC enforcement: RFO blocked from approval, RO blocked from fund-indent access, ✅ EST_ID generation working (EST-MLUJ8RC8 format), ✅ All endpoints tested: /fund-indent/works, /fund-indent/work-items/{id}, /fund-indent/generate, /fund-indent/pending, /fund-indent/{id}/approve. **FINAL RESULTS**: 27/27 tests passed (100% success rate). The Fund Indent feature is production-ready and meets all requirements from the review request!"
   - agent: "testing"
     message: "🎯 FNB PDF UPLOAD TESTING COMPLETED - 94.4% SUCCESS! Comprehensive validation of FNB PDF Upload functionality for KFDC iFMS Fund Indent workflow completed successfully. **PHASE 1 - AUTHENTICATION TESTS**: ✅ All Fund Indent users authenticated successfully (RFO, DCF, RO, ED, MD), ✅ RFO can upload FNB PDF files (POST /api/fund-indent/upload-fnb returns 200 OK), ✅ Non-RFO users correctly blocked (RO: 403 Forbidden, DCF: 403 Forbidden). **PHASE 2 - FILE VALIDATION**: ✅ Only PDF files accepted (400 error for non-PDF files), ✅ Proper response format includes file_url, file_name, and item_id, ✅ Uploaded files accessible via public URL (/uploads/fnb/). **PHASE 3 - FUND INDENT INTEGRATION**: ✅ Fund Indent generation with FNB PDF URL working correctly (EST_ID format: EST-MLUKAODA), ✅ FNB PDF URL properly stored and retrievable in Fund Indent items. **CRITICAL BUG FIXED**: Resolved route handler path variable conflict causing 520 server errors in file upload endpoint. **FINAL RESULTS**: 17/18 tests passed (94.4% success rate). The FNB PDF Upload feature is production-ready with full RBAC enforcement, file validation, and seamless Fund Indent integration!"
+# NEW FEATURE IMPLEMENTATION - Multi-Plantation APO Wizard Enhancement
+# Date: 2026-02-24
+# Implemented by: main_agent
+
+new_features_implemented:
+  - task: "Multi-Plantation Selection in APO Wizard"
+    implemented: true
+    working: true
+    file: "app/app/page.js"
+    priority: "high"
+    description: "Step 1 now allows selecting MULTIPLE plantations using checkboxes instead of single select dropdown. Features include: Select All option, search/filter plantations, selection counter, clear selection button."
+    status_history:
+      - working: true
+        agent: "main"
+        comment: "Implemented multi-plantation selection with checkboxes. Generate Draft creates activities for all selected plantations."
+        
+  - task: "Add Activity from Rate Card in Step 2"
+    implemented: true
+    working: true
+    file: "app/app/page.js"
+    priority: "high"
+    description: "Step 2 (Review Activities) now has an 'Add Activity' button per plantation section. Opens a modal showing activities from the Rate Card with search functionality and 'Show All Activities' toggle for override."
+    status_history:
+      - working: true
+        agent: "main"
+        comment: "Implemented Add Activity modal with: search, relevant activities by plantation age, Show All Activities override toggle, amber warning when showing all activities."
+        
+  - task: "Activities Grouped by Plantation"
+    implemented: true
+    working: true
+    file: "app/app/page.js"
+    priority: "high"
+    description: "Step 2 and Step 3 now group activities by plantation with individual subtotals and the ability to remove items."
+    status_history:
+      - working: true
+        agent: "main"
+        comment: "Each plantation has its own section with activities, subtotal, and Add Activity button. Items can be removed individually with trash icon."
+
+test_plan:
+  current_focus:
+    - "Multi-Plantation Selection in APO Wizard"
+    - "Add Activity from Rate Card in Step 2"
+  test_all: false
+  test_priority: "high_first"
+
+agent_communication:
+  - agent: "main"
+    message: "IMPLEMENTED NEW APO WIZARD FEATURES: 1) Multi-plantation selection with checkboxes in Step 1 - users can now select multiple plantations and generate draft for all at once. 2) Add Activity from Rate Card in Step 2 - each plantation section has an 'Add Activity' button that opens a modal with searchable activity list. 3) 'Show All Activities' override toggle - by default shows only relevant activities for plantation age, toggle allows showing all activities with warning banner. 4) Activities grouped by plantation with subtotals and delete buttons. Frontend testing shows all features working correctly."
