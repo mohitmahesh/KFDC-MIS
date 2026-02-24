@@ -789,6 +789,10 @@ function PlantationsView({ user, setView, setSelectedPlantation }) {
     work_type: 'FW'
   })
 
+  // District and Taluk data from API
+  const [districtsData, setDistrictsData] = useState([])
+  const [availableTaluks, setAvailableTaluks] = useState([])
+
   // Dropdown options from document
   const vidhana_sabha_options = [
     "Chikkamagalore", "Kadur", "Sringeri", "Shivamogga", "Koppa", "Bhadravathi",
@@ -818,6 +822,30 @@ function PlantationsView({ user, setView, setSelectedPlantation }) {
   }, [])
 
   useEffect(() => { load() }, [load])
+
+  // Load districts data on mount
+  useEffect(() => {
+    api.get('/districts').then(setDistrictsData).catch(console.error)
+  }, [])
+
+  // Update available taluks when district changes
+  useEffect(() => {
+    if (form.district) {
+      const districtData = districtsData.find(d => d.district === form.district)
+      if (districtData) {
+        setAvailableTaluks(districtData.taluks)
+        // Reset taluk if it's not in the new district's taluks
+        if (!districtData.taluks.includes(form.taluk)) {
+          setForm(f => ({ ...f, taluk: '' }))
+        }
+      } else {
+        setAvailableTaluks([])
+      }
+    } else {
+      setAvailableTaluks([])
+      setForm(f => ({ ...f, taluk: '' }))
+    }
+  }, [form.district, districtsData])
 
   const handleCreate = async () => {
     try {
