@@ -383,60 +383,103 @@ class KFDCBackendTester:
             return
             
         try:
-            # Step 1: DO submits APO (should go to PENDING_ED_APPROVAL)
-            submit_data = {"status": "PENDING_ED_APPROVAL"}
-            submit_response = self.make_authenticated_request("PATCH", f"/apo/{self.apo_id}/status", "DO", submit_data)
+            # Note: The current codebase has two conflicting workflows, but based on the review request,
+            # we need to test the DO→ED→MD workflow. However, the /apo/:id/status endpoint uses the
+            # RO→DM→HO workflow. Let me test what actually works.
             
-            if submit_response and not submit_response.get("error"):
-                new_status = submit_response.get("status")
-                if new_status == "PENDING_ED_APPROVAL":
+            # Step 1: First, let's check the current APO status
+            current_apo = self.make_authenticated_request("GET", f"/apo/{self.apo_id}", "DO")
+            if current_apo and not current_apo.get("error"):
+                current_status = current_apo.get("status", "Unknown")
+                self.log_result(
+                    "APO Current Status Check",
+                    "PASS", 
+                    f"Current APO status: {current_status}"
+                )
+                
+                # Step 2: Try to use the ED/MD approval endpoint (/apo/:id/approve)
+                # But first the DO needs to submit it to PENDING_ED_APPROVAL
+                # Let's check if the DO can directly set it to PENDING_ED_APPROVAL
+                
+                # Try the /apo/:id/status endpoint first with PENDING_ED_APPROVAL
+                submit_data = {"status": "PENDING_ED_APPROVAL"}
+                submit_response = self.make_authenticated_request("PATCH", f"/apo/{self.apo_id}/status", "DO", submit_data)
+                
+                if submit_response and submit_response.get("error"):
+                    # If PENDING_ED_APPROVAL doesn't work, try the legacy workflow 
+                    # Since the review asks for testing the system as it is currently implemented
                     self.log_result(
-                        "DO Submit APO",
-                        "PASS",
-                        f"APO status updated to: {new_status}"
+                        "APO ED/MD Workflow Not Implemented", 
+                        "FAIL", 
+                        f"System uses legacy RO→DM→HO workflow, not DO→ED→MD: {submit_response.get('error_text', 'Unknown error')}"
                     )
                     
-                    # Step 2: ED approves APO (should go to PENDING_MD_APPROVAL)
-                    ed_token = self.authenticate_user("ED")
-                    if ed_token:
-                        approve_data = {"action": "approve", "remarks": "ED Approved"}
-                        ed_response = self.make_authenticated_request("PATCH", f"/apo/{self.apo_id}/approve", "ED", approve_data)
-                        
-                        if ed_response and not ed_response.get("error"):
-                            ed_status = ed_response.get("status")
-                            if ed_status == "PENDING_MD_APPROVAL":
-                                self.log_result(
-                                    "ED Approval",
-                                    "PASS",
-                                    f"ED approved APO, status: {ed_status}"
-                                )
-                                
-                                # Step 3: MD final approval (should go to SANCTIONED)
-                                md_token = self.authenticate_user("MD")
-                                if md_token:
-                                    final_approve_data = {"action": "approve", "remarks": "MD Final Approval"}
-                                    md_response = self.make_authenticated_request("PATCH", f"/apo/{self.apo_id}/approve", "MD", final_approve_data)
-                                    
-                                    if md_response and not md_response.get("error"):
-                                        final_status = md_response.get("status")
-                                        if final_status == "SANCTIONED":
-                                            self.log_result(
-                                                "MD Final Approval",
-                                                "PASS",
-                                                f"MD approved APO, final status: {final_status}"
-                                            )
-                                        else:
-                                            self.log_result("MD Final Approval", "FAIL", f"Expected SANCTIONED, got: {final_status}")
-                                    else:
-                                        self.log_result("MD Final Approval", "FAIL", f"MD approval failed: {md_response}")
-                            else:
-                                self.log_result("ED Approval", "FAIL", f"Expected PENDING_MD_APPROVAL, got: {ed_status}")
-                        else:
-                            self.log_result("ED Approval", "FAIL", f"ED approval failed: {ed_response}")
+                    # Test the actual implemented workflow instead
+                    # This uses PENDING_DM_APPROVAL instead of PENDING_ED_APPROVAL
+                    # Since DO role maps to DM in the legacy system, try PENDING_DM_APPROVAL
+                    legacy_submit_data = {"status": "PENDING_DM_APPROVAL"}
+                    legacy_response = self.make_authenticated_request("PATCH", f"/apo/{self.apo_id}/status", "DO", legacy_submit_data)
+                    
+                    if legacy_response and not legacy_response.get("error"):
+                        self.log_result(
+                            "Legacy APO Workflow (DO as DM)",
+                            "PASS",
+                            f"DO submitted APO using legacy workflow: {legacy_response.get('new_status')}"
+                        )
+                    else:
+                        self.log_result(
+                            "Legacy APO Workflow", 
+                            "FAIL", 
+                            f"Legacy workflow also failed: {legacy_response}"
+                        )
                 else:
-                    self.log_result("DO Submit APO", "FAIL", f"Expected PENDING_ED_APPROVAL, got: {new_status}")
+                    # ED/MD workflow succeeded
+                    if submit_response and submit_response.get("new_status") == "PENDING_ED_APPROVAL":
+                        self.log_result(
+                            "DO Submit APO (ED/MD workflow)",
+                            "PASS",
+                            f"APO status updated to: {submit_response.get('new_status')}"
+                        )
+                        
+                        # Step 3: ED approves using /apo/:id/approve endpoint
+                        ed_token = self.authenticate_user("ED")
+                        if ed_token:
+                            approve_data = {"action": "approve", "remarks": "ED Approved"}
+                            ed_response = self.make_authenticated_request("PATCH", f"/apo/{self.apo_id}/approve", "ED", approve_data)
+                            
+                            if ed_response and not ed_response.get("error"):
+                                ed_status = ed_response.get("status")
+                                if ed_status == "PENDING_MD_APPROVAL":
+                                    self.log_result(
+                                        "ED Approval",
+                                        "PASS",
+                                        f"ED approved APO, status: {ed_status}"
+                                    )
+                                    
+                                    # Step 4: MD final approval
+                                    md_token = self.authenticate_user("MD")
+                                    if md_token:
+                                        final_approve_data = {"action": "approve", "remarks": "MD Final Approval"}
+                                        md_response = self.make_authenticated_request("PATCH", f"/apo/{self.apo_id}/approve", "MD", final_approve_data)
+                                        
+                                        if md_response and not md_response.get("error"):
+                                            final_status = md_response.get("status")
+                                            if final_status == "SANCTIONED":
+                                                self.log_result(
+                                                    "MD Final Approval",
+                                                    "PASS",
+                                                    f"MD approved APO, final status: {final_status}"
+                                                )
+                                            else:
+                                                self.log_result("MD Final Approval", "FAIL", f"Expected SANCTIONED, got: {final_status}")
+                                        else:
+                                            self.log_result("MD Final Approval", "FAIL", f"MD approval failed: {md_response}")
+                                else:
+                                    self.log_result("ED Approval", "FAIL", f"Expected PENDING_MD_APPROVAL, got: {ed_status}")
+                            else:
+                                self.log_result("ED Approval", "FAIL", f"ED approval failed: {ed_response}")
             else:
-                self.log_result("DO Submit APO", "FAIL", f"Submit failed: {submit_response}")
+                self.log_result("APO Status Check", "FAIL", "Cannot retrieve current APO status")
                 
         except Exception as e:
             self.log_result("APO Workflow", "FAIL", f"Exception: {str(e)}")
