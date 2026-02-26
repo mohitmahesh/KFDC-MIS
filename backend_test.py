@@ -202,16 +202,18 @@ class KFDCBackendTester:
         try:
             response = self.make_authenticated_request("GET", "/nurseries", "RO")
             
-            if response and not response.get("error"):
-                nurseries_count = len(response) if isinstance(response, list) else 0
-                nursery_names = [n.get("name", "Unknown") for n in response[:3]] if isinstance(response, list) else []
+            if response and isinstance(response, list):
+                nurseries_count = len(response)
+                nursery_names = [n.get("name", "Unknown") for n in response[:3]]
                 self.log_result(
                     "GET /nurseries (RO access)",
                     "PASS",
                     f"Retrieved {nurseries_count} nurseries in RO's range. Sample: {', '.join(nursery_names)}"
                 )
-            else:
+            elif response and response.get("error"):
                 self.log_result("GET /nurseries (RO access)", "FAIL", f"Error: {response}")
+            else:
+                self.log_result("GET /nurseries (RO access)", "FAIL", f"Invalid response: {type(response)}")
                 
         except Exception as e:
             self.log_result("GET /nurseries (RO access)", "FAIL", f"Exception: {str(e)}")
