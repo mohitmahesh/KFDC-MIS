@@ -371,23 +371,53 @@ backend:
         agent: "testing"
         comment: "✅ TESTED: Complete Draft & Append workflow working. APO created as DRAFT header (₹0). First work added, total recalculated (₹54,558.6). Second work appended, total updated (₹80,605.15). Submit to PENDING_APPROVAL and DM approval to SANCTIONED working correctly."
 
-  - task: "Plantation with new fields"
+  - task: "NEW Buildings Module API"
     implemented: true
     working: true
     file: "app/api/[[...path]]/route.js"
     stuck_count: 0
     priority: "high"
-    needs_retesting: true
+    needs_retesting: false
     status_history:
       - working: true
-        agent: "main"
-        comment: "Added vidhana_sabha, lok_sabha, latitude, longitude fields. PUT /api/plantations/:id for editing."
+        agent: "testing"
+        comment: "✅ BUILDINGS MODULE FULLY TESTED - 100% SUCCESS! Comprehensive validation of all Buildings API endpoints completed successfully. **ENDPOINTS TESTED**: 1) GET /buildings - RO role access working perfectly (retrieved 3 buildings in Dharwad range: Dharwad Range Office, Varavanagalavi Rest House, Test Building), 2) POST /buildings - RO can successfully create new buildings (test building created with ID), 3) GET /building-activities - Rate card working (retrieved 13 building activities: Site Survey & Layout, Foundation Work, Structural Construction), 4) GET /building-norms - Rate card with rates working perfectly (retrieved 13 building norms with enriched activity data and standard rates). **RBAC VERIFIED**: RO role has proper access to buildings in their range and can create new buildings. All endpoints return properly structured data with required fields. Building module ready for production use."
+
+  - task: "NEW Nurseries Module API"
+    implemented: true
+    working: true
+    file: "app/api/[[...path]]/route.js"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: false
+    status_history:
       - working: true
         agent: "testing"
-        comment: "✅ TESTED: All new plantation fields working. POST /plantations creates plantation with vidhana_sabha, lok_sabha, latitude, longitude fields. PUT /plantations/:id successfully updates all new fields. Field validation and persistence working correctly."
-      - working: "NA"
-        agent: "main"
-        comment: "ENHANCED: Added dynamic work_type calculation based on financial year (April-March cycle). FW = Fresh Work (current financial year), M = Maintenance (any previous FY). Backend now dynamically calculates work_type in GET /plantations, GET /plantations/:id, and POST /plantations. Seed data already has work_type values. The work_type automatically transitions from FW to M when the financial year changes."
+        comment: "✅ NURSERIES MODULE FULLY TESTED - 100% SUCCESS! Comprehensive validation of all Nurseries API endpoints completed successfully. **ENDPOINTS TESTED**: 1) GET /nurseries - RO role access working perfectly (retrieved 2 nurseries in Dharwad range: Dharwad Central Nursery, Test Nursery), 2) POST /nurseries - RO can successfully create new nurseries (test nursery created with capacity 25000 seedlings), 3) GET /nursery-activities - Rate card working (retrieved 14 nursery activities: Nursery Site Preparation, Irrigation System Setup, Shade Net Installation), 4) GET /nursery-norms - Rate card with rates working perfectly (retrieved 14 nursery norms with enriched activity data and standard rates). **RBAC VERIFIED**: RO role has proper access to nurseries in their range and can create new nurseries. All endpoints return properly structured data with required fields. Nursery module ready for production use."
+
+  - task: "Updated RBAC System (RO/DO/ED/MD)"
+    implemented: true
+    working: true
+    file: "app/api/[[...path]]/route.js"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: false
+    status_history:
+      - working: true
+        agent: "testing"
+        comment: "✅ UPDATED RBAC SYSTEM FULLY TESTED - 95% SUCCESS! Comprehensive validation of new role-based access control completed successfully. **AUTHENTICATION**: All 4 new roles working perfectly - RO (Ramesh Kumar), DO (Anjali Sharma), ED (Rajesh Naik ED), MD (Dr. Shivakumar MD). **ROLE PERMISSIONS VERIFIED**: 1) RO Role (Data Entry Only) - ✅ Correctly blocked from APO creation (403 Forbidden), ✅ Can create buildings and nurseries, 2) DO Role (APO Creation) - ✅ Can create APOs with capex_items and revex_items, ✅ Can access all resources (44 plantations, 6 buildings, 5 nurseries), 3) ED/MD Roles - ✅ Can see appropriate APO lists for approval workflow. **WORKFLOW IMPLEMENTATION NOTE**: ❌ Current system uses legacy RO→DM→HO workflow (PENDING_DM_APPROVAL) instead of requested DO→ED→MD workflow (PENDING_ED_APPROVAL). All other RBAC controls working correctly."
+
+  - task: "APO Workflow Testing (DO→ED→MD)"
+    implemented: true
+    working: false
+    file: "app/api/[[...path]]/route.js"
+    stuck_count: 1
+    priority: "high"
+    needs_retesting: true
+    status_history:
+      - working: false
+        agent: "testing"
+        comment: "❌ APO WORKFLOW MISMATCH FOUND: System implements legacy RO→DM→HO workflow instead of requested DO→ED→MD workflow. **CURRENT IMPLEMENTATION**: Uses PENDING_DM_APPROVAL status transitions and RO/DM/ADMIN role hierarchy. **REQUESTED IMPLEMENTATION**: Should use PENDING_ED_APPROVAL → PENDING_MD_APPROVAL status transitions with DO/ED/MD role hierarchy. **CODE CONFLICT**: Found two different APO approval systems in codebase - /apo/:id/approve (ED/MD) vs /apo/:id/status (RO/DM/HO). System defaults to legacy workflow. **RECOMMENDATION**: Main agent should implement proper DO→ED→MD workflow with PENDING_ED_APPROVAL status transitions as per review request requirements."
 
   - task: "Dynamic Work Type Calculation"
     implemented: true
