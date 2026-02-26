@@ -533,7 +533,22 @@ async function handleRoute(request, { params }) {
       ]
       await db.collection('work_logs').insertMany(sampleWorkLogs)
 
-      return handleCORS(NextResponse.json({ message: 'Database seeded with real KFDC data', counts: { divisions: 4, ranges: 19, users: 8, activities: 25, norms: SEED_DATA.norms.length, plantations: SEED_DATA.plantations.length, apos: 4 } }))
+      return handleCORS(NextResponse.json({ 
+        message: 'Database seeded with real KFDC data including Buildings & Nurseries', 
+        counts: { 
+          divisions: 4, 
+          ranges: 19, 
+          users: SEED_DATA.users.length, 
+          activities: 25, 
+          norms: SEED_DATA.norms.length, 
+          plantations: SEED_DATA.plantations.length, 
+          buildings: SEED_DATA.buildings.length,
+          nurseries: SEED_DATA.nurseries.length,
+          building_activities: SEED_DATA.building_activities.length,
+          nursery_activities: SEED_DATA.nursery_activities.length,
+          apos: 4 
+        } 
+      }))
     }
 
     // =================== AUTH ===================
