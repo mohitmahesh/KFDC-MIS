@@ -301,8 +301,117 @@ const SEED_DATA = {
     { id: 'plt-s03', range_id: 'rng-soraba', name: 'Soraba Plantation', species: 'Acacia auriculiformis', year_of_planting: 2019, total_area_ha: 52.1, village: 'Soraba', taluk: 'Soraba', district: 'Shivamogga', work_type: 'M', vidhana_sabha: 'Soraba', lok_sabha: 'Shivamogga', division: 'Shivamogga' },
     { id: 'plt-s04', range_id: 'rng-siddapur', name: 'Siddapur Block', species: 'Eucalyptus pellita', year_of_planting: 2017, total_area_ha: 33.7, village: 'Siddapur', taluk: 'Siddapur', district: 'Uttara Kannada', work_type: 'M', vidhana_sabha: 'Siddapur', lok_sabha: 'Haveri', division: 'Shivamogga' },
     // Chikkamagaluru Division
-    { id: 'plt-c01', range_id: 'rng-koppa', name: 'Koppa Plantation', species: 'Acacia auriculiformis', year_of_planting: 2018, total_area_ha: 29, village: 'Koppa', taluk: 'Koppa', district: 'Chikkamagaluru', work_type: 'M', vidhana_sabha: 'Koppa', lok_sabha: 'Udupi-Chikkamagalore', division: 'Chikkamagalore' },
-    { id: 'plt-c02', range_id: 'rng-narasimharajapura', name: 'NR Pura Block', species: 'Eucalyptus pellita', year_of_planting: 2022, total_area_ha: 18.6, village: 'NR Pura', taluk: 'NR Pura', district: 'Chikkamagaluru', work_type: 'M', vidhana_sabha: 'Sringeri', lok_sabha: 'Udupi-Chikkamagalore', division: 'Chikkamagalore' },
+    { id: 'plt-c01', range_id: 'rng-koppa', name: 'Koppa Plantation', species: 'Acacia auriculiformis', year_of_planting: 2018, total_area_ha: 29, village: 'Koppa', taluk: 'Koppa', district: 'Chikkamagaluru', work_type: 'M', vidhana_sabha: 'Koppa', lok_sabha: 'Udupi-Chikkamagalore', division: 'Chikkamagalore', plantation_category: 'Non-Rubber', advance_work_year: 2017, planted_year: 2018 },
+    { id: 'plt-c02', range_id: 'rng-narasimharajapura', name: 'NR Pura Block', species: 'Eucalyptus pellita', year_of_planting: 2022, total_area_ha: 18.6, village: 'NR Pura', taluk: 'NR Pura', district: 'Chikkamagaluru', work_type: 'M', vidhana_sabha: 'Sringeri', lok_sabha: 'Udupi-Chikkamagalore', division: 'Chikkamagalore', plantation_category: 'Non-Rubber', advance_work_year: 2021, planted_year: 2022 },
+  ],
+
+  // ===================== BUILDINGS MODULE =====================
+  buildings: [
+    // Dharwad Division Buildings
+    { id: 'bld-d01', range_id: 'rng-dharwad', name: 'Dharwad Range Office', division: 'Dharwad', district: 'Dharwad', taluk: 'Dharwad', year_of_creation: 2010, latitude: 15.4589, longitude: 75.0078, survey_number: 'SY-101/A', building_phase: 'Maintenance', status: 'Active' },
+    { id: 'bld-d02', range_id: 'rng-dharwad', name: 'Varavanagalavi Rest House', division: 'Dharwad', district: 'Dharwad', taluk: 'Dharwad', year_of_creation: 2015, latitude: 15.4721, longitude: 75.0234, survey_number: 'SY-205/B', building_phase: 'Maintenance', status: 'Active' },
+    { id: 'bld-d03', range_id: 'rng-alloli', name: 'Alloli Nursery Shed', division: 'Dharwad', district: 'Belagavi', taluk: 'Khanapur', year_of_creation: 2020, latitude: 15.6234, longitude: 74.5123, survey_number: 'SY-89/C', building_phase: 'Maintenance', status: 'Active' },
+    { id: 'bld-d04', range_id: 'rng-khanapur', name: 'Khanapur Check Post', division: 'Dharwad', district: 'Belagavi', taluk: 'Khanapur', year_of_creation: 2025, latitude: 15.6512, longitude: 74.5456, survey_number: 'SY-112/D', building_phase: 'Creation', status: 'Under Construction' },
+    // Bangalore Division Buildings
+    { id: 'bld-b01', range_id: 'rng-svpura', name: 'S.V. Pura Division Office', division: 'Bengaluru', district: 'Kolar', taluk: 'S.V. Pura', year_of_creation: 2008, latitude: 13.2456, longitude: 78.1234, survey_number: 'SY-45/A', building_phase: 'Maintenance', status: 'Active' },
+    { id: 'bld-b02', range_id: 'rng-dvhalli', name: 'D.V. Halli Guard House', division: 'Bengaluru', district: 'Doddaballapura', taluk: 'D.V. Halli', year_of_creation: 2018, latitude: 13.5678, longitude: 77.5432, survey_number: 'SY-78/B', building_phase: 'Maintenance', status: 'Active' },
+    { id: 'bld-b03', range_id: 'rng-bidadi', name: 'Bidadi New Office Building', division: 'Bengaluru', district: 'Ramanagara', taluk: 'Kanakapura', year_of_creation: 2026, latitude: 12.7890, longitude: 77.3210, survey_number: 'SY-156/C', building_phase: 'Creation', status: 'Under Construction' },
+    // Shivamogga Division Buildings
+    { id: 'bld-s01', range_id: 'rng-sagara', name: 'Sagara Range Office', division: 'Shivamogga', district: 'Shivamogga', taluk: 'Sagara', year_of_creation: 2012, latitude: 14.1678, longitude: 75.0234, survey_number: 'SY-201/A', building_phase: 'Maintenance', status: 'Active' },
+    { id: 'bld-s02', range_id: 'rng-soraba', name: 'Soraba Plantation Store', division: 'Shivamogga', district: 'Shivamogga', taluk: 'Soraba', year_of_creation: 2019, latitude: 14.3456, longitude: 75.1234, survey_number: 'SY-89/B', building_phase: 'Maintenance', status: 'Active' },
+  ],
+
+  // Buildings Activities (Rate Card)
+  building_activities: [
+    // Creation Phase Activities (CapEx)
+    { id: 'bact-01', name: 'Site Survey & Layout', category: 'Creation', unit: 'Per Building', ssr_no: 'BLD-01' },
+    { id: 'bact-02', name: 'Foundation Work', category: 'Creation', unit: 'Per Sq.Ft', ssr_no: 'BLD-02' },
+    { id: 'bact-03', name: 'Structural Construction', category: 'Creation', unit: 'Per Sq.Ft', ssr_no: 'BLD-03' },
+    { id: 'bact-04', name: 'Roofing Work', category: 'Creation', unit: 'Per Sq.Ft', ssr_no: 'BLD-04' },
+    { id: 'bact-05', name: 'Electrical Installation', category: 'Creation', unit: 'Per Building', ssr_no: 'BLD-05' },
+    { id: 'bact-06', name: 'Plumbing & Sanitation', category: 'Creation', unit: 'Per Building', ssr_no: 'BLD-06' },
+    { id: 'bact-07', name: 'Painting & Finishing', category: 'Creation', unit: 'Per Sq.Ft', ssr_no: 'BLD-07' },
+    // Maintenance Phase Activities (RevEx)
+    { id: 'bact-08', name: 'Annual Building Maintenance', category: 'Maintenance', unit: 'Per Building', ssr_no: 'BLD-08' },
+    { id: 'bact-09', name: 'Roof Repair & Waterproofing', category: 'Maintenance', unit: 'Per Sq.Ft', ssr_no: 'BLD-09' },
+    { id: 'bact-10', name: 'Electrical Maintenance', category: 'Maintenance', unit: 'Per Building', ssr_no: 'BLD-10' },
+    { id: 'bact-11', name: 'Plumbing Repairs', category: 'Maintenance', unit: 'Per Building', ssr_no: 'BLD-11' },
+    { id: 'bact-12', name: 'Repainting & Touch-up', category: 'Maintenance', unit: 'Per Sq.Ft', ssr_no: 'BLD-12' },
+    { id: 'bact-13', name: 'Security & Watchman Services', category: 'Maintenance', unit: 'Per Month', ssr_no: 'BLD-13' },
+  ],
+
+  // Building Norms (Rate Card with Rates)
+  building_norms: [
+    // Creation Phase Norms (CapEx)
+    { id: 'bnorm-01', activity_id: 'bact-01', building_phase: 'Creation', standard_rate: 25000, financial_year: '2026-27' },
+    { id: 'bnorm-02', activity_id: 'bact-02', building_phase: 'Creation', standard_rate: 350, financial_year: '2026-27' },
+    { id: 'bnorm-03', activity_id: 'bact-03', building_phase: 'Creation', standard_rate: 1200, financial_year: '2026-27' },
+    { id: 'bnorm-04', activity_id: 'bact-04', building_phase: 'Creation', standard_rate: 450, financial_year: '2026-27' },
+    { id: 'bnorm-05', activity_id: 'bact-05', building_phase: 'Creation', standard_rate: 75000, financial_year: '2026-27' },
+    { id: 'bnorm-06', activity_id: 'bact-06', building_phase: 'Creation', standard_rate: 45000, financial_year: '2026-27' },
+    { id: 'bnorm-07', activity_id: 'bact-07', building_phase: 'Creation', standard_rate: 85, financial_year: '2026-27' },
+    // Maintenance Phase Norms (RevEx)
+    { id: 'bnorm-08', activity_id: 'bact-08', building_phase: 'Maintenance', standard_rate: 50000, financial_year: '2026-27' },
+    { id: 'bnorm-09', activity_id: 'bact-09', building_phase: 'Maintenance', standard_rate: 120, financial_year: '2026-27' },
+    { id: 'bnorm-10', activity_id: 'bact-10', building_phase: 'Maintenance', standard_rate: 15000, financial_year: '2026-27' },
+    { id: 'bnorm-11', activity_id: 'bact-11', building_phase: 'Maintenance', standard_rate: 12000, financial_year: '2026-27' },
+    { id: 'bnorm-12', activity_id: 'bact-12', building_phase: 'Maintenance', standard_rate: 45, financial_year: '2026-27' },
+    { id: 'bnorm-13', activity_id: 'bact-13', building_phase: 'Maintenance', standard_rate: 18000, financial_year: '2026-27' },
+  ],
+
+  // ===================== NURSERIES MODULE =====================
+  nurseries: [
+    // Dharwad Division Nurseries
+    { id: 'nur-d01', range_id: 'rng-dharwad', name: 'Dharwad Central Nursery', nursery_type: 'Raising', latitude: 15.4567, longitude: 75.0123, status: 'Active', capacity_seedlings: 50000 },
+    { id: 'nur-d02', range_id: 'rng-alloli', name: 'Alloli Clonal Nursery', nursery_type: 'New', latitude: 15.6345, longitude: 74.5234, status: 'Under Development', capacity_seedlings: 75000 },
+    { id: 'nur-d03', range_id: 'rng-khanapur', name: 'Khanapur Seedling Nursery', nursery_type: 'Raising', latitude: 15.6678, longitude: 74.5567, status: 'Active', capacity_seedlings: 40000 },
+    // Bangalore Division Nurseries
+    { id: 'nur-b01', range_id: 'rng-svpura', name: 'S.V. Pura Main Nursery', nursery_type: 'Raising', latitude: 13.2567, longitude: 78.1345, status: 'Active', capacity_seedlings: 100000 },
+    { id: 'nur-b02', range_id: 'rng-dvhalli', name: 'D.V. Halli Tissue Culture', nursery_type: 'New', latitude: 13.5789, longitude: 77.5543, status: 'Active', capacity_seedlings: 30000 },
+    { id: 'nur-b03', range_id: 'rng-bidadi', name: 'Bidadi New Nursery', nursery_type: 'New', latitude: 12.7901, longitude: 77.3321, status: 'Under Development', capacity_seedlings: 60000 },
+    // Shivamogga Division Nurseries
+    { id: 'nur-s01', range_id: 'rng-sagara', name: 'Sagara Forest Nursery', nursery_type: 'Raising', latitude: 14.1789, longitude: 75.0345, status: 'Active', capacity_seedlings: 80000 },
+    { id: 'nur-s02', range_id: 'rng-soraba', name: 'Soraba Eucalyptus Nursery', nursery_type: 'Raising', latitude: 14.3567, longitude: 75.1345, status: 'Active', capacity_seedlings: 45000 },
+  ],
+
+  // Nursery Activities (Rate Card) - All CapEx, No RevEx
+  nursery_activities: [
+    // New Nursery Phase (CapEx)
+    { id: 'nact-01', name: 'Nursery Site Preparation', category: 'New Nursery', unit: 'Per Hectare', ssr_no: 'NUR-01' },
+    { id: 'nact-02', name: 'Irrigation System Setup', category: 'New Nursery', unit: 'Per Nursery', ssr_no: 'NUR-02' },
+    { id: 'nact-03', name: 'Shade Net Installation', category: 'New Nursery', unit: 'Per Sq.Meter', ssr_no: 'NUR-03' },
+    { id: 'nact-04', name: 'Nursery Bed Construction', category: 'New Nursery', unit: 'Per Bed', ssr_no: 'NUR-04' },
+    { id: 'nact-05', name: 'Potting Mix Preparation', category: 'New Nursery', unit: 'Per Cubic Meter', ssr_no: 'NUR-05' },
+    { id: 'nact-06', name: 'Mother Plant Establishment', category: 'New Nursery', unit: 'Per Plant', ssr_no: 'NUR-06' },
+    // Raising Nursery Phase (CapEx)
+    { id: 'nact-07', name: 'Seed Collection & Processing', category: 'Raising Nursery', unit: 'Per Kg', ssr_no: 'NUR-07' },
+    { id: 'nact-08', name: 'Seed Sowing & Germination', category: 'Raising Nursery', unit: 'Per 1000 Seeds', ssr_no: 'NUR-08' },
+    { id: 'nact-09', name: 'Pricking & Transplanting', category: 'Raising Nursery', unit: 'Per 1000 Seedlings', ssr_no: 'NUR-09' },
+    { id: 'nact-10', name: 'Seedling Maintenance', category: 'Raising Nursery', unit: 'Per 1000 Seedlings', ssr_no: 'NUR-10' },
+    { id: 'nact-11', name: 'Fertilizer Application', category: 'Raising Nursery', unit: 'Per 1000 Seedlings', ssr_no: 'NUR-11' },
+    { id: 'nact-12', name: 'Pest & Disease Control', category: 'Raising Nursery', unit: 'Per 1000 Seedlings', ssr_no: 'NUR-12' },
+    { id: 'nact-13', name: 'Hardening of Seedlings', category: 'Raising Nursery', unit: 'Per 1000 Seedlings', ssr_no: 'NUR-13' },
+    { id: 'nact-14', name: 'Polybag Filling & Arrangement', category: 'Raising Nursery', unit: 'Per 1000 Bags', ssr_no: 'NUR-14' },
+  ],
+
+  // Nursery Norms (Rate Card with Rates) - All CapEx
+  nursery_norms: [
+    // New Nursery Phase (CapEx)
+    { id: 'nnorm-01', activity_id: 'nact-01', nursery_type: 'New', standard_rate: 85000, financial_year: '2026-27' },
+    { id: 'nnorm-02', activity_id: 'nact-02', nursery_type: 'New', standard_rate: 150000, financial_year: '2026-27' },
+    { id: 'nnorm-03', activity_id: 'nact-03', nursery_type: 'New', standard_rate: 250, financial_year: '2026-27' },
+    { id: 'nnorm-04', activity_id: 'nact-04', nursery_type: 'New', standard_rate: 5000, financial_year: '2026-27' },
+    { id: 'nnorm-05', activity_id: 'nact-05', nursery_type: 'New', standard_rate: 2500, financial_year: '2026-27' },
+    { id: 'nnorm-06', activity_id: 'nact-06', nursery_type: 'New', standard_rate: 150, financial_year: '2026-27' },
+    // Raising Nursery Phase (CapEx)
+    { id: 'nnorm-07', activity_id: 'nact-07', nursery_type: 'Raising', standard_rate: 500, financial_year: '2026-27' },
+    { id: 'nnorm-08', activity_id: 'nact-08', nursery_type: 'Raising', standard_rate: 1200, financial_year: '2026-27' },
+    { id: 'nnorm-09', activity_id: 'nact-09', nursery_type: 'Raising', standard_rate: 2500, financial_year: '2026-27' },
+    { id: 'nnorm-10', activity_id: 'nact-10', nursery_type: 'Raising', standard_rate: 1800, financial_year: '2026-27' },
+    { id: 'nnorm-11', activity_id: 'nact-11', nursery_type: 'Raising', standard_rate: 800, financial_year: '2026-27' },
+    { id: 'nnorm-12', activity_id: 'nact-12', nursery_type: 'Raising', standard_rate: 600, financial_year: '2026-27' },
+    { id: 'nnorm-13', activity_id: 'nact-13', nursery_type: 'Raising', standard_rate: 400, financial_year: '2026-27' },
+    { id: 'nnorm-14', activity_id: 'nact-14', nursery_type: 'Raising', standard_rate: 3500, financial_year: '2026-27' },
   ],
 }
 
