@@ -1589,35 +1589,620 @@ function NurseriesView({ user }) {
 }
 
 // ===================== APO WIZARD =====================
+// DO (Division Officer) creates APO with items from Plantations, Buildings, and Nurseries
+// Items are auto-categorized into CapEx (Capital) and RevEx (Revenue) expenses
 function ApoWizard({ user, setView }) {
   const [step, setStep] = useState(1)
-  const [plantations, setPlantations] = useState([])
-  const [selectedPlantations, setSelectedPlantations] = useState([]) // Changed to array for multi-select
   const [financialYear, setFinancialYear] = useState('2026-27')
-  const [plantationDrafts, setPlantationDrafts] = useState([]) // Array of drafts, one per plantation
-  const [items, setItems] = useState([]) // All items with plantation_id attached
   const [loading, setLoading] = useState(false)
   const [submitting, setSubmitting] = useState(false)
-  const [searchTerm, setSearchTerm] = useState('')
   
-  // Add Activity Modal State
+  // Data sources
+  const [plantations, setPlantations] = useState([])
+  const [buildings, setBuildings] = useState([])
+  const [nurseries, setNurseries] = useState([])
+  
+  // Selection state
+  const [selectedPlantations, setSelectedPlantations] = useState([])
+  const [selectedBuildings, setSelectedBuildings] = useState([])
+  const [selectedNurseries, setSelectedNurseries] = useState([])
+  
+  // Generated items - separated by expense type
+  const [capexItems, setCapexItems] = useState([])
+  const [revexItems, setRevexItems] = useState([])
+  
+  // Rate cards for adding custom activities
+  const [plantationActivities, setPlantationActivities] = useState([])
+  const [plantationNorms, setPlantationNorms] = useState([])
+  const [buildingActivities, setBuildingActivities] = useState([])
+  const [buildingNorms, setBuildingNorms] = useState([])
+  const [nurseryActivities, setNurseryActivities] = useState([])
+  const [nurseryNorms, setNurseryNorms] = useState([])
+  
+  // Add activity modal
   const [showAddActivity, setShowAddActivity] = useState(false)
-  const [allActivities, setAllActivities] = useState([])
-  const [allNorms, setAllNorms] = useState([])
-  const [showAllActivities, setShowAllActivities] = useState(false) // Override toggle
-  const [activitySearch, setActivitySearch] = useState('')
-  const [selectedActivityPlantation, setSelectedActivityPlantation] = useState(null)
+  const [addActivityType, setAddActivityType] = useState('plantation') // plantation, building, nursery
+  const [addActivityTarget, setAddActivityTarget] = useState(null) // which item to add to
+  
+  // Search/filter
+  const [searchTerm, setSearchTerm] = useState('')
+  const [activeTab, setActiveTab] = useState('capex') // capex or revex
 
+  // Load all data on mount
   useEffect(() => {
-    api.get('/plantations').then(setPlantations).catch(console.error)
-    // Load activities and norms for the Add Activity feature
-    Promise.all([api.get('/activities'), api.get('/norms')])
-      .then(([acts, norms]) => {
-        setAllActivities(acts)
-        setAllNorms(norms)
-      })
-      .catch(console.error)
+    Promise.all([
+      api.get('/plantations'),
+      api.get('/buildings'),
+      api.get('/nurseries'),
+      api.get('/activities'),
+      api.get('/norms'),
+      api.get('/building-activities'),
+      api.get('/building-norms'),
+      api.get('/nursery-activities'),
+      api.get('/nursery-norms'),
+    ]).then(([plts, blds, nurs, pActs, pNorms, bActs, bNorms, nActs, nNorms]) => {
+      setPlantations(plts)
+      setBuildings(blds)
+      setNurseries(nurs)
+      setPlantationActivities(pActs)
+      setPlantationNorms(pNorms)
+      setBuildingActivities(bActs)
+      setBuildingNorms(bNorms)
+      setNurseryActivities(nActs)
+      setNurseryNorms(nNorms)
+    }).catch(console.error)
   }, [])
+
+  // Determine expense type based on categorization rules
+  // Plantations: CapEx (Age 1-7), RevEx (Age 8+)
+  // Buildings: CapEx (Creation), RevEx (Maintenance)
+  // Nurseries: CapEx only (New + Raising)
+  const getExpenseType = (item, type) => {
+    if (type === 'plantation') {
+      const age = item.age || (new Date().getFullYear() - item.year_of_planting)
+      return age <= 7 ? 'CAPEX' : 'REVEX'
+    }
+    if (type === 'building') {
+      return item.building_phase === 'Creation' ? 'CAPEX' : 'REVEX'
+    }
+    if (type === 'nursery') {
+      return 'CAPEX' // All nursery expenses are CapEx
+    }
+    return 'CAPEX'
+  }
+
+  // Generate draft items for all selected sources
+  const generateDraft = async () => {
+    setLoading(true)
+    const newCapexItems = []
+    const newRevexItems = []
+    
+    try {
+      // Generate for plantations
+      for (const pltId of selectedPlantations) {
+        const plt = plantations.find(p => p.id === pltId)
+        if (!plt) continue
+        
+        const data = await api.post('/apo/generate-draft', { plantation_id: pltId, financial_year: financialYear })
+        const expenseType = getExpenseType(plt, 'plantation')
+        
+        data.items.forEach(item => {
+          const enrichedItem = {
+            ...item,
+            sanctioned_qty: item.suggested_qty,
+            source_type: 'plantation',
+            source_id: pltId,
+            source_name: plt.name,
+            expense_type: expenseType,
+            plantation_age: data.age,
+          }
+          if (expenseType === 'CAPEX') {
+            newCapexItems.push(enrichedItem)
+          } else {
+            newRevexItems.push(enrichedItem)
+          }
+        })
+      }
+      
+      // Generate for buildings
+      for (const bldId of selectedBuildings) {
+        const bld = buildings.find(b => b.id === bldId)
+        if (!bld) continue
+        
+        const data = await api.post('/buildings/generate-draft', { building_id: bldId, financial_year: financialYear })
+        const expenseType = getExpenseType(bld, 'building')
+        
+        data.items.forEach(item => {
+          const enrichedItem = {
+            ...item,
+            sanctioned_qty: item.suggested_qty,
+            source_type: 'building',
+            source_id: bldId,
+            source_name: bld.name,
+            expense_type: expenseType,
+            building_phase: bld.building_phase,
+          }
+          if (expenseType === 'CAPEX') {
+            newCapexItems.push(enrichedItem)
+          } else {
+            newRevexItems.push(enrichedItem)
+          }
+        })
+      }
+      
+      // Generate for nurseries
+      for (const nurId of selectedNurseries) {
+        const nur = nurseries.find(n => n.id === nurId)
+        if (!nur) continue
+        
+        const data = await api.post('/nurseries/generate-draft', { nursery_id: nurId, financial_year: financialYear })
+        // All nursery expenses are CapEx
+        data.items.forEach(item => {
+          newCapexItems.push({
+            ...item,
+            sanctioned_qty: item.suggested_qty,
+            source_type: 'nursery',
+            source_id: nurId,
+            source_name: nur.name,
+            expense_type: 'CAPEX',
+            nursery_type: nur.nursery_type,
+          })
+        })
+      }
+      
+      setCapexItems(newCapexItems)
+      setRevexItems(newRevexItems)
+      setStep(2)
+    } catch (e) {
+      alert(e.message)
+    }
+    setLoading(false)
+  }
+
+  // Update quantity for an item
+  const updateQty = (expenseType, index, qty) => {
+    const setter = expenseType === 'CAPEX' ? setCapexItems : setRevexItems
+    setter(prev => prev.map((item, i) => {
+      if (i !== index) return item
+      const newQty = parseFloat(qty) || 0
+      return { ...item, sanctioned_qty: newQty, total_cost: newQty * item.sanctioned_rate }
+    }))
+  }
+
+  // Remove an item
+  const removeItem = (expenseType, index) => {
+    const setter = expenseType === 'CAPEX' ? setCapexItems : setRevexItems
+    setter(prev => prev.filter((_, i) => i !== index))
+  }
+
+  // Calculate totals
+  const capexTotal = capexItems.reduce((sum, i) => sum + (i.total_cost || 0), 0)
+  const revexTotal = revexItems.reduce((sum, i) => sum + (i.total_cost || 0), 0)
+  const grandTotal = capexTotal + revexTotal
+
+  // Submit APO
+  const submitApo = async (status) => {
+    setSubmitting(true)
+    try {
+      await api.post('/apo', {
+        financial_year: financialYear,
+        title: `APO ${financialYear} - ${user.division_id || 'Division'}`,
+        status: status === 'DRAFT' ? 'DRAFT' : 'PENDING_ED_APPROVAL',
+        capex_items: capexItems.map(i => ({
+          activity_id: i.activity_id,
+          activity_name: i.activity_name,
+          sanctioned_qty: i.sanctioned_qty,
+          sanctioned_rate: i.sanctioned_rate,
+          unit: i.unit,
+          source_type: i.source_type,
+          source_id: i.source_id,
+          source_name: i.source_name,
+        })),
+        revex_items: revexItems.map(i => ({
+          activity_id: i.activity_id,
+          activity_name: i.activity_name,
+          sanctioned_qty: i.sanctioned_qty,
+          sanctioned_rate: i.sanctioned_rate,
+          unit: i.unit,
+          source_type: i.source_type,
+          source_id: i.source_id,
+          source_name: i.source_name,
+        })),
+      })
+      setStep(4)
+    } catch (e) {
+      alert(e.message)
+    }
+    setSubmitting(false)
+  }
+
+  // Selection counts
+  const totalSelected = selectedPlantations.length + selectedBuildings.length + selectedNurseries.length
+
+  return (
+    <div className="space-y-6">
+      <div>
+        <h2 className="text-2xl font-bold">APO Wizard</h2>
+        <p className="text-muted-foreground">Create Annual Plan of Operations with CapEx and RevEx categorization</p>
+      </div>
+
+      {/* Steps indicator */}
+      <div className="flex items-center gap-2 flex-wrap">
+        {[1, 2, 3, 4].map(s => (
+          <div key={s} className="flex items-center gap-2">
+            <div className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-medium ${step >= s ? 'bg-emerald-700 text-white' : 'bg-muted text-muted-foreground'}`}>{s}</div>
+            <span className={`text-sm ${step >= s ? 'font-medium' : 'text-muted-foreground'}`}>
+              {s === 1 ? 'Select Items' : s === 2 ? 'CapEx & RevEx' : s === 3 ? 'Confirm' : 'Done'}
+            </span>
+            {s < 4 && <ChevronRight className="w-4 h-4 text-muted-foreground" />}
+          </div>
+        ))}
+      </div>
+
+      {/* Step 1: Select Plantations, Buildings, Nurseries */}
+      {step === 1 && (
+        <Card>
+          <CardHeader>
+            <CardTitle>Step 1: Select Items for APO</CardTitle>
+            <CardDescription>Choose plantations, buildings, and nurseries to include in the APO</CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-6">
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <Label>Financial Year</Label>
+                <Select value={financialYear} onValueChange={setFinancialYear}>
+                  <SelectTrigger><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="2026-27">2026-27</SelectItem>
+                    <SelectItem value="2025-26">2025-26</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              <div>
+                <Label>Search</Label>
+                <div className="relative">
+                  <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
+                  <Input placeholder="Search by name..." className="pl-9" value={searchTerm} onChange={e => setSearchTerm(e.target.value)} />
+                </div>
+              </div>
+            </div>
+
+            {/* Selection summary */}
+            {totalSelected > 0 && (
+              <div className="p-3 bg-emerald-50 rounded-lg border border-emerald-200 flex items-center justify-between">
+                <span className="text-sm text-emerald-800">
+                  <strong>{totalSelected}</strong> items selected: {selectedPlantations.length} plantations, {selectedBuildings.length} buildings, {selectedNurseries.length} nurseries
+                </span>
+                <Button variant="ghost" size="sm" onClick={() => { setSelectedPlantations([]); setSelectedBuildings([]); setSelectedNurseries([]) }}>
+                  Clear All
+                </Button>
+              </div>
+            )}
+
+            <Tabs defaultValue="plantations">
+              <TabsList className="grid grid-cols-3 w-full">
+                <TabsTrigger value="plantations">
+                  <TreePine className="w-4 h-4 mr-2" /> Plantations ({plantations.length})
+                </TabsTrigger>
+                <TabsTrigger value="buildings">
+                  <Building2 className="w-4 h-4 mr-2" /> Buildings ({buildings.length})
+                </TabsTrigger>
+                <TabsTrigger value="nurseries">
+                  <Sprout className="w-4 h-4 mr-2" /> Nurseries ({nurseries.length})
+                </TabsTrigger>
+              </TabsList>
+
+              {/* Plantations Tab */}
+              <TabsContent value="plantations" className="mt-4">
+                <div className="border rounded-lg max-h-[350px] overflow-y-auto">
+                  {plantations.filter(p => p.name.toLowerCase().includes(searchTerm.toLowerCase())).map(p => (
+                    <div key={p.id} className={`p-3 border-b last:border-b-0 hover:bg-accent/50 cursor-pointer ${selectedPlantations.includes(p.id) ? 'bg-emerald-50' : ''}`}
+                         onClick={() => setSelectedPlantations(prev => prev.includes(p.id) ? prev.filter(id => id !== p.id) : [...prev, p.id])}>
+                      <div className="flex items-center gap-3">
+                        <Checkbox checked={selectedPlantations.includes(p.id)} />
+                        <div className="flex-1">
+                          <div className="flex items-center gap-2">
+                            <span className="font-medium">{p.name}</span>
+                            <Badge variant="outline" className={p.age <= 7 ? 'bg-blue-50 text-blue-700' : 'bg-amber-50 text-amber-700'}>
+                              {p.age <= 7 ? 'CapEx' : 'RevEx'}
+                            </Badge>
+                          </div>
+                          <div className="text-xs text-muted-foreground">{p.species} • {p.age} yrs • {p.total_area_ha} Ha</div>
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </TabsContent>
+
+              {/* Buildings Tab */}
+              <TabsContent value="buildings" className="mt-4">
+                <div className="border rounded-lg max-h-[350px] overflow-y-auto">
+                  {buildings.filter(b => b.name.toLowerCase().includes(searchTerm.toLowerCase())).map(b => (
+                    <div key={b.id} className={`p-3 border-b last:border-b-0 hover:bg-accent/50 cursor-pointer ${selectedBuildings.includes(b.id) ? 'bg-emerald-50' : ''}`}
+                         onClick={() => setSelectedBuildings(prev => prev.includes(b.id) ? prev.filter(id => id !== b.id) : [...prev, b.id])}>
+                      <div className="flex items-center gap-3">
+                        <Checkbox checked={selectedBuildings.includes(b.id)} />
+                        <div className="flex-1">
+                          <div className="flex items-center gap-2">
+                            <span className="font-medium">{b.name}</span>
+                            <Badge variant="outline" className={b.building_phase === 'Creation' ? 'bg-blue-50 text-blue-700' : 'bg-amber-50 text-amber-700'}>
+                              {b.building_phase === 'Creation' ? 'CapEx' : 'RevEx'}
+                            </Badge>
+                          </div>
+                          <div className="text-xs text-muted-foreground">{b.building_phase} • {b.district}</div>
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </TabsContent>
+
+              {/* Nurseries Tab */}
+              <TabsContent value="nurseries" className="mt-4">
+                <div className="border rounded-lg max-h-[350px] overflow-y-auto">
+                  {nurseries.filter(n => n.name.toLowerCase().includes(searchTerm.toLowerCase())).map(n => (
+                    <div key={n.id} className={`p-3 border-b last:border-b-0 hover:bg-accent/50 cursor-pointer ${selectedNurseries.includes(n.id) ? 'bg-emerald-50' : ''}`}
+                         onClick={() => setSelectedNurseries(prev => prev.includes(n.id) ? prev.filter(id => id !== n.id) : [...prev, n.id])}>
+                      <div className="flex items-center gap-3">
+                        <Checkbox checked={selectedNurseries.includes(n.id)} />
+                        <div className="flex-1">
+                          <div className="flex items-center gap-2">
+                            <span className="font-medium">{n.name}</span>
+                            <Badge variant="outline" className="bg-blue-50 text-blue-700">CapEx</Badge>
+                          </div>
+                          <div className="text-xs text-muted-foreground">{n.nursery_type} Nursery • {n.capacity_seedlings?.toLocaleString()} seedlings</div>
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </TabsContent>
+            </Tabs>
+          </CardContent>
+          <CardFooter>
+            <Button className="bg-emerald-700 hover:bg-emerald-800" onClick={generateDraft} disabled={totalSelected === 0 || loading}>
+              {loading ? <><RefreshCw className="w-4 h-4 mr-2 animate-spin" /> Generating...</> : <>Generate Draft <ChevronRight className="w-4 h-4 ml-2" /></>}
+            </Button>
+          </CardFooter>
+        </Card>
+      )}
+
+      {/* Step 2: Review CapEx and RevEx with Tabs */}
+      {step === 2 && (
+        <Card>
+          <CardHeader>
+            <div className="flex items-start justify-between">
+              <div>
+                <CardTitle>Step 2: Review Capital & Revenue Expenses</CardTitle>
+                <CardDescription>Review and adjust activities. Unit rates are locked.</CardDescription>
+              </div>
+              <div className="text-right space-y-1">
+                <div className="flex items-center gap-4">
+                  <div className="text-right">
+                    <p className="text-xs text-blue-600">CapEx Total</p>
+                    <p className="text-lg font-bold text-blue-800">₹{capexTotal.toLocaleString('en-IN')}</p>
+                  </div>
+                  <div className="text-right">
+                    <p className="text-xs text-amber-600">RevEx Total</p>
+                    <p className="text-lg font-bold text-amber-800">₹{revexTotal.toLocaleString('en-IN')}</p>
+                  </div>
+                  <div className="text-right border-l pl-4">
+                    <p className="text-xs text-emerald-600">Grand Total</p>
+                    <p className="text-xl font-bold text-emerald-800">₹{grandTotal.toLocaleString('en-IN')}</p>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </CardHeader>
+          <CardContent>
+            <Tabs value={activeTab} onValueChange={setActiveTab}>
+              <TabsList className="grid grid-cols-2 w-full max-w-md">
+                <TabsTrigger value="capex" className="flex items-center gap-2">
+                  <div className="w-3 h-3 rounded-full bg-blue-500" />
+                  Capital Expenses ({capexItems.length})
+                </TabsTrigger>
+                <TabsTrigger value="revex" className="flex items-center gap-2">
+                  <div className="w-3 h-3 rounded-full bg-amber-500" />
+                  Revenue Expenses ({revexItems.length})
+                </TabsTrigger>
+              </TabsList>
+
+              {/* CapEx Tab */}
+              <TabsContent value="capex" className="mt-4">
+                <div className="p-3 bg-blue-50 rounded-lg border border-blue-200 mb-4">
+                  <p className="text-sm text-blue-800">
+                    <strong>Capital Expenses (CapEx):</strong> Plantations (Age 1-7), Building Creation, All Nurseries
+                  </p>
+                </div>
+                {capexItems.length === 0 ? (
+                  <div className="p-8 text-center text-muted-foreground">No Capital Expense items</div>
+                ) : (
+                  <Table>
+                    <TableHeader>
+                      <TableRow className="bg-blue-50/50">
+                        <TableHead>Source</TableHead>
+                        <TableHead>Activity</TableHead>
+                        <TableHead>Unit</TableHead>
+                        <TableHead className="text-right">Rate (₹)</TableHead>
+                        <TableHead className="text-right w-[100px]">Qty</TableHead>
+                        <TableHead className="text-right">Total (₹)</TableHead>
+                        <TableHead className="w-[50px]"></TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {capexItems.map((item, idx) => (
+                        <TableRow key={idx}>
+                          <TableCell>
+                            <div className="text-sm font-medium">{item.source_name}</div>
+                            <div className="text-xs text-muted-foreground capitalize">{item.source_type}</div>
+                          </TableCell>
+                          <TableCell>{item.activity_name}</TableCell>
+                          <TableCell className="text-sm text-muted-foreground">{item.unit}</TableCell>
+                          <TableCell className="text-right font-mono">{item.sanctioned_rate?.toLocaleString('en-IN')}</TableCell>
+                          <TableCell className="text-right">
+                            <Input type="number" step="0.1" className="w-20 text-right" value={item.sanctioned_qty}
+                                   onChange={e => updateQty('CAPEX', idx, e.target.value)} />
+                          </TableCell>
+                          <TableCell className="text-right font-semibold">{(item.total_cost || 0).toLocaleString('en-IN')}</TableCell>
+                          <TableCell>
+                            <Button variant="ghost" size="sm" className="h-8 w-8 p-0 text-red-500" onClick={() => removeItem('CAPEX', idx)}>
+                              <Trash2 className="w-4 h-4" />
+                            </Button>
+                          </TableCell>
+                        </TableRow>
+                      ))}
+                    </TableBody>
+                  </Table>
+                )}
+              </TabsContent>
+
+              {/* RevEx Tab */}
+              <TabsContent value="revex" className="mt-4">
+                <div className="p-3 bg-amber-50 rounded-lg border border-amber-200 mb-4">
+                  <p className="text-sm text-amber-800">
+                    <strong>Revenue Expenses (RevEx):</strong> Plantations (Age 8+), Building Maintenance
+                  </p>
+                </div>
+                {revexItems.length === 0 ? (
+                  <div className="p-8 text-center text-muted-foreground">No Revenue Expense items</div>
+                ) : (
+                  <Table>
+                    <TableHeader>
+                      <TableRow className="bg-amber-50/50">
+                        <TableHead>Source</TableHead>
+                        <TableHead>Activity</TableHead>
+                        <TableHead>Unit</TableHead>
+                        <TableHead className="text-right">Rate (₹)</TableHead>
+                        <TableHead className="text-right w-[100px]">Qty</TableHead>
+                        <TableHead className="text-right">Total (₹)</TableHead>
+                        <TableHead className="w-[50px]"></TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {revexItems.map((item, idx) => (
+                        <TableRow key={idx}>
+                          <TableCell>
+                            <div className="text-sm font-medium">{item.source_name}</div>
+                            <div className="text-xs text-muted-foreground capitalize">{item.source_type}</div>
+                          </TableCell>
+                          <TableCell>{item.activity_name}</TableCell>
+                          <TableCell className="text-sm text-muted-foreground">{item.unit}</TableCell>
+                          <TableCell className="text-right font-mono">{item.sanctioned_rate?.toLocaleString('en-IN')}</TableCell>
+                          <TableCell className="text-right">
+                            <Input type="number" step="0.1" className="w-20 text-right" value={item.sanctioned_qty}
+                                   onChange={e => updateQty('REVEX', idx, e.target.value)} />
+                          </TableCell>
+                          <TableCell className="text-right font-semibold">{(item.total_cost || 0).toLocaleString('en-IN')}</TableCell>
+                          <TableCell>
+                            <Button variant="ghost" size="sm" className="h-8 w-8 p-0 text-red-500" onClick={() => removeItem('REVEX', idx)}>
+                              <Trash2 className="w-4 h-4" />
+                            </Button>
+                          </TableCell>
+                        </TableRow>
+                      ))}
+                    </TableBody>
+                  </Table>
+                )}
+              </TabsContent>
+            </Tabs>
+          </CardContent>
+          <CardFooter className="flex justify-between">
+            <Button variant="outline" onClick={() => setStep(1)}>Back</Button>
+            <Button className="bg-emerald-700 hover:bg-emerald-800" onClick={() => setStep(3)} disabled={capexItems.length === 0 && revexItems.length === 0}>
+              Review & Submit <ChevronRight className="w-4 h-4 ml-2" />
+            </Button>
+          </CardFooter>
+        </Card>
+      )}
+
+      {/* Step 3: Confirm */}
+      {step === 3 && (
+        <Card>
+          <CardHeader>
+            <CardTitle>Step 3: Confirm & Submit</CardTitle>
+            <CardDescription>Review the APO summary before submission to Executive Director</CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+              <div className="p-4 bg-muted rounded-lg">
+                <p className="text-xs text-muted-foreground">Financial Year</p>
+                <p className="font-semibold">{financialYear}</p>
+              </div>
+              <div className="p-4 bg-blue-50 rounded-lg border border-blue-200">
+                <p className="text-xs text-blue-600">CapEx Total</p>
+                <p className="font-bold text-lg text-blue-800">₹{capexTotal.toLocaleString('en-IN')}</p>
+              </div>
+              <div className="p-4 bg-amber-50 rounded-lg border border-amber-200">
+                <p className="text-xs text-amber-600">RevEx Total</p>
+                <p className="font-bold text-lg text-amber-800">₹{revexTotal.toLocaleString('en-IN')}</p>
+              </div>
+              <div className="p-4 bg-emerald-50 rounded-lg border border-emerald-200">
+                <p className="text-xs text-emerald-600">Grand Total</p>
+                <p className="font-bold text-xl text-emerald-800">₹{grandTotal.toLocaleString('en-IN')}</p>
+              </div>
+            </div>
+
+            <div className="grid grid-cols-3 gap-4">
+              <div className="p-3 bg-muted rounded-lg text-center">
+                <TreePine className="w-5 h-5 mx-auto mb-1 text-emerald-600" />
+                <p className="text-xs text-muted-foreground">Plantations</p>
+                <p className="font-semibold">{selectedPlantations.length}</p>
+              </div>
+              <div className="p-3 bg-muted rounded-lg text-center">
+                <Building2 className="w-5 h-5 mx-auto mb-1 text-blue-600" />
+                <p className="text-xs text-muted-foreground">Buildings</p>
+                <p className="font-semibold">{selectedBuildings.length}</p>
+              </div>
+              <div className="p-3 bg-muted rounded-lg text-center">
+                <Sprout className="w-5 h-5 mx-auto mb-1 text-green-600" />
+                <p className="text-xs text-muted-foreground">Nurseries</p>
+                <p className="font-semibold">{selectedNurseries.length}</p>
+              </div>
+            </div>
+
+            <div className="bg-blue-50 rounded-lg p-4 text-sm text-blue-800">
+              <strong>Approval Workflow:</strong> DO (You) → ED (Executive Director) → MD (Managing Director)
+            </div>
+          </CardContent>
+          <CardFooter className="flex justify-between">
+            <Button variant="outline" onClick={() => setStep(2)}>Back</Button>
+            <div className="flex gap-2">
+              <Button variant="outline" onClick={() => submitApo('DRAFT')} disabled={submitting}>
+                <Clock className="w-4 h-4 mr-2" /> Save as Draft
+              </Button>
+              <Button className="bg-emerald-700 hover:bg-emerald-800" onClick={() => submitApo('SUBMIT')} disabled={submitting}>
+                {submitting ? <><RefreshCw className="w-4 h-4 mr-2 animate-spin" /> Submitting...</> : <><Send className="w-4 h-4 mr-2" /> Submit to ED</>}
+              </Button>
+            </div>
+          </CardFooter>
+        </Card>
+      )}
+
+      {/* Step 4: Success */}
+      {step === 4 && (
+        <Card className="border-emerald-200">
+          <CardContent className="p-8 text-center">
+            <div className="w-16 h-16 bg-emerald-100 rounded-full flex items-center justify-center mx-auto mb-4">
+              <CheckCircle className="w-8 h-8 text-emerald-700" />
+            </div>
+            <h3 className="text-xl font-bold mb-2">APO Submitted Successfully!</h3>
+            <p className="text-muted-foreground mb-6">Your APO has been submitted to the Executive Director for approval.</p>
+            <div className="bg-blue-50 rounded-lg p-4 mb-6 text-sm text-blue-800">
+              <strong>Next Steps:</strong> ED will review and approve → Then MD will give final sanction
+            </div>
+            <div className="flex gap-3 justify-center">
+              <Button variant="outline" onClick={() => setView('apo-list')}>View All APOs</Button>
+              <Button className="bg-emerald-700 hover:bg-emerald-800" onClick={() => { setStep(1); setCapexItems([]); setRevexItems([]); setSelectedPlantations([]); setSelectedBuildings([]); setSelectedNurseries([]) }}>
+                Create Another APO
+              </Button>
+            </div>
+          </CardContent>
+        </Card>
+      )}
+    </div>
+  )
+}
 
   // Toggle plantation selection
   const togglePlantation = (plantationId) => {
