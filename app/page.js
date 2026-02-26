@@ -1189,6 +1189,384 @@ function PlantationDetail({ plantation, setView }) {
   )
 }
 
+// ===================== BUILDINGS VIEW =====================
+function BuildingsView({ user }) {
+  const [buildings, setBuildings] = useState([])
+  const [loading, setLoading] = useState(true)
+  const [showCreate, setShowCreate] = useState(false)
+  const [form, setForm] = useState({
+    name: '',
+    division: '',
+    district: '',
+    taluk: '',
+    year_of_creation: new Date().getFullYear(),
+    latitude: '',
+    longitude: '',
+    survey_number: '',
+    building_phase: 'Creation',
+    status: 'Under Construction'
+  })
+
+  // District and Taluk data from API
+  const [districtsData, setDistrictsData] = useState([])
+  const [availableTaluks, setAvailableTaluks] = useState([])
+
+  const division_options = ["Dharwad", "Belagavi", "Bengaluru", "Chikkaballapura", "Shivamogga", "Chikkamagalore"]
+  
+  const load = useCallback(() => {
+    setLoading(true)
+    api.get('/buildings').then(setBuildings).catch(console.error).finally(() => setLoading(false))
+  }, [])
+
+  useEffect(() => { load() }, [load])
+
+  useEffect(() => {
+    api.get('/districts').then(setDistrictsData).catch(console.error)
+  }, [])
+
+  useEffect(() => {
+    if (form.district) {
+      const districtData = districtsData.find(d => d.district === form.district)
+      if (districtData) {
+        setAvailableTaluks(districtData.taluks)
+        if (!districtData.taluks.includes(form.taluk)) {
+          setForm(f => ({ ...f, taluk: '' }))
+        }
+      }
+    } else {
+      setAvailableTaluks([])
+    }
+  }, [form.district, districtsData])
+
+  const createBuilding = async () => {
+    try {
+      await api.post('/buildings', form)
+      setShowCreate(false)
+      setForm({ name: '', division: '', district: '', taluk: '', year_of_creation: new Date().getFullYear(), latitude: '', longitude: '', survey_number: '', building_phase: 'Creation', status: 'Under Construction' })
+      load()
+    } catch (e) {
+      alert(e.message)
+    }
+  }
+
+  return (
+    <div className="p-6 space-y-6">
+      <div className="flex items-center justify-between">
+        <div>
+          <h2 className="text-2xl font-bold">Buildings</h2>
+          <p className="text-muted-foreground">Manage KFDC buildings and structures</p>
+        </div>
+        {user.role === 'RO' && (
+          <Dialog open={showCreate} onOpenChange={setShowCreate}>
+            <DialogTrigger asChild>
+              <Button className="bg-emerald-700 hover:bg-emerald-800">
+                <Plus className="w-4 h-4 mr-2" /> Add Building
+              </Button>
+            </DialogTrigger>
+            <DialogContent className="max-w-2xl">
+              <DialogHeader>
+                <DialogTitle>Add New Building</DialogTitle>
+                <DialogDescription>Enter the building details below</DialogDescription>
+              </DialogHeader>
+              <div className="grid gap-4 py-4">
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <Label>Building Name <span className="text-red-500">*</span></Label>
+                    <Input value={form.name} onChange={e => setForm(f => ({ ...f, name: e.target.value }))} placeholder="e.g., Range Office" />
+                  </div>
+                  <div>
+                    <Label>Division</Label>
+                    <Select value={form.division} onValueChange={v => setForm(f => ({ ...f, division: v }))}>
+                      <SelectTrigger><SelectValue placeholder="Select Division" /></SelectTrigger>
+                      <SelectContent>
+                        {division_options.map(d => <SelectItem key={d} value={d}>{d}</SelectItem>)}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                </div>
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <Label>District <span className="text-red-500">*</span></Label>
+                    <Select value={form.district} onValueChange={v => setForm(f => ({ ...f, district: v }))}>
+                      <SelectTrigger><SelectValue placeholder="Select District" /></SelectTrigger>
+                      <SelectContent>
+                        {districtsData.map(d => <SelectItem key={d.district} value={d.district}>{d.district}</SelectItem>)}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <div>
+                    <Label>Taluk <span className="text-red-500">*</span></Label>
+                    <Select value={form.taluk} onValueChange={v => setForm(f => ({ ...f, taluk: v }))} disabled={!form.district}>
+                      <SelectTrigger><SelectValue placeholder={form.district ? "Select Taluk" : "Select District first"} /></SelectTrigger>
+                      <SelectContent>
+                        {availableTaluks.map(t => <SelectItem key={t} value={t}>{t}</SelectItem>)}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                </div>
+                <div className="grid grid-cols-3 gap-4">
+                  <div>
+                    <Label>Year of Creation</Label>
+                    <Input type="number" value={form.year_of_creation} onChange={e => setForm(f => ({ ...f, year_of_creation: e.target.value }))} />
+                  </div>
+                  <div>
+                    <Label>Building Phase</Label>
+                    <Select value={form.building_phase} onValueChange={v => setForm(f => ({ ...f, building_phase: v }))}>
+                      <SelectTrigger><SelectValue /></SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="Creation">Creation (New)</SelectItem>
+                        <SelectItem value="Maintenance">Maintenance</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <div>
+                    <Label>Survey Number</Label>
+                    <Input value={form.survey_number} onChange={e => setForm(f => ({ ...f, survey_number: e.target.value }))} placeholder="e.g., SY-101/A" />
+                  </div>
+                </div>
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <Label>Latitude</Label>
+                    <Input type="number" step="0.0001" value={form.latitude} onChange={e => setForm(f => ({ ...f, latitude: e.target.value }))} placeholder="e.g., 15.4589" />
+                  </div>
+                  <div>
+                    <Label>Longitude</Label>
+                    <Input type="number" step="0.0001" value={form.longitude} onChange={e => setForm(f => ({ ...f, longitude: e.target.value }))} placeholder="e.g., 75.0078" />
+                  </div>
+                </div>
+              </div>
+              <DialogFooter>
+                <Button variant="outline" onClick={() => setShowCreate(false)}>Cancel</Button>
+                <Button className="bg-emerald-700 hover:bg-emerald-800" onClick={createBuilding} disabled={!form.name || !form.district || !form.taluk}>
+                  Create Building
+                </Button>
+              </DialogFooter>
+            </DialogContent>
+          </Dialog>
+        )}
+      </div>
+
+      {loading ? (
+        <div className="flex items-center justify-center h-64">
+          <RefreshCw className="w-8 h-8 animate-spin text-emerald-600" />
+        </div>
+      ) : (
+        <div className="grid gap-4">
+          {buildings.length === 0 ? (
+            <Card>
+              <CardContent className="p-8 text-center text-muted-foreground">
+                No buildings found. {user.role === 'RO' && 'Click "Add Building" to create one.'}
+              </CardContent>
+            </Card>
+          ) : (
+            <Card>
+              <CardContent className="p-0">
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>Name</TableHead>
+                      <TableHead>Division</TableHead>
+                      <TableHead>District / Taluk</TableHead>
+                      <TableHead>Phase</TableHead>
+                      <TableHead>Year</TableHead>
+                      <TableHead>Age</TableHead>
+                      <TableHead>Status</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {buildings.map(b => (
+                      <TableRow key={b.id}>
+                        <TableCell className="font-medium">{b.name}</TableCell>
+                        <TableCell>{b.division_name || b.division}</TableCell>
+                        <TableCell>{b.district} / {b.taluk}</TableCell>
+                        <TableCell>
+                          <Badge variant="outline" className={b.building_phase === 'Creation' ? 'bg-blue-50 text-blue-700' : 'bg-amber-50 text-amber-700'}>
+                            {b.building_phase}
+                          </Badge>
+                        </TableCell>
+                        <TableCell>{b.year_of_creation}</TableCell>
+                        <TableCell>{b.age} yrs</TableCell>
+                        <TableCell>
+                          <Badge variant="outline" className={b.status === 'Active' ? 'bg-green-50 text-green-700' : 'bg-gray-50 text-gray-600'}>
+                            {b.status}
+                          </Badge>
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              </CardContent>
+            </Card>
+          )}
+        </div>
+      )}
+    </div>
+  )
+}
+
+// ===================== NURSERIES VIEW =====================
+function NurseriesView({ user }) {
+  const [nurseries, setNurseries] = useState([])
+  const [loading, setLoading] = useState(true)
+  const [showCreate, setShowCreate] = useState(false)
+  const [form, setForm] = useState({
+    name: '',
+    nursery_type: 'New',
+    latitude: '',
+    longitude: '',
+    status: 'Active',
+    capacity_seedlings: ''
+  })
+
+  const load = useCallback(() => {
+    setLoading(true)
+    api.get('/nurseries').then(setNurseries).catch(console.error).finally(() => setLoading(false))
+  }, [])
+
+  useEffect(() => { load() }, [load])
+
+  const createNursery = async () => {
+    try {
+      await api.post('/nurseries', form)
+      setShowCreate(false)
+      setForm({ name: '', nursery_type: 'New', latitude: '', longitude: '', status: 'Active', capacity_seedlings: '' })
+      load()
+    } catch (e) {
+      alert(e.message)
+    }
+  }
+
+  return (
+    <div className="p-6 space-y-6">
+      <div className="flex items-center justify-between">
+        <div>
+          <h2 className="text-2xl font-bold">Nurseries</h2>
+          <p className="text-muted-foreground">Manage KFDC nurseries for seedling production</p>
+        </div>
+        {user.role === 'RO' && (
+          <Dialog open={showCreate} onOpenChange={setShowCreate}>
+            <DialogTrigger asChild>
+              <Button className="bg-emerald-700 hover:bg-emerald-800">
+                <Plus className="w-4 h-4 mr-2" /> Add Nursery
+              </Button>
+            </DialogTrigger>
+            <DialogContent className="max-w-lg">
+              <DialogHeader>
+                <DialogTitle>Add New Nursery</DialogTitle>
+                <DialogDescription>Enter the nursery details below</DialogDescription>
+              </DialogHeader>
+              <div className="grid gap-4 py-4">
+                <div>
+                  <Label>Nursery Name <span className="text-red-500">*</span></Label>
+                  <Input value={form.name} onChange={e => setForm(f => ({ ...f, name: e.target.value }))} placeholder="e.g., Central Nursery" />
+                </div>
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <Label>Nursery Type/Phase <span className="text-red-500">*</span></Label>
+                    <Select value={form.nursery_type} onValueChange={v => setForm(f => ({ ...f, nursery_type: v }))}>
+                      <SelectTrigger><SelectValue /></SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="New">New Nursery</SelectItem>
+                        <SelectItem value="Raising">Raising Nursery</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <div>
+                    <Label>Capacity (Seedlings)</Label>
+                    <Input type="number" value={form.capacity_seedlings} onChange={e => setForm(f => ({ ...f, capacity_seedlings: e.target.value }))} placeholder="e.g., 50000" />
+                  </div>
+                </div>
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <Label>Latitude</Label>
+                    <Input type="number" step="0.0001" value={form.latitude} onChange={e => setForm(f => ({ ...f, latitude: e.target.value }))} placeholder="e.g., 15.4567" />
+                  </div>
+                  <div>
+                    <Label>Longitude</Label>
+                    <Input type="number" step="0.0001" value={form.longitude} onChange={e => setForm(f => ({ ...f, longitude: e.target.value }))} placeholder="e.g., 75.0123" />
+                  </div>
+                </div>
+                <div>
+                  <Label>Status</Label>
+                  <Select value={form.status} onValueChange={v => setForm(f => ({ ...f, status: v }))}>
+                    <SelectTrigger><SelectValue /></SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="Active">Active</SelectItem>
+                      <SelectItem value="Under Development">Under Development</SelectItem>
+                      <SelectItem value="Inactive">Inactive</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+              </div>
+              <DialogFooter>
+                <Button variant="outline" onClick={() => setShowCreate(false)}>Cancel</Button>
+                <Button className="bg-emerald-700 hover:bg-emerald-800" onClick={createNursery} disabled={!form.name}>
+                  Create Nursery
+                </Button>
+              </DialogFooter>
+            </DialogContent>
+          </Dialog>
+        )}
+      </div>
+
+      {loading ? (
+        <div className="flex items-center justify-center h-64">
+          <RefreshCw className="w-8 h-8 animate-spin text-emerald-600" />
+        </div>
+      ) : (
+        <div className="grid gap-4">
+          {nurseries.length === 0 ? (
+            <Card>
+              <CardContent className="p-8 text-center text-muted-foreground">
+                No nurseries found. {user.role === 'RO' && 'Click "Add Nursery" to create one.'}
+              </CardContent>
+            </Card>
+          ) : (
+            <Card>
+              <CardContent className="p-0">
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>Name</TableHead>
+                      <TableHead>Type/Phase</TableHead>
+                      <TableHead>Division</TableHead>
+                      <TableHead>Capacity</TableHead>
+                      <TableHead>Location</TableHead>
+                      <TableHead>Status</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {nurseries.map(n => (
+                      <TableRow key={n.id}>
+                        <TableCell className="font-medium">{n.name}</TableCell>
+                        <TableCell>
+                          <Badge variant="outline" className={n.nursery_type === 'New' ? 'bg-blue-50 text-blue-700' : 'bg-green-50 text-green-700'}>
+                            {n.nursery_type === 'New' ? 'New Nursery' : 'Raising Nursery'}
+                          </Badge>
+                        </TableCell>
+                        <TableCell>{n.division_name}</TableCell>
+                        <TableCell>{n.capacity_seedlings?.toLocaleString('en-IN')} seedlings</TableCell>
+                        <TableCell className="text-xs text-muted-foreground">
+                          {n.latitude && n.longitude ? `${n.latitude.toFixed(4)}, ${n.longitude.toFixed(4)}` : 'N/A'}
+                        </TableCell>
+                        <TableCell>
+                          <Badge variant="outline" className={n.status === 'Active' ? 'bg-green-50 text-green-700' : n.status === 'Under Development' ? 'bg-amber-50 text-amber-700' : 'bg-gray-50 text-gray-600'}>
+                            {n.status}
+                          </Badge>
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              </CardContent>
+            </Card>
+          )}
+        </div>
+      )}
+    </div>
+  )
+}
+
 // ===================== APO WIZARD =====================
 function ApoWizard({ user, setView }) {
   const [step, setStep] = useState(1)
