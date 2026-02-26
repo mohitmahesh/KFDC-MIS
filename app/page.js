@@ -3523,6 +3523,202 @@ function FundIndentApprovalView({ user }) {
   )
 }
 
+// ===================== APO APPROVAL VIEW (ED/MD) =====================
+function ApoApprovalView({ user, setView, setSelectedApo }) {
+  const [apos, setApos] = useState([])
+  const [loading, setLoading] = useState(true)
+
+  const load = useCallback(() => {
+    setLoading(true)
+    api.get('/apo').then(setApos).catch(console.error).finally(() => setLoading(false))
+  }, [])
+
+  useEffect(() => { load() }, [load])
+
+  // Filter APOs based on role
+  const pendingApos = apos.filter(a => {
+    if (user.role === 'ED') return a.status === 'PENDING_ED_APPROVAL'
+    if (user.role === 'MD') return a.status === 'PENDING_MD_APPROVAL'
+    return false
+  })
+
+  const approvedApos = apos.filter(a => a.status === 'SANCTIONED')
+  const rejectedApos = apos.filter(a => a.status === 'REJECTED')
+
+  const handleApprove = async (apoId, action) => {
+    try {
+      await api.patch(`/apo/${apoId}/approve`, { action, remarks: '' })
+      load()
+    } catch (e) {
+      alert(e.message)
+    }
+  }
+
+  return (
+    <div className="p-6 space-y-6">
+      <div>
+        <h2 className="text-2xl font-bold">APO Approvals</h2>
+        <p className="text-muted-foreground">
+          {user.role === 'ED' ? 'Review and approve APOs from Division Officers' : 'Final approval for APOs forwarded by ED'}
+        </p>
+      </div>
+
+      <Tabs defaultValue="pending">
+        <TabsList>
+          <TabsTrigger value="pending">
+            Pending Approval ({pendingApos.length})
+          </TabsTrigger>
+          <TabsTrigger value="approved">
+            Sanctioned ({approvedApos.length})
+          </TabsTrigger>
+          <TabsTrigger value="rejected">
+            Rejected ({rejectedApos.length})
+          </TabsTrigger>
+        </TabsList>
+
+        <TabsContent value="pending" className="space-y-4 mt-4">
+          {loading ? (
+            <div className="flex items-center justify-center h-32">
+              <RefreshCw className="w-6 h-6 animate-spin text-emerald-600" />
+            </div>
+          ) : pendingApos.length === 0 ? (
+            <Card>
+              <CardContent className="p-8 text-center text-muted-foreground">
+                No APOs pending your approval
+              </CardContent>
+            </Card>
+          ) : (
+            pendingApos.map(apo => (
+              <Card key={apo.id} className="border-l-4 border-l-amber-500">
+                <CardHeader className="pb-2">
+                  <div className="flex items-start justify-between">
+                    <div>
+                      <CardTitle className="text-lg">{apo.title}</CardTitle>
+                      <CardDescription>
+                        {apo.division_name} Division • FY {apo.financial_year} • Created by {apo.created_by_name}
+                      </CardDescription>
+                    </div>
+                    <Badge className="bg-amber-100 text-amber-800">
+                      {user.role === 'ED' ? 'Pending ED Approval' : 'Pending MD Approval'}
+                    </Badge>
+                  </div>
+                </CardHeader>
+                <CardContent>
+                  <div className="grid grid-cols-3 gap-4 mb-4">
+                    <div className="p-3 bg-blue-50 rounded-lg">
+                      <p className="text-xs text-blue-600">CapEx Total</p>
+                      <p className="text-lg font-bold text-blue-800">₹{(apo.capex_total || 0).toLocaleString('en-IN')}</p>
+                    </div>
+                    <div className="p-3 bg-green-50 rounded-lg">
+                      <p className="text-xs text-green-600">RevEx Total</p>
+                      <p className="text-lg font-bold text-green-800">₹{(apo.revex_total || 0).toLocaleString('en-IN')}</p>
+                    </div>
+                    <div className="p-3 bg-purple-50 rounded-lg">
+                      <p className="text-xs text-purple-600">Grand Total</p>
+                      <p className="text-lg font-bold text-purple-800">₹{(apo.total_sanctioned_amount || 0).toLocaleString('en-IN')}</p>
+                    </div>
+                  </div>
+                  <div className="flex gap-2">
+                    <Button variant="outline" onClick={() => { setSelectedApo(apo.id); setView('apo-detail') }}>
+                      <Eye className="w-4 h-4 mr-2" /> View Details
+                    </Button>
+                    <Button className="bg-emerald-700 hover:bg-emerald-800" onClick={() => handleApprove(apo.id, 'approve')}>
+                      <CheckCircle className="w-4 h-4 mr-2" /> {user.role === 'ED' ? 'Approve & Forward to MD' : 'Final Approval'}
+                    </Button>
+                    <Button variant="destructive" onClick={() => handleApprove(apo.id, 'reject')}>
+                      <XCircle className="w-4 h-4 mr-2" /> Reject
+                    </Button>
+                  </div>
+                </CardContent>
+              </Card>
+            ))
+          )}
+        </TabsContent>
+
+        <TabsContent value="approved" className="mt-4">
+          {approvedApos.length === 0 ? (
+            <Card>
+              <CardContent className="p-8 text-center text-muted-foreground">
+                No sanctioned APOs
+              </CardContent>
+            </Card>
+          ) : (
+            <Card>
+              <CardContent className="p-0">
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>Title</TableHead>
+                      <TableHead>Division</TableHead>
+                      <TableHead>FY</TableHead>
+                      <TableHead className="text-right">Amount</TableHead>
+                      <TableHead>Approved By</TableHead>
+                      <TableHead></TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {approvedApos.map(apo => (
+                      <TableRow key={apo.id}>
+                        <TableCell className="font-medium">{apo.title}</TableCell>
+                        <TableCell>{apo.division_name}</TableCell>
+                        <TableCell>{apo.financial_year}</TableCell>
+                        <TableCell className="text-right font-semibold">₹{(apo.total_sanctioned_amount || 0).toLocaleString('en-IN')}</TableCell>
+                        <TableCell>{apo.md_approved_by_name || 'N/A'}</TableCell>
+                        <TableCell>
+                          <Button variant="ghost" size="sm" onClick={() => { setSelectedApo(apo.id); setView('apo-detail') }}>
+                            <Eye className="w-4 h-4" />
+                          </Button>
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              </CardContent>
+            </Card>
+          )}
+        </TabsContent>
+
+        <TabsContent value="rejected" className="mt-4">
+          {rejectedApos.length === 0 ? (
+            <Card>
+              <CardContent className="p-8 text-center text-muted-foreground">
+                No rejected APOs
+              </CardContent>
+            </Card>
+          ) : (
+            <Card>
+              <CardContent className="p-0">
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>Title</TableHead>
+                      <TableHead>Division</TableHead>
+                      <TableHead>FY</TableHead>
+                      <TableHead className="text-right">Amount</TableHead>
+                      <TableHead>Rejected By</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {rejectedApos.map(apo => (
+                      <TableRow key={apo.id}>
+                        <TableCell className="font-medium">{apo.title}</TableCell>
+                        <TableCell>{apo.division_name}</TableCell>
+                        <TableCell>{apo.financial_year}</TableCell>
+                        <TableCell className="text-right font-semibold">₹{(apo.total_sanctioned_amount || 0).toLocaleString('en-IN')}</TableCell>
+                        <TableCell>{apo.rejection_remarks || 'N/A'}</TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              </CardContent>
+            </Card>
+          )}
+        </TabsContent>
+      </Tabs>
+    </div>
+  )
+}
+
 // ===================== MAIN APP =====================
 function App() {
   const [user, setUser] = useState(null)
