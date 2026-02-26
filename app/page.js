@@ -3576,9 +3576,12 @@ function App() {
       case 'dashboard': return <Dashboard user={user} />
       case 'plantations': return <PlantationsView user={user} setView={setView} setSelectedPlantation={setSelectedPlantation} />
       case 'plantation-detail': return selectedPlantation ? <PlantationDetail plantation={selectedPlantation} setView={setView} /> : null
+      case 'buildings': return <BuildingsView user={user} />
+      case 'nurseries': return <NurseriesView user={user} />
       case 'apo-wizard': return <ApoWizard user={user} setView={setView} />
       case 'apo-list': return <ApoList user={user} setView={setView} setSelectedApo={setSelectedApo} />
       case 'apo-detail': return selectedApo ? <ApoDetail apoId={selectedApo} user={user} setView={setView} /> : null
+      case 'apo-approve': return <ApoApprovalView user={user} setView={setView} setSelectedApo={setSelectedApo} />
       case 'norms': return <NormsView user={user} />
       // Fund Indent Views
       case 'fund-indent': return <FundIndentRFOView user={user} setView={setView} setSelectedWork={setSelectedWork} />
@@ -3587,7 +3590,8 @@ function App() {
       default: 
         // Default based on role
         if (user.role === 'RFO') return <FundIndentRFOView user={user} setView={setView} setSelectedWork={setSelectedWork} />
-        if (['DCF', 'ED', 'MD'].includes(user.role)) return <FundIndentApprovalView user={user} />
+        if (['DCF'].includes(user.role)) return <FundIndentApprovalView user={user} />
+        if (['ED', 'MD'].includes(user.role)) return <ApoApprovalView user={user} setView={setView} setSelectedApo={setSelectedApo} />
         return <Dashboard user={user} />
     }
   }
