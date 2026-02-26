@@ -768,6 +768,260 @@ async function handleRoute(request, { params }) {
       return handleCORS(NextResponse.json(result))
     }
 
+    // =================== BUILDINGS MODULE ===================
+    // GET /buildings - List all buildings (filtered by role)
+    if (route === '/buildings' && method === 'GET') {
+      const user = await getUser(request, db)
+      if (!user) return handleCORS(NextResponse.json({ error: 'Unauthorized' }, { status: 401 }))
+
+      let filter = {}
+      if (user.role === 'RO') {
+        filter = { range_id: user.range_id }
+      } else if (['DO', 'DM'].includes(user.role)) {
+        const divRanges = await db.collection('ranges').find({ division_id: user.division_id }).toArray()
+        const rangeIds = divRanges.map(r => r.id)
+        filter = { range_id: { $in: rangeIds } }
+      }
+      // ADMIN, ED, MD see all
+
+      const buildings = await db.collection('buildings').find(filter).toArray()
+      const ranges = await db.collection('ranges').find({}).toArray()
+      const divisions = await db.collection('divisions').find({}).toArray()
+      const rangeMap = {}
+      const divMap = {}
+      ranges.forEach(r => { rangeMap[r.id] = r })
+      divisions.forEach(d => { divMap[d.id] = d })
+
+      const enriched = buildings.map(({ _id, ...b }) => {
+        const range = rangeMap[b.range_id]
+        const division = range ? divMap[range.division_id] : null
+        const age = new Date().getFullYear() - b.year_of_creation
+        return { ...b, range_name: range?.name, division_name: division?.name, age }
+      })
+      return handleCORS(NextResponse.json(enriched))
+    }
+
+    // POST /buildings - Create a new building (RO only)
+    if (route === '/buildings' && method === 'POST') {
+      const user = await getUser(request, db)
+      if (!user || user.role !== 'RO') {
+        return handleCORS(NextResponse.json({ error: 'Only Range Officers can create buildings' }, { status: 403 }))
+      }
+      const body = await request.json()
+      
+      const building = {
+        id: uuidv4(),
+        range_id: user.range_id,
+        name: body.name,
+        division: body.division || null,
+        district: body.district || null,
+        taluk: body.taluk || null,
+        year_of_creation: parseInt(body.year_of_creation),
+        latitude: body.latitude ? parseFloat(body.latitude) : null,
+        longitude: body.longitude ? parseFloat(body.longitude) : null,
+        survey_number: body.survey_number || null,
+        building_phase: body.building_phase || 'Creation',
+        status: body.status || 'Active',
+        created_at: new Date(),
+      }
+      await db.collection('buildings').insertOne(building)
+      return handleCORS(NextResponse.json(building, { status: 201 }))
+    }
+
+    // GET /building-activities - List all building activities
+    if (route === '/building-activities' && method === 'GET') {
+      const activities = await db.collection('building_activities').find({}).toArray()
+      return handleCORS(NextResponse.json(activities.map(({ _id, ...a }) => a)))
+    }
+
+    // GET /building-norms - List all building norms with rates
+    if (route === '/building-norms' && method === 'GET') {
+      const norms = await db.collection('building_norms').find({}).toArray()
+      const activities = await db.collection('building_activities').find({}).toArray()
+      const actMap = {}
+      activities.forEach(a => { actMap[a.id] = a })
+      
+      const enriched = norms.map(({ _id, ...n }) => ({
+        ...n,
+        activity_name: actMap[n.activity_id]?.name || 'Unknown',
+        category: actMap[n.activity_id]?.category || 'Unknown',
+        unit: actMap[n.activity_id]?.unit || 'Unknown',
+        ssr_no: actMap[n.activity_id]?.ssr_no || '-',
+      }))
+      return handleCORS(NextResponse.json(enriched))
+    }
+
+    // POST /buildings/generate-draft - Generate draft items for a building
+    if (route === '/buildings/generate-draft' && method === 'POST') {
+      const user = await getUser(request, db)
+      if (!user) return handleCORS(NextResponse.json({ error: 'Unauthorized' }, { status: 401 }))
+
+      const body = await request.json()
+      const { building_id, financial_year } = body
+      if (!building_id || !financial_year) {
+        return handleCORS(NextResponse.json({ error: 'building_id and financial_year required' }, { status: 400 }))
+      }
+
+      const building = await db.collection('buildings').findOne({ id: building_id })
+      if (!building) return handleCORS(NextResponse.json({ error: 'Building not found' }, { status: 404 }))
+
+      // Get norms for this building phase
+      const norms = await db.collection('building_norms').find({
+        building_phase: building.building_phase,
+        financial_year: financial_year
+      }).toArray()
+
+      const activities = await db.collection('building_activities').find({}).toArray()
+      const actMap = {}
+      activities.forEach(a => { actMap[a.id] = a })
+
+      const draftItems = norms.map(n => ({
+        activity_id: n.activity_id,
+        activity_name: actMap[n.activity_id]?.name || 'Unknown',
+        category: actMap[n.activity_id]?.category || 'Unknown',
+        unit: actMap[n.activity_id]?.unit || 'Unknown',
+        sanctioned_rate: n.standard_rate,
+        suggested_qty: 1, // Default quantity for buildings
+        total_cost: n.standard_rate * 1,
+      }))
+
+      return handleCORS(NextResponse.json({
+        building_id,
+        building_name: building.name,
+        building_phase: building.building_phase,
+        age: new Date().getFullYear() - building.year_of_creation,
+        financial_year,
+        items: draftItems,
+        total_estimated_cost: draftItems.reduce((sum, i) => sum + i.total_cost, 0),
+      }))
+    }
+
+    // =================== NURSERIES MODULE ===================
+    // GET /nurseries - List all nurseries (filtered by role)
+    if (route === '/nurseries' && method === 'GET') {
+      const user = await getUser(request, db)
+      if (!user) return handleCORS(NextResponse.json({ error: 'Unauthorized' }, { status: 401 }))
+
+      let filter = {}
+      if (user.role === 'RO') {
+        filter = { range_id: user.range_id }
+      } else if (['DO', 'DM'].includes(user.role)) {
+        const divRanges = await db.collection('ranges').find({ division_id: user.division_id }).toArray()
+        const rangeIds = divRanges.map(r => r.id)
+        filter = { range_id: { $in: rangeIds } }
+      }
+      // ADMIN, ED, MD see all
+
+      const nurseries = await db.collection('nurseries').find(filter).toArray()
+      const ranges = await db.collection('ranges').find({}).toArray()
+      const divisions = await db.collection('divisions').find({}).toArray()
+      const rangeMap = {}
+      const divMap = {}
+      ranges.forEach(r => { rangeMap[r.id] = r })
+      divisions.forEach(d => { divMap[d.id] = d })
+
+      const enriched = nurseries.map(({ _id, ...n }) => {
+        const range = rangeMap[n.range_id]
+        const division = range ? divMap[range.division_id] : null
+        return { ...n, range_name: range?.name, division_name: division?.name }
+      })
+      return handleCORS(NextResponse.json(enriched))
+    }
+
+    // POST /nurseries - Create a new nursery (RO only)
+    if (route === '/nurseries' && method === 'POST') {
+      const user = await getUser(request, db)
+      if (!user || user.role !== 'RO') {
+        return handleCORS(NextResponse.json({ error: 'Only Range Officers can create nurseries' }, { status: 403 }))
+      }
+      const body = await request.json()
+      
+      const nursery = {
+        id: uuidv4(),
+        range_id: user.range_id,
+        name: body.name,
+        nursery_type: body.nursery_type || 'New', // 'New' or 'Raising'
+        latitude: body.latitude ? parseFloat(body.latitude) : null,
+        longitude: body.longitude ? parseFloat(body.longitude) : null,
+        status: body.status || 'Active',
+        capacity_seedlings: parseInt(body.capacity_seedlings) || 0,
+        created_at: new Date(),
+      }
+      await db.collection('nurseries').insertOne(nursery)
+      return handleCORS(NextResponse.json(nursery, { status: 201 }))
+    }
+
+    // GET /nursery-activities - List all nursery activities
+    if (route === '/nursery-activities' && method === 'GET') {
+      const activities = await db.collection('nursery_activities').find({}).toArray()
+      return handleCORS(NextResponse.json(activities.map(({ _id, ...a }) => a)))
+    }
+
+    // GET /nursery-norms - List all nursery norms with rates
+    if (route === '/nursery-norms' && method === 'GET') {
+      const norms = await db.collection('nursery_norms').find({}).toArray()
+      const activities = await db.collection('nursery_activities').find({}).toArray()
+      const actMap = {}
+      activities.forEach(a => { actMap[a.id] = a })
+      
+      const enriched = norms.map(({ _id, ...n }) => ({
+        ...n,
+        activity_name: actMap[n.activity_id]?.name || 'Unknown',
+        category: actMap[n.activity_id]?.category || 'Unknown',
+        unit: actMap[n.activity_id]?.unit || 'Unknown',
+        ssr_no: actMap[n.activity_id]?.ssr_no || '-',
+      }))
+      return handleCORS(NextResponse.json(enriched))
+    }
+
+    // POST /nurseries/generate-draft - Generate draft items for a nursery
+    if (route === '/nurseries/generate-draft' && method === 'POST') {
+      const user = await getUser(request, db)
+      if (!user) return handleCORS(NextResponse.json({ error: 'Unauthorized' }, { status: 401 }))
+
+      const body = await request.json()
+      const { nursery_id, financial_year } = body
+      if (!nursery_id || !financial_year) {
+        return handleCORS(NextResponse.json({ error: 'nursery_id and financial_year required' }, { status: 400 }))
+      }
+
+      const nursery = await db.collection('nurseries').findOne({ id: nursery_id })
+      if (!nursery) return handleCORS(NextResponse.json({ error: 'Nursery not found' }, { status: 404 }))
+
+      // Get norms for this nursery type
+      const norms = await db.collection('nursery_norms').find({
+        nursery_type: nursery.nursery_type,
+        financial_year: financial_year
+      }).toArray()
+
+      const activities = await db.collection('nursery_activities').find({}).toArray()
+      const actMap = {}
+      activities.forEach(a => { actMap[a.id] = a })
+
+      // Calculate quantity based on capacity (1000 seedlings = 1 unit typically)
+      const unitQty = Math.ceil(nursery.capacity_seedlings / 1000) || 1
+
+      const draftItems = norms.map(n => ({
+        activity_id: n.activity_id,
+        activity_name: actMap[n.activity_id]?.name || 'Unknown',
+        category: actMap[n.activity_id]?.category || 'Unknown',
+        unit: actMap[n.activity_id]?.unit || 'Unknown',
+        sanctioned_rate: n.standard_rate,
+        suggested_qty: unitQty,
+        total_cost: n.standard_rate * unitQty,
+      }))
+
+      return handleCORS(NextResponse.json({
+        nursery_id,
+        nursery_name: nursery.name,
+        nursery_type: nursery.nursery_type,
+        capacity_seedlings: nursery.capacity_seedlings,
+        financial_year,
+        items: draftItems,
+        total_estimated_cost: draftItems.reduce((sum, i) => sum + i.total_cost, 0),
+      }))
+    }
+
     // =================== APO GENERATE DRAFT ===================
     if (route === '/apo/generate-draft' && method === 'POST') {
       const user = await getUser(request, db)
