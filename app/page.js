@@ -20,7 +20,7 @@ import {
   Plus, Eye, CheckCircle, XCircle, Clock, AlertTriangle, Leaf, MapPin, Calendar,
   IndianRupee, TrendingUp, ClipboardList, Send, ArrowLeft, RefreshCw, ChevronDown, ChevronUp,
   User, Shield, Building2, Layers, BookOpen, Trash2, Upload, File, X, Bell, Search,
-  Users, BarChart3, Wallet, FolderTree, CheckSquare
+  Users, BarChart3, Wallet, FolderTree, CheckSquare, Sprout, Home
 } from 'lucide-react'
 
 // ===================== API HELPER =====================
