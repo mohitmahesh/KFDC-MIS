@@ -8,7 +8,7 @@ import json
 import sys
 
 # Base URL
-BASE_URL = 'https://ifms-kfdc-demo.preview.emergentagent.com'
+BASE_URL = 'https://ifms-apo-wizard.preview.emergentagent.com'
 API_BASE = f"{BASE_URL}/api"
 
 class AdditionalTester:

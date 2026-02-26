@@ -6,7 +6,7 @@ KFDC iFMS Additional Testing - 3-Tier APO Approval and Works Endpoint
 import requests
 import json
 
-BASE_URL = "https://ifms-kfdc-demo.preview.emergentagent.com/api"
+BASE_URL = "https://ifms-apo-wizard.preview.emergentagent.com/api"
 TEST_CREDENTIALS = {
     "RO": {"email": "ro.dharwad@kfdc.in", "password": "pass123"},
     "DM": {"email": "dm.dharwad@kfdc.in", "password": "pass123"},

@@ -9,7 +9,7 @@ import requests
 import json
 import io
 
-BASE_URL = "https://ifms-kfdc-demo.preview.emergentagent.com/api"
+BASE_URL = "https://ifms-apo-wizard.preview.emergentagent.com/api"
 
 def login_rfo():
     """Login as RFO and return token"""

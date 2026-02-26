@@ -11,7 +11,7 @@ import sys
 from typing import Dict, List, Any, Optional
 
 # Test Configuration - Updated Base URL as per review request
-BASE_URL = "https://ifms-kfdc-demo.preview.emergentagent.com/api"
+BASE_URL = "https://ifms-apo-wizard.preview.emergentagent.com/api"
 
 # Test Credentials - Updated RBAC roles as per review request
 TEST_CREDENTIALS = {

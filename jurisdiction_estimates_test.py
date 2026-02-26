@@ -11,7 +11,7 @@ from datetime import datetime
 import sys
 
 # Get base URL from environment
-BASE_URL = os.getenv('NEXT_PUBLIC_BASE_URL', 'https://ifms-kfdc-demo.preview.emergentagent.com')
+BASE_URL = os.getenv('NEXT_PUBLIC_BASE_URL', 'https://ifms-apo-wizard.preview.emergentagent.com')
 API_BASE = f"{BASE_URL}/api"
 
 # Test credentials from review request
