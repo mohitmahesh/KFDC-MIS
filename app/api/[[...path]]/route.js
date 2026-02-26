@@ -1822,46 +1822,7 @@ async function handleRoute(request, { params }) {
       }))
     }
 
-    // APO Detail
-    const apoDetailMatch = route.match(/^\/apo\/([^/]+)$/)
-    if (apoDetailMatch && method === 'GET') {
-      const apoId = apoDetailMatch[1]
-      const apo = await db.collection('apo_headers').findOne({ id: apoId })
-      if (!apo) return handleCORS(NextResponse.json({ error: 'APO not found' }, { status: 404 }))
-      const items = await db.collection('apo_items').find({ apo_id: apoId }).toArray()
-      const plantation = await db.collection('plantations').findOne({ id: apo.plantation_id })
-      const creator = await db.collection('users').findOne({ id: apo.created_by })
-      const approver = apo.approved_by ? await db.collection('users').findOne({ id: apo.approved_by }) : null
-
-      // Get work logs for each item
-      const itemsWithLogs = []
-      for (const item of items) {
-        const logs = await db.collection('work_logs').find({ apo_item_id: item.id }).toArray()
-        const totalSpent = logs.reduce((sum, l) => sum + l.expenditure, 0)
-        const { _id, ...itemData } = item
-        itemsWithLogs.push({
-          ...itemData,
-          total_spent: totalSpent,
-          remaining_budget: itemData.total_cost - totalSpent,
-          utilization_pct: itemData.total_cost > 0 ? Math.round((totalSpent / itemData.total_cost) * 100) : 0,
-          work_logs: logs.map(({ _id, ...l }) => l),
-        })
-      }
-
-      const { _id, ...apoData } = apo
-      return handleCORS(NextResponse.json({
-        ...apoData,
-        plantation_name: plantation?.name,
-        species: plantation?.species,
-        total_area_ha: plantation?.total_area_ha,
-        plantation_age: plantation ? new Date().getFullYear() - plantation.year_of_planting : null,
-        created_by_name: creator?.name,
-        approved_by_name: approver?.name,
-        items: itemsWithLogs,
-      }))
-    }
-
-    // APO Status Update - 3-tier hierarchy: RO → DM → HO (Admin)
+    // APO Status Update - Updated hierarchy: DO → ED → MD
     const apoStatusMatch = route.match(/^\/apo\/([^/]+)\/status$/)
     if (apoStatusMatch && method === 'PATCH') {
       const user = await getUser(request, db)
