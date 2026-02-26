@@ -75,19 +75,28 @@ const SEED_DATA = {
     { id: 'rng-sringeri', division_id: 'div-chikmagalur', name: 'Sringeri' },
   ],
   users: [
+    // Range Officers (RO) - Data Entry Only (Plantations, Buildings, Nurseries)
     { id: 'usr-ro1', email: 'ro.dharwad@kfdc.in', password: 'pass123', name: 'Ramesh Kumar', role: 'RO', division_id: 'div-dharwad', range_id: 'rng-dharwad' },
     { id: 'usr-ro2', email: 'ro.svpura@kfdc.in', password: 'pass123', name: 'Suresh Gowda', role: 'RO', division_id: 'div-bangalore', range_id: 'rng-svpura' },
     { id: 'usr-ro3', email: 'ro.sagara@kfdc.in', password: 'pass123', name: 'Manjunath Hegde', role: 'RO', division_id: 'div-shimoga', range_id: 'rng-sagara' },
     { id: 'usr-ro4', email: 'ro.alloli@kfdc.in', password: 'pass123', name: 'Basavaraj Patil', role: 'RO', division_id: 'div-dharwad', range_id: 'rng-alloli' },
-    { id: 'usr-dm1', email: 'dm.dharwad@kfdc.in', password: 'pass123', name: 'Anjali Sharma', role: 'DM', division_id: 'div-dharwad', range_id: null },
-    { id: 'usr-dm2', email: 'dm.bangalore@kfdc.in', password: 'pass123', name: 'Priya Hegde', role: 'DM', division_id: 'div-bangalore', range_id: null },
-    { id: 'usr-dm3', email: 'dm.shimoga@kfdc.in', password: 'pass123', name: 'Nagaraj Rao', role: 'DM', division_id: 'div-shimoga', range_id: null },
+    // Division Officers (DO) - APO Creation & Compilation - NEW ROLE
+    { id: 'usr-do1', email: 'do.dharwad@kfdc.in', password: 'pass123', name: 'Anjali Sharma', role: 'DO', division_id: 'div-dharwad', range_id: null },
+    { id: 'usr-do2', email: 'do.bangalore@kfdc.in', password: 'pass123', name: 'Priya Hegde', role: 'DO', division_id: 'div-bangalore', range_id: null },
+    { id: 'usr-do3', email: 'do.shimoga@kfdc.in', password: 'pass123', name: 'Nagaraj Rao', role: 'DO', division_id: 'div-shimoga', range_id: null },
+    // Legacy DM users (keep for backward compatibility, mapped to DO)
+    { id: 'usr-dm1', email: 'dm.dharwad@kfdc.in', password: 'pass123', name: 'Anjali Sharma DM', role: 'DO', division_id: 'div-dharwad', range_id: null },
+    { id: 'usr-dm2', email: 'dm.bangalore@kfdc.in', password: 'pass123', name: 'Priya Hegde DM', role: 'DO', division_id: 'div-bangalore', range_id: null },
+    { id: 'usr-dm3', email: 'dm.shimoga@kfdc.in', password: 'pass123', name: 'Nagaraj Rao DM', role: 'DO', division_id: 'div-shimoga', range_id: null },
+    // Executive Director (ED) - First Level APO Approval
+    { id: 'usr-ed1', email: 'ed@kfdc.in', password: 'pass123', name: 'Rajesh Naik ED', role: 'ED', division_id: null, range_id: null },
+    // Managing Director (MD) - Final APO Approval  
+    { id: 'usr-md1', email: 'md@kfdc.in', password: 'pass123', name: 'Dr. Shivakumar MD', role: 'MD', division_id: null, range_id: null },
+    // Admin
     { id: 'usr-admin1', email: 'admin@kfdc.in', password: 'pass123', name: 'Dr. Venkatesh Rao', role: 'ADMIN', division_id: null, range_id: null },
     // Fund Indent Hierarchy: RFO → DCF → ED → MD
     { id: 'usr-rfo1', email: 'rfo.dharwad@kfdc.in', password: 'pass123', name: 'Anil Kumar RFO', role: 'RFO', division_id: 'div-dharwad', range_id: 'rng-dharwad' },
     { id: 'usr-dcf1', email: 'dcf.dharwad@kfdc.in', password: 'pass123', name: 'Suresh Patil DCF', role: 'DCF', division_id: 'div-dharwad', range_id: null },
-    { id: 'usr-ed1', email: 'ed@kfdc.in', password: 'pass123', name: 'Rajesh Naik ED', role: 'ED', division_id: null, range_id: null },
-    { id: 'usr-md1', email: 'md@kfdc.in', password: 'pass123', name: 'Dr. Shivakumar MD', role: 'MD', division_id: null, range_id: null },
   ],
   // Districts and Taluks from KFDC Document
   districts_taluks: [
