@@ -437,7 +437,7 @@ async function handleRoute(request, { params }) {
     // =================== SEED ===================
     if (route === '/seed' && method === 'POST') {
       // Drop existing collections
-      const collections = ['users', 'divisions', 'ranges', 'activity_master', 'norms_config', 'plantations', 'apo_headers', 'apo_items', 'work_logs', 'sessions']
+      const collections = ['users', 'divisions', 'ranges', 'activity_master', 'norms_config', 'plantations', 'buildings', 'nurseries', 'building_activities', 'building_norms', 'nursery_activities', 'nursery_norms', 'apo_headers', 'apo_items', 'work_logs', 'sessions']
       for (const col of collections) {
         try { await db.collection(col).drop() } catch (e) { /* ignore if not exists */ }
       }
@@ -448,6 +448,16 @@ async function handleRoute(request, { params }) {
       await db.collection('activity_master').insertMany(SEED_DATA.activities)
       await db.collection('norms_config').insertMany(SEED_DATA.norms)
       await db.collection('plantations').insertMany(SEED_DATA.plantations.map(p => ({ ...p, created_at: new Date() })))
+      
+      // Seed Buildings Module
+      await db.collection('buildings').insertMany(SEED_DATA.buildings.map(b => ({ ...b, created_at: new Date() })))
+      await db.collection('building_activities').insertMany(SEED_DATA.building_activities)
+      await db.collection('building_norms').insertMany(SEED_DATA.building_norms)
+      
+      // Seed Nurseries Module
+      await db.collection('nurseries').insertMany(SEED_DATA.nurseries.map(n => ({ ...n, created_at: new Date() })))
+      await db.collection('nursery_activities').insertMany(SEED_DATA.nursery_activities)
+      await db.collection('nursery_norms').insertMany(SEED_DATA.nursery_norms)
 
       // Create sample APOs with real plantation refs
       const sampleApos = [
