@@ -126,15 +126,20 @@ function LoginPage({ onLogin }) {
   }
 
   const demoAccounts = [
-    { email: 'ro.dharwad@kfdc.in', role: 'Range Officer', division: 'Dharwad' },
-    { email: 'ro.svpura@kfdc.in', role: 'Range Officer', division: 'Bangalore' },
-    { email: 'dm.dharwad@kfdc.in', role: 'Division Manager', division: 'Dharwad' },
-    { email: 'dm.bangalore@kfdc.in', role: 'Division Manager', division: 'Bangalore' },
+    // Data Entry - RO can only add Plantations, Buildings, Nurseries (NO APO creation)
+    { email: 'ro.dharwad@kfdc.in', role: 'Range Officer (Data Entry)', division: 'Dharwad' },
+    { email: 'ro.svpura@kfdc.in', role: 'Range Officer (Data Entry)', division: 'Bangalore' },
+    // APO Creation - DO creates APOs
+    { email: 'do.dharwad@kfdc.in', role: 'Division Officer (APO Creator)', division: 'Dharwad' },
+    { email: 'do.bangalore@kfdc.in', role: 'Division Officer (APO Creator)', division: 'Bangalore' },
+    // APO Approval
+    { email: 'ed@kfdc.in', role: 'Executive Director (1st Approval)', division: 'All' },
+    { email: 'md@kfdc.in', role: 'Managing Director (Final Approval)', division: 'All' },
+    // Admin
     { email: 'admin@kfdc.in', role: 'Admin (HO)', division: 'All' },
-    { email: 'rfo.dharwad@kfdc.in', role: 'Range Forest Officer', division: 'Dharwad' },
-    { email: 'dcf.dharwad@kfdc.in', role: 'Deputy Conservator', division: 'Dharwad' },
-    { email: 'ed@kfdc.in', role: 'Executive Director', division: 'All' },
-    { email: 'md@kfdc.in', role: 'Managing Director', division: 'All' },
+    // Fund Indent Workflow
+    { email: 'rfo.dharwad@kfdc.in', role: 'Range Forest Officer (Fund Indent)', division: 'Dharwad' },
+    { email: 'dcf.dharwad@kfdc.in', role: 'Deputy Conservator (Fund Approval)', division: 'Dharwad' },
   ]
 
   return (
