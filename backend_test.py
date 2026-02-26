@@ -1,8 +1,8 @@
 #!/usr/bin/env python3
 """
-KFDC iFMS Backend Testing Suite - Multi-Plantation APO Features
-Focus: Testing APO creation workflow with new multi-plantation features
-Review Request: Multi-plantation draft generation, APO creation, Activities/Norms endpoints
+KFDC iFMS Backend Testing Suite - NEW MODULES & UPDATED RBAC
+Focus: Testing NEW Buildings & Nurseries modules + Updated RBAC (RO/DO/ED/MD workflow)
+Review Request: Buildings API, Nurseries API, Updated RBAC testing
 """
 
 import requests
@@ -10,17 +10,16 @@ import json
 import sys
 from typing import Dict, List, Any, Optional
 
-# Test Configuration
+# Test Configuration - Updated Base URL as per review request
 BASE_URL = "https://ifms-kfdc-demo.preview.emergentagent.com/api"
 
-# Test Credentials (as per review request)
+# Test Credentials - Updated RBAC roles as per review request
 TEST_CREDENTIALS = {
     "RO": {"email": "ro.dharwad@kfdc.in", "password": "pass123"},
-    "DM": {"email": "dm.dharwad@kfdc.in", "password": "pass123"},
+    "DO": {"email": "do.dharwad@kfdc.in", "password": "pass123"},
+    "ED": {"email": "ed@kfdc.in", "password": "pass123"},
+    "MD": {"email": "md@kfdc.in", "password": "pass123"},
 }
-
-# Test Plantation IDs (as per review request)
-TEST_PLANTATION_IDS = ["plt-d01", "plt-d05"]
 
 class KFDCBackendTester:
     def __init__(self):
@@ -54,8 +53,10 @@ class KFDCBackendTester:
                 token = data.get("token")
                 if token:
                     self.auth_tokens[role] = token
-                    user_name = data.get("user", {}).get("name", "Unknown")
-                    self.log_result(f"Authentication - {role}", "PASS", f"User: {user_name}")
+                    user_info = data.get("user", {})
+                    user_name = user_info.get("name", "Unknown")
+                    user_role = user_info.get("role", "Unknown")
+                    self.log_result(f"Authentication - {role}", "PASS", f"User: {user_name} (Role: {user_role})")
                     return token
                 else:
                     self.log_result(f"Authentication - {role}", "FAIL", "No token in response")
@@ -87,289 +88,420 @@ class KFDCBackendTester:
                 try:
                     return response.json() if response.text else {}
                 except json.JSONDecodeError:
-                    return {"raw_response": response.text}
+                    return {"raw_response": response.text, "status_code": response.status_code}
             else:
                 print(f"❌ API Error - {method} {endpoint}: {response.status_code} - {response.text}")
-                return None
+                return {"error": True, "status_code": response.status_code, "error_text": response.text}
         except Exception as e:
             print(f"❌ Request Exception - {method} {endpoint}: {str(e)}")
             return None
 
-    def test_multi_plantation_draft_generation(self):
-        """Test 1: Multi-Plantation Draft Generation - POST /api/apo/generate-draft"""
-        print("\n🎯 TESTING MULTI-PLANTATION DRAFT GENERATION")
+    def test_buildings_api(self):
+        """Test NEW Buildings API endpoints"""
+        print("\n🏢 TESTING BUILDINGS API MODULE")
         
-        # Test with multiple plantation IDs as specified in review request
-        for plantation_id in TEST_PLANTATION_IDS:
-            try:
-                data = {
-                    "plantation_id": plantation_id,
-                    "financial_year": "2026-27"
-                }
-                
-                response = self.make_authenticated_request("POST", "/apo/generate-draft", "RO", data)
-                
-                if response:
-                    plantation_name = response.get("plantation_name", "Unknown")
-                    age = response.get("age", 0)
-                    items_count = len(response.get("items", []))
-                    total_cost = response.get("total_estimated_cost", 0)
-                    
-                    self.log_result(
-                        f"Draft Generation - {plantation_id}",
-                        "PASS",
-                        f"Plantation: {plantation_name} (Age: {age}), Activities: {items_count}, Total: ₹{total_cost:,.2f}"
-                    )
-                else:
-                    self.log_result(f"Draft Generation - {plantation_id}", "FAIL", "No response received")
-                    
-            except Exception as e:
-                self.log_result(f"Draft Generation - {plantation_id}", "FAIL", f"Exception: {str(e)}")
-
-    def test_apo_creation_multiple_plantations(self):
-        """Test 2: APO Creation with Multiple Plantation Items"""
-        print("\n🎯 TESTING APO CREATION WITH MULTIPLE PLANTATIONS")
-        
+        # Test 1: GET /buildings (should return buildings in RO's range)
         try:
-            # Create APO with items from multiple plantations
-            # First, get draft data for both plantations
-            draft_items = []
-            plantation_names = []
+            response = self.make_authenticated_request("GET", "/buildings", "RO")
             
-            for plantation_id in TEST_PLANTATION_IDS:
-                draft_response = self.make_authenticated_request(
-                    "POST", "/apo/generate-draft", "RO", 
-                    {"plantation_id": plantation_id, "financial_year": "2026-27"}
+            if response and not response.get("error"):
+                buildings_count = len(response) if isinstance(response, list) else 0
+                building_names = [b.get("name", "Unknown") for b in response[:3]] if isinstance(response, list) else []
+                self.log_result(
+                    "GET /buildings (RO access)",
+                    "PASS",
+                    f"Retrieved {buildings_count} buildings in RO's range. Sample: {', '.join(building_names)}"
                 )
+            else:
+                self.log_result("GET /buildings (RO access)", "FAIL", f"Error: {response}")
                 
-                if draft_response:
-                    plantation_names.append(draft_response.get("plantation_name", plantation_id))
-                    items = draft_response.get("items", [])
-                    # Take first 2 items from each plantation for testing
-                    for item in items[:2]:
-                        draft_items.append({
-                            "activity_id": item["activity_id"],
-                            "activity_name": item["activity_name"],
-                            "sanctioned_qty": item["suggested_qty"],
-                            "sanctioned_rate": item["sanctioned_rate"],
-                            "unit": item["unit"]
-                        })
-            
-            if not draft_items:
-                self.log_result("APO Creation - Multi-Plantation", "FAIL", "No draft items generated")
-                return
-            
-            # Create APO with DRAFT status and items from multiple plantations
-            apo_data = {
-                "plantation_id": TEST_PLANTATION_IDS[0],  # Primary plantation
-                "financial_year": "2026-27",
-                "title": f"Multi-Plantation APO - {', '.join(plantation_names)}",
-                "status": "DRAFT",
-                "items": draft_items
+        except Exception as e:
+            self.log_result("GET /buildings (RO access)", "FAIL", f"Exception: {str(e)}")
+
+        # Test 2: POST /buildings (RO should be able to create building)
+        try:
+            new_building = {
+                "name": "Test Building - Automated Test",
+                "division": "Dharwad",
+                "district": "Dharwad",
+                "taluk": "Dharwad",
+                "year_of_creation": 2026,
+                "latitude": 15.4589,
+                "longitude": 75.0078,
+                "survey_number": "TEST-001",
+                "building_phase": "Creation",
+                "status": "Under Construction"
             }
             
-            apo_response = self.make_authenticated_request("POST", "/apo", "RO", apo_data)
+            response = self.make_authenticated_request("POST", "/buildings", "RO", new_building)
             
-            if apo_response:
-                self.apo_id = apo_response.get("id")
-                total_amount = apo_response.get("total_sanctioned_amount", 0)
-                items_count = len(apo_response.get("items", []))
+            if response and not response.get("error"):
+                building_id = response.get("id")
+                building_name = response.get("name", "Unknown")
+                self.log_result(
+                    "POST /buildings (RO create)",
+                    "PASS",
+                    f"Created building: {building_name} (ID: {building_id})"
+                )
+            else:
+                self.log_result("POST /buildings (RO create)", "FAIL", f"Error: {response}")
+                
+        except Exception as e:
+            self.log_result("POST /buildings (RO create)", "FAIL", f"Exception: {str(e)}")
+
+        # Test 3: GET /building-activities (rate card)
+        try:
+            response = self.make_authenticated_request("GET", "/building-activities", "RO")
+            
+            if response and not response.get("error"):
+                activities_count = len(response) if isinstance(response, list) else 0
+                activity_names = [a.get("name", "Unknown") for a in response[:3]] if isinstance(response, list) else []
+                self.log_result(
+                    "GET /building-activities",
+                    "PASS",
+                    f"Retrieved {activities_count} building activities. Sample: {', '.join(activity_names)}"
+                )
+            else:
+                self.log_result("GET /building-activities", "FAIL", f"Error: {response}")
+                
+        except Exception as e:
+            self.log_result("GET /building-activities", "FAIL", f"Exception: {str(e)}")
+
+        # Test 4: GET /building-norms (rate card with rates)
+        try:
+            response = self.make_authenticated_request("GET", "/building-norms", "RO")
+            
+            if response and not response.get("error"):
+                norms_count = len(response) if isinstance(response, list) else 0
+                # Check if norms have enriched activity data
+                sample_norm = response[0] if isinstance(response, list) and len(response) > 0 else {}
+                has_activity_data = "activity_name" in sample_norm and "standard_rate" in sample_norm
                 
                 self.log_result(
-                    "APO Creation - Multi-Plantation",
-                    "PASS",
-                    f"APO ID: {self.apo_id}, Items: {items_count}, Total: ₹{total_amount:,.2f}"
+                    "GET /building-norms",
+                    "PASS" if has_activity_data else "FAIL",
+                    f"Retrieved {norms_count} building norms with rates and activity details"
                 )
-                
-                # Verify total calculation
-                expected_total = sum(float(item["sanctioned_qty"]) * float(item["sanctioned_rate"]) for item in draft_items)
-                if abs(total_amount - expected_total) < 0.01:
-                    self.log_result("Total Calculation Verification", "PASS", f"Calculated: ₹{expected_total:,.2f}, Received: ₹{total_amount:,.2f}")
-                else:
-                    self.log_result("Total Calculation Verification", "FAIL", f"Expected: ₹{expected_total:,.2f}, Got: ₹{total_amount:,.2f}")
             else:
-                self.log_result("APO Creation - Multi-Plantation", "FAIL", "No response received")
+                self.log_result("GET /building-norms", "FAIL", f"Error: {response}")
                 
         except Exception as e:
-            self.log_result("APO Creation - Multi-Plantation", "FAIL", f"Exception: {str(e)}")
+            self.log_result("GET /building-norms", "FAIL", f"Exception: {str(e)}")
 
-    def test_activities_endpoint(self):
-        """Test 3: GET /api/activities - verify all activities are returned"""
-        print("\n🎯 TESTING ACTIVITIES ENDPOINT")
+    def test_nurseries_api(self):
+        """Test NEW Nurseries API endpoints"""
+        print("\n🌱 TESTING NURSERIES API MODULE")
         
+        # Test 1: GET /nurseries (should return nurseries in RO's range)
         try:
-            response = self.make_authenticated_request("GET", "/activities", "RO")
+            response = self.make_authenticated_request("GET", "/nurseries", "RO")
             
-            if response:
-                activities_count = len(response)
-                
-                # Verify structure and content
-                sample_activity = response[0] if response else {}
-                required_fields = ["id", "name", "category", "unit"]
-                missing_fields = [field for field in required_fields if field not in sample_activity]
-                
-                if missing_fields:
-                    self.log_result("Activities Endpoint", "FAIL", f"Missing fields: {missing_fields}")
-                else:
-                    # Get some sample activities for verification
-                    activity_names = [act["name"] for act in response[:3]]
-                    self.log_result(
-                        "Activities Endpoint",
-                        "PASS",
-                        f"Retrieved {activities_count} activities. Sample: {', '.join(activity_names)}"
-                    )
+            if response and not response.get("error"):
+                nurseries_count = len(response) if isinstance(response, list) else 0
+                nursery_names = [n.get("name", "Unknown") for n in response[:3]] if isinstance(response, list) else []
+                self.log_result(
+                    "GET /nurseries (RO access)",
+                    "PASS",
+                    f"Retrieved {nurseries_count} nurseries in RO's range. Sample: {', '.join(nursery_names)}"
+                )
             else:
-                self.log_result("Activities Endpoint", "FAIL", "No response received")
+                self.log_result("GET /nurseries (RO access)", "FAIL", f"Error: {response}")
                 
         except Exception as e:
-            self.log_result("Activities Endpoint", "FAIL", f"Exception: {str(e)}")
+            self.log_result("GET /nurseries (RO access)", "FAIL", f"Exception: {str(e)}")
 
-    def test_norms_endpoint(self):
-        """Test 4: GET /api/norms - verify norms are returned with activity details"""
-        print("\n🎯 TESTING NORMS ENDPOINT")
+        # Test 2: POST /nurseries (RO should be able to create nursery)
+        try:
+            new_nursery = {
+                "name": "Test Nursery - Automated Test",
+                "nursery_type": "Raising",
+                "latitude": 15.4567,
+                "longitude": 75.0123,
+                "status": "Active",
+                "capacity_seedlings": 25000
+            }
+            
+            response = self.make_authenticated_request("POST", "/nurseries", "RO", new_nursery)
+            
+            if response and not response.get("error"):
+                nursery_id = response.get("id")
+                nursery_name = response.get("name", "Unknown")
+                self.log_result(
+                    "POST /nurseries (RO create)",
+                    "PASS",
+                    f"Created nursery: {nursery_name} (ID: {nursery_id})"
+                )
+            else:
+                self.log_result("POST /nurseries (RO create)", "FAIL", f"Error: {response}")
+                
+        except Exception as e:
+            self.log_result("POST /nurseries (RO create)", "FAIL", f"Exception: {str(e)}")
+
+        # Test 3: GET /nursery-activities (rate card)
+        try:
+            response = self.make_authenticated_request("GET", "/nursery-activities", "RO")
+            
+            if response and not response.get("error"):
+                activities_count = len(response) if isinstance(response, list) else 0
+                activity_names = [a.get("name", "Unknown") for a in response[:3]] if isinstance(response, list) else []
+                self.log_result(
+                    "GET /nursery-activities",
+                    "PASS",
+                    f"Retrieved {activities_count} nursery activities. Sample: {', '.join(activity_names)}"
+                )
+            else:
+                self.log_result("GET /nursery-activities", "FAIL", f"Error: {response}")
+                
+        except Exception as e:
+            self.log_result("GET /nursery-activities", "FAIL", f"Exception: {str(e)}")
+
+        # Test 4: GET /nursery-norms (rate card with rates)
+        try:
+            response = self.make_authenticated_request("GET", "/nursery-norms", "RO")
+            
+            if response and not response.get("error"):
+                norms_count = len(response) if isinstance(response, list) else 0
+                # Check if norms have enriched activity data
+                sample_norm = response[0] if isinstance(response, list) and len(response) > 0 else {}
+                has_activity_data = "activity_name" in sample_norm and "standard_rate" in sample_norm
+                
+                self.log_result(
+                    "GET /nursery-norms",
+                    "PASS" if has_activity_data else "FAIL",
+                    f"Retrieved {norms_count} nursery norms with rates and activity details"
+                )
+            else:
+                self.log_result("GET /nursery-norms", "FAIL", f"Error: {response}")
+                
+        except Exception as e:
+            self.log_result("GET /nursery-norms", "FAIL", f"Exception: {str(e)}")
+
+    def test_updated_rbac(self):
+        """Test Updated RBAC with new roles and permissions"""
+        print("\n🔐 TESTING UPDATED RBAC SYSTEM")
         
+        # Test 1: RO Role (Data Entry Only) - Should NOT be able to create APO
         try:
-            response = self.make_authenticated_request("GET", "/norms", "RO")
+            apo_data = {
+                "financial_year": "2026-27",
+                "title": "Test APO - Should Fail",
+                "status": "DRAFT",
+                "capex_items": [],
+                "revex_items": []
+            }
             
-            if response:
-                norms_count = len(response)
-                
-                # Verify structure and enrichment with activity details
-                sample_norm = response[0] if response else {}
-                required_fields = ["id", "activity_id", "applicable_age", "standard_rate", "activity_name", "category", "unit"]
-                missing_fields = [field for field in required_fields if field not in sample_norm]
-                
-                if missing_fields:
-                    self.log_result("Norms Endpoint", "FAIL", f"Missing fields: {missing_fields}")
-                else:
-                    # Get age distribution
-                    ages = set(norm.get("applicable_age", 0) for norm in response)
-                    age_range = f"{min(ages)}-{max(ages)}" if ages else "None"
-                    
-                    self.log_result(
-                        "Norms Endpoint",
-                        "PASS",
-                        f"Retrieved {norms_count} norms with activity details. Age range: {age_range}"
-                    )
+            response = self.make_authenticated_request("POST", "/apo", "RO", apo_data)
+            
+            if response and response.get("status_code") == 403:
+                self.log_result(
+                    "RO APO Creation (Should be blocked)",
+                    "PASS",
+                    "RO correctly blocked from creating APO (403 Forbidden)"
+                )
             else:
-                self.log_result("Norms Endpoint", "FAIL", "No response received")
+                self.log_result("RO APO Creation (Should be blocked)", "FAIL", f"Expected 403, got: {response}")
                 
         except Exception as e:
-            self.log_result("Norms Endpoint", "FAIL", f"Exception: {str(e)}")
+            self.log_result("RO APO Creation (Should be blocked)", "FAIL", f"Exception: {str(e)}")
 
-    def test_apo_list_and_detail(self):
-        """Test 5: APO List and Detail endpoints"""
-        print("\n🎯 TESTING APO LIST AND DETAIL")
-        
-        # Test APO List
+        # Test 2: DO Role (APO Creation) - Should be able to create APO
         try:
-            list_response = self.make_authenticated_request("GET", "/apo", "RO")
+            # First get plantations, buildings, nurseries for APO creation
+            plantations_response = self.make_authenticated_request("GET", "/plantations", "DO")
+            buildings_response = self.make_authenticated_request("GET", "/buildings", "DO")
+            nurseries_response = self.make_authenticated_request("GET", "/nurseries", "DO")
             
-            if list_response:
-                apo_count = len(list_response)
-                self.log_result("APO List", "PASS", f"Retrieved {apo_count} APOs")
-                
-                # Test APO Detail if we have an APO ID
-                if self.apo_id:
-                    detail_response = self.make_authenticated_request("GET", f"/apo/{self.apo_id}", "RO")
-                    
-                    if detail_response:
-                        items_count = len(detail_response.get("items", []))
-                        apo_title = detail_response.get("title", "Unknown")
-                        self.log_result(
-                            "APO Detail",
-                            "PASS",
-                            f"APO: {apo_title}, Items: {items_count}"
-                        )
-                    else:
-                        self.log_result("APO Detail", "FAIL", "No response received")
-                else:
-                    # Get the first APO from the list
-                    if list_response:
-                        first_apo_id = list_response[0].get("id")
-                        if first_apo_id:
-                            detail_response = self.make_authenticated_request("GET", f"/apo/{first_apo_id}", "RO")
-                            
-                            if detail_response:
-                                items_count = len(detail_response.get("items", []))
-                                apo_title = detail_response.get("title", "Unknown")
-                                self.log_result(
-                                    "APO Detail (First in List)",
-                                    "PASS",
-                                    f"APO: {apo_title}, Items: {items_count}"
-                                )
-                            else:
-                                self.log_result("APO Detail (First in List)", "FAIL", "No response received")
+            apo_data = {
+                "financial_year": "2026-27",
+                "title": "Test APO - DO Creation",
+                "status": "DRAFT",
+                "capex_items": [
+                    {"activity_id": "act-survey", "activity_name": "Survey & Demarcation", "sanctioned_qty": 5, "sanctioned_rate": 1534.16, "unit": "Per Km"}
+                ],
+                "revex_items": [
+                    {"activity_id": "act-fireline", "activity_name": "Clearing Fire Lines", "sanctioned_qty": 10, "sanctioned_rate": 5455.86, "unit": "Per Hectare"}
+                ]
+            }
+            
+            response = self.make_authenticated_request("POST", "/apo", "DO", apo_data)
+            
+            if response and not response.get("error") and response.get("id"):
+                self.apo_id = response.get("id")
+                apo_title = response.get("title", "Unknown")
+                apo_status = response.get("status", "Unknown")
+                self.log_result(
+                    "DO APO Creation",
+                    "PASS",
+                    f"DO created APO: {apo_title} (ID: {self.apo_id}, Status: {apo_status})"
+                )
             else:
-                self.log_result("APO List", "FAIL", "No response received")
+                self.log_result("DO APO Creation", "FAIL", f"Error: {response}")
                 
         except Exception as e:
-            self.log_result("APO List/Detail", "FAIL", f"Exception: {str(e)}")
+            self.log_result("DO APO Creation", "FAIL", f"Exception: {str(e)}")
 
-    def test_apo_status_transitions(self):
-        """Test 6: Test APO Status Transitions (DRAFT → PENDING → SANCTIONED)"""
-        print("\n🎯 TESTING APO STATUS TRANSITIONS")
+        # Test 3: DO should be able to access plantations, buildings, nurseries
+        try:
+            plantations_resp = self.make_authenticated_request("GET", "/plantations", "DO")
+            buildings_resp = self.make_authenticated_request("GET", "/buildings", "DO")
+            nurseries_resp = self.make_authenticated_request("GET", "/nurseries", "DO")
+            
+            plantations_count = len(plantations_resp) if isinstance(plantations_resp, list) else 0
+            buildings_count = len(buildings_resp) if isinstance(buildings_resp, list) else 0
+            nurseries_count = len(nurseries_resp) if isinstance(nurseries_resp, list) else 0
+            
+            if plantations_count > 0 and buildings_count > 0 and nurseries_count > 0:
+                self.log_result(
+                    "DO Resource Access",
+                    "PASS",
+                    f"DO can access: {plantations_count} plantations, {buildings_count} buildings, {nurseries_count} nurseries"
+                )
+            else:
+                self.log_result("DO Resource Access", "FAIL", f"Limited access: P:{plantations_count}, B:{buildings_count}, N:{nurseries_count}")
+                
+        except Exception as e:
+            self.log_result("DO Resource Access", "FAIL", f"Exception: {str(e)}")
+
+    def test_apo_workflow(self):
+        """Test APO Workflow: DO creates → PENDING_ED_APPROVAL → ED approves → PENDING_MD_APPROVAL → MD approves → SANCTIONED"""
+        print("\n📋 TESTING APO WORKFLOW (DO → ED → MD)")
         
         if not self.apo_id:
-            self.log_result("APO Status Transitions", "SKIP", "No APO ID available for testing")
+            self.log_result("APO Workflow", "SKIP", "No APO ID available for workflow testing")
             return
-        
-        try:
-            # Test RO submitting APO to DM
-            status_data = {"status": "PENDING_DM_APPROVAL"}
-            response = self.make_authenticated_request("PATCH", f"/apo/{self.apo_id}/status", "RO", status_data)
             
-            if response:
-                new_status = response.get("status")
-                self.log_result("APO Submit (RO)", "PASS", f"Status: {new_status}")
-                
-                # Test DM approving APO
-                dm_token = self.authenticate_user("DM")
-                if dm_token:
-                    approval_data = {"status": "SANCTIONED"}
-                    dm_response = self.make_authenticated_request("PATCH", f"/apo/{self.apo_id}/status", "DM", approval_data)
+        try:
+            # Step 1: DO submits APO (should go to PENDING_ED_APPROVAL)
+            submit_data = {"status": "PENDING_ED_APPROVAL"}
+            submit_response = self.make_authenticated_request("PATCH", f"/apo/{self.apo_id}/status", "DO", submit_data)
+            
+            if submit_response and not submit_response.get("error"):
+                new_status = submit_response.get("status")
+                if new_status == "PENDING_ED_APPROVAL":
+                    self.log_result(
+                        "DO Submit APO",
+                        "PASS",
+                        f"APO status updated to: {new_status}"
+                    )
                     
-                    if dm_response:
-                        final_status = dm_response.get("status")
-                        self.log_result("APO Approval (DM)", "PASS", f"Final Status: {final_status}")
-                    else:
-                        self.log_result("APO Approval (DM)", "FAIL", "No response received")
+                    # Step 2: ED approves APO (should go to PENDING_MD_APPROVAL)
+                    ed_token = self.authenticate_user("ED")
+                    if ed_token:
+                        approve_data = {"action": "approve", "remarks": "ED Approved"}
+                        ed_response = self.make_authenticated_request("PATCH", f"/apo/{self.apo_id}/approve", "ED", approve_data)
+                        
+                        if ed_response and not ed_response.get("error"):
+                            ed_status = ed_response.get("status")
+                            if ed_status == "PENDING_MD_APPROVAL":
+                                self.log_result(
+                                    "ED Approval",
+                                    "PASS",
+                                    f"ED approved APO, status: {ed_status}"
+                                )
+                                
+                                # Step 3: MD final approval (should go to SANCTIONED)
+                                md_token = self.authenticate_user("MD")
+                                if md_token:
+                                    final_approve_data = {"action": "approve", "remarks": "MD Final Approval"}
+                                    md_response = self.make_authenticated_request("PATCH", f"/apo/{self.apo_id}/approve", "MD", final_approve_data)
+                                    
+                                    if md_response and not md_response.get("error"):
+                                        final_status = md_response.get("status")
+                                        if final_status == "SANCTIONED":
+                                            self.log_result(
+                                                "MD Final Approval",
+                                                "PASS",
+                                                f"MD approved APO, final status: {final_status}"
+                                            )
+                                        else:
+                                            self.log_result("MD Final Approval", "FAIL", f"Expected SANCTIONED, got: {final_status}")
+                                    else:
+                                        self.log_result("MD Final Approval", "FAIL", f"MD approval failed: {md_response}")
+                            else:
+                                self.log_result("ED Approval", "FAIL", f"Expected PENDING_MD_APPROVAL, got: {ed_status}")
+                        else:
+                            self.log_result("ED Approval", "FAIL", f"ED approval failed: {ed_response}")
+                else:
+                    self.log_result("DO Submit APO", "FAIL", f"Expected PENDING_ED_APPROVAL, got: {new_status}")
             else:
-                self.log_result("APO Submit (RO)", "FAIL", "No response received")
+                self.log_result("DO Submit APO", "FAIL", f"Submit failed: {submit_response}")
                 
         except Exception as e:
-            self.log_result("APO Status Transitions", "FAIL", f"Exception: {str(e)}")
+            self.log_result("APO Workflow", "FAIL", f"Exception: {str(e)}")
+
+    def test_apo_visibility_by_role(self):
+        """Test APO visibility based on user roles"""
+        print("\n👁️ TESTING APO VISIBILITY BY ROLE")
+        
+        # Test ED Role - Should see APOs pending approval
+        try:
+            ed_apos = self.make_authenticated_request("GET", "/apo", "ED")
+            if ed_apos and isinstance(ed_apos, list):
+                pending_ed = [apo for apo in ed_apos if apo.get("status") == "PENDING_ED_APPROVAL"]
+                self.log_result(
+                    "ED APO Visibility",
+                    "PASS",
+                    f"ED can see {len(ed_apos)} total APOs, {len(pending_ed)} pending ED approval"
+                )
+            else:
+                self.log_result("ED APO Visibility", "FAIL", f"Error: {ed_apos}")
+        except Exception as e:
+            self.log_result("ED APO Visibility", "FAIL", f"Exception: {str(e)}")
+
+        # Test MD Role - Should see APOs pending MD approval
+        try:
+            md_apos = self.make_authenticated_request("GET", "/apo", "MD")
+            if md_apos and isinstance(md_apos, list):
+                pending_md = [apo for apo in md_apos if apo.get("status") == "PENDING_MD_APPROVAL"]
+                sanctioned = [apo for apo in md_apos if apo.get("status") == "SANCTIONED"]
+                self.log_result(
+                    "MD APO Visibility",
+                    "PASS",
+                    f"MD can see {len(md_apos)} total APOs, {len(pending_md)} pending MD approval, {len(sanctioned)} sanctioned"
+                )
+            else:
+                self.log_result("MD APO Visibility", "FAIL", f"Error: {md_apos}")
+        except Exception as e:
+            self.log_result("MD APO Visibility", "FAIL", f"Exception: {str(e)}")
 
     def run_comprehensive_test(self):
         """Run all tests in sequence"""
-        print("🚀 STARTING KFDC iFMS MULTI-PLANTATION APO WORKFLOW TESTING")
+        print("🚀 STARTING KFDC iFMS - NEW MODULES & UPDATED RBAC TESTING")
         print(f"📍 Base URL: {BASE_URL}")
-        print(f"🔑 Test Plantations: {', '.join(TEST_PLANTATION_IDS)}")
+        print(f"🔑 Testing Roles: {', '.join(TEST_CREDENTIALS.keys())}")
         print("=" * 80)
         
-        # Phase 1: Authentication
+        # Phase 1: Authentication for all roles
         print("\n📋 PHASE 1: AUTHENTICATION")
-        ro_token = self.authenticate_user("RO")
+        authenticated_roles = []
+        for role in TEST_CREDENTIALS.keys():
+            token = self.authenticate_user(role)
+            if token:
+                authenticated_roles.append(role)
         
-        if not ro_token:
-            print("❌ CRITICAL: RO authentication failed. Cannot continue.")
+        if len(authenticated_roles) < 2:
+            print("❌ CRITICAL: Insufficient authentication. Cannot continue comprehensive testing.")
             return
         
-        # Phase 2: Multi-Plantation Draft Generation
-        self.test_multi_plantation_draft_generation()
+        # Phase 2: Test NEW Buildings API
+        if "RO" in authenticated_roles:
+            self.test_buildings_api()
         
-        # Phase 3: APO Creation with Multiple Plantation Items
-        self.test_apo_creation_multiple_plantations()
+        # Phase 3: Test NEW Nurseries API
+        if "RO" in authenticated_roles:
+            self.test_nurseries_api()
         
-        # Phase 4: Activities and Norms Endpoints
-        self.test_activities_endpoint()
-        self.test_norms_endpoint()
+        # Phase 4: Test Updated RBAC
+        if "RO" in authenticated_roles and "DO" in authenticated_roles:
+            self.test_updated_rbac()
         
-        # Phase 5: APO List and Detail
-        self.test_apo_list_and_detail()
+        # Phase 5: Test APO Workflow
+        if all(role in authenticated_roles for role in ["DO", "ED", "MD"]):
+            self.test_apo_workflow()
         
-        # Phase 6: APO Status Transitions
-        self.test_apo_status_transitions()
+        # Phase 6: Test APO Visibility by Role
+        if "ED" in authenticated_roles and "MD" in authenticated_roles:
+            self.test_apo_visibility_by_role()
         
         # Summary
         self.print_test_summary()
@@ -407,7 +539,7 @@ class KFDCBackendTester:
         print("\n" + "=" * 80)
         if pass_rate >= 80:
             print("🎉 TESTING COMPLETED SUCCESSFULLY!")
-            print("✨ Multi-Plantation APO workflow is working as expected")
+            print("✨ NEW iFMS modules and RBAC are working as expected")
         elif pass_rate >= 60:
             print("⚠️ PARTIAL SUCCESS - Some issues found")
             print("🔧 Review failed tests for improvements")
