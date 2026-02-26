@@ -311,35 +311,45 @@ function LoginPage({ onLogin }) {
 function Sidebar({ user, currentView, setView, onLogout }) {
   const [expandedMenu, setExpandedMenu] = useState(null)
   
+  // Updated navigation with new role hierarchy:
+  // RO: Data entry (Plantations, Buildings, Nurseries) - NO APO creation
+  // DO: APO creation, all data viewing
+  // ED: APO approval (first level)
+  // MD: APO approval (final)
   const navItems = [
-    { id: 'dashboard', label: 'Dashboard', icon: LayoutDashboard, roles: ['RO', 'DM', 'ADMIN'] },
-    { id: 'plantations', label: 'Plantations', icon: TreePine, roles: ['RO', 'DM', 'ADMIN'] },
-    { id: 'apo-list', label: 'APO Management', icon: FileText, roles: ['RO', 'DM', 'ADMIN'] },
-    { id: 'apo-wizard', label: 'Create APO', icon: Plus, roles: ['RO'] },
-    { id: 'norms', label: 'Standard Rate Card', icon: BookOpen, roles: ['RO', 'DM', 'ADMIN'] },
+    { id: 'dashboard', label: 'Dashboard', icon: LayoutDashboard, roles: ['RO', 'DO', 'DM', 'ED', 'MD', 'ADMIN'] },
+    { id: 'plantations', label: 'Plantations', icon: TreePine, roles: ['RO', 'DO', 'DM', 'ED', 'MD', 'ADMIN'] },
+    { id: 'buildings', label: 'Buildings', icon: Building2, roles: ['RO', 'DO', 'DM', 'ED', 'MD', 'ADMIN'] },
+    { id: 'nurseries', label: 'Nurseries', icon: Sprout, roles: ['RO', 'DO', 'DM', 'ED', 'MD', 'ADMIN'] },
+    { id: 'apo-list', label: 'APO Management', icon: FileText, roles: ['RO', 'DO', 'DM', 'ED', 'MD', 'ADMIN'] },
+    { id: 'apo-wizard', label: 'Create APO', icon: Plus, roles: ['DO', 'DM', 'ADMIN'] }, // Only DO can create APO
+    { id: 'apo-approve', label: 'Approve APO', icon: CheckCircle, roles: ['ED', 'MD'] }, // ED/MD approve APOs
+    { id: 'norms', label: 'Rate Cards', icon: BookOpen, roles: ['RO', 'DO', 'DM', 'ED', 'MD', 'ADMIN'] },
     // Fund Indent: RFO → DCF → ED → MD
     { id: 'fund-indent', label: 'Generate Fund Indent', icon: ClipboardList, roles: ['RFO'] },
-    { id: 'fund-indent-approve', label: 'Approve Fund Indent', icon: CheckCircle, roles: ['DCF', 'ED', 'MD'] },
+    { id: 'fund-indent-approve', label: 'Approve Fund Indent', icon: CheckSquare, roles: ['DCF', 'ED', 'MD'] },
   ]
 
   const roleLabels = { 
     RO: 'Range Officer', 
+    DO: 'Division Officer',
     DM: 'Division Manager', 
+    ED: 'Executive Director',
+    MD: 'Managing Director',
     ADMIN: 'Admin (HO)',
     RFO: 'Range Forest Officer',
     DCF: 'Deputy Conservator',
-    ED: 'Executive Director',
-    MD: 'Managing Director'
   }
   
   const roleColors = { 
     RO: 'bg-green-100 text-green-700', 
+    DO: 'bg-purple-100 text-purple-700',
     DM: 'bg-blue-100 text-blue-700', 
+    ED: 'bg-indigo-100 text-indigo-700',
+    MD: 'bg-rose-100 text-rose-700',
     ADMIN: 'bg-amber-100 text-amber-700',
     RFO: 'bg-cyan-100 text-cyan-700',
     DCF: 'bg-orange-100 text-orange-700',
-    ED: 'bg-indigo-100 text-indigo-700',
-    MD: 'bg-rose-100 text-rose-700'
   }
 
   return (
