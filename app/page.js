@@ -791,7 +791,9 @@ function PlantationsView({ user, setView, setSelectedPlantation }) {
   const [form, setForm] = useState({ 
     name: '', 
     species: '', 
-    year_of_planting: new Date().getFullYear(), 
+    plantation_category: 'Non-Rubber', // NEW: Rubber or Non-Rubber
+    advance_work_year: new Date().getFullYear() - 1, // NEW: Year 1 - Advance Work
+    planted_year: new Date().getFullYear(), // NEW: Year 2 - Planting (replaces year_of_planting)
     total_area_ha: '', 
     village: '', 
     taluk: '', 
@@ -801,7 +803,6 @@ function PlantationsView({ user, setView, setSelectedPlantation }) {
     division: '',
     latitude: '',
     longitude: '',
-    work_type: 'FW'
   })
 
   // District and Taluk data from API
@@ -828,7 +829,7 @@ function PlantationsView({ user, setView, setSelectedPlantation }) {
   const species_options = [
     "Eucalyptus pellita", "Eucalyptus", "Acacia springvale", "Acacia auriculiformis",
     "Acacia citriodora", "Corymbia", "Casurina junguniana", "Subabool",
-    "Marihal Bamboo", "Dowga Bamboo", "Red sanders", "Teak"
+    "Marihal Bamboo", "Dowga Bamboo", "Red sanders", "Teak", "Rubber"
   ]
 
   const load = useCallback(() => {
@@ -864,10 +865,17 @@ function PlantationsView({ user, setView, setSelectedPlantation }) {
 
   const handleCreate = async () => {
     try {
-      await api.post('/plantations', form)
+      // Map planted_year to year_of_planting for backend compatibility
+      const payload = {
+        ...form,
+        year_of_planting: form.planted_year,
+      }
+      await api.post('/plantations', payload)
       setShowCreate(false)
       setForm({ 
-        name: '', species: '', year_of_planting: new Date().getFullYear(), total_area_ha: '', 
+        name: '', species: '', plantation_category: 'Non-Rubber', 
+        advance_work_year: new Date().getFullYear() - 1, planted_year: new Date().getFullYear(), 
+        total_area_ha: '', 
         village: '', taluk: '', district: '', vidhana_sabha: '', lok_sabha: '',
         division: '', latitude: '', longitude: '', work_type: 'FW'
       })
