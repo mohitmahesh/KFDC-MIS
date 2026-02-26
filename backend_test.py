@@ -249,16 +249,18 @@ class KFDCBackendTester:
         try:
             response = self.make_authenticated_request("GET", "/nursery-activities", "RO")
             
-            if response and not response.get("error"):
-                activities_count = len(response) if isinstance(response, list) else 0
-                activity_names = [a.get("name", "Unknown") for a in response[:3]] if isinstance(response, list) else []
+            if response and isinstance(response, list):
+                activities_count = len(response)
+                activity_names = [a.get("name", "Unknown") for a in response[:3]]
                 self.log_result(
                     "GET /nursery-activities",
                     "PASS",
                     f"Retrieved {activities_count} nursery activities. Sample: {', '.join(activity_names)}"
                 )
-            else:
+            elif response and response.get("error"):
                 self.log_result("GET /nursery-activities", "FAIL", f"Error: {response}")
+            else:
+                self.log_result("GET /nursery-activities", "FAIL", f"Invalid response: {type(response)}")
                 
         except Exception as e:
             self.log_result("GET /nursery-activities", "FAIL", f"Exception: {str(e)}")
@@ -267,10 +269,10 @@ class KFDCBackendTester:
         try:
             response = self.make_authenticated_request("GET", "/nursery-norms", "RO")
             
-            if response and not response.get("error"):
-                norms_count = len(response) if isinstance(response, list) else 0
+            if response and isinstance(response, list):
+                norms_count = len(response)
                 # Check if norms have enriched activity data
-                sample_norm = response[0] if isinstance(response, list) and len(response) > 0 else {}
+                sample_norm = response[0] if len(response) > 0 else {}
                 has_activity_data = "activity_name" in sample_norm and "standard_rate" in sample_norm
                 
                 self.log_result(
@@ -278,8 +280,10 @@ class KFDCBackendTester:
                     "PASS" if has_activity_data else "FAIL",
                     f"Retrieved {norms_count} nursery norms with rates and activity details"
                 )
-            else:
+            elif response and response.get("error"):
                 self.log_result("GET /nursery-norms", "FAIL", f"Error: {response}")
+            else:
+                self.log_result("GET /nursery-norms", "FAIL", f"Invalid response: {type(response)}")
                 
         except Exception as e:
             self.log_result("GET /nursery-norms", "FAIL", f"Exception: {str(e)}")
