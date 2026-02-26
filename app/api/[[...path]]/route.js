@@ -1835,21 +1835,22 @@ async function handleRoute(request, { params }) {
       const apo = await db.collection('apo_headers').findOne({ id: apoId })
       if (!apo) return handleCORS(NextResponse.json({ error: 'APO not found' }, { status: 404 }))
 
-      // APO Approval Hierarchy:
-      // DRAFT → PENDING_DM_APPROVAL (RO submits to DM)
-      // PENDING_DM_APPROVAL → PENDING_HO_APPROVAL (DM approves, forwards to HO)
-      // PENDING_DM_APPROVAL → REJECTED (DM rejects, back to RO)
-      // PENDING_HO_APPROVAL → SANCTIONED (HO/Admin final approval)
-      // PENDING_HO_APPROVAL → REJECTED (HO rejects)
-      // REJECTED → DRAFT (RO can revise and resubmit)
+      // Updated APO Approval Hierarchy: DO → ED → MD
+      // DRAFT → PENDING_ED_APPROVAL (DO submits to ED)
+      // PENDING_ED_APPROVAL → PENDING_MD_APPROVAL (ED approves, forwards to MD)
+      // PENDING_ED_APPROVAL → REJECTED (ED rejects)
+      // PENDING_MD_APPROVAL → SANCTIONED (MD final approval)
+      // PENDING_MD_APPROVAL → REJECTED (MD rejects)
+      // REJECTED → DRAFT (DO can revise and resubmit)
 
       const validTransitions = {
-        'DRAFT': ['PENDING_DM_APPROVAL'],
-        'PENDING_DM_APPROVAL': ['PENDING_HO_APPROVAL', 'REJECTED'],
-        'PENDING_HO_APPROVAL': ['SANCTIONED', 'REJECTED'],
+        'DRAFT': ['PENDING_ED_APPROVAL'],
+        'PENDING_ED_APPROVAL': ['PENDING_MD_APPROVAL', 'REJECTED'],
+        'PENDING_MD_APPROVAL': ['SANCTIONED', 'REJECTED'],
         'REJECTED': ['DRAFT'],
         // Legacy support for old status
-        'PENDING_APPROVAL': ['PENDING_HO_APPROVAL', 'SANCTIONED', 'REJECTED'],
+        'PENDING_APPROVAL': ['PENDING_ED_APPROVAL', 'SANCTIONED', 'REJECTED'],
+        'PENDING_DM_APPROVAL': ['PENDING_ED_APPROVAL', 'REJECTED'], // Migration path
       }
 
       if (!validTransitions[apo.status]?.includes(status)) {
@@ -1860,35 +1861,35 @@ async function handleRoute(request, { params }) {
       }
 
       // Role-based permissions for status changes
-      // RO can: DRAFT → PENDING_DM_APPROVAL, REJECTED → DRAFT
-      // DM can: PENDING_DM_APPROVAL → PENDING_HO_APPROVAL, PENDING_DM_APPROVAL → REJECTED
-      // ADMIN/HO can: PENDING_HO_APPROVAL → SANCTIONED, PENDING_HO_APPROVAL → REJECTED
+      // DO can: DRAFT → PENDING_ED_APPROVAL, REJECTED → DRAFT
+      // ED can: PENDING_ED_APPROVAL → PENDING_MD_APPROVAL, PENDING_ED_APPROVAL → REJECTED
+      // MD can: PENDING_MD_APPROVAL → SANCTIONED, PENDING_MD_APPROVAL → REJECTED
 
-      if (status === 'PENDING_DM_APPROVAL') {
-        if (user.role !== 'RO') {
-          return handleCORS(NextResponse.json({ error: 'Only Range Officer can submit APO for DM approval' }, { status: 403 }))
+      if (status === 'PENDING_ED_APPROVAL') {
+        if (!['DO', 'DM', 'ADMIN'].includes(user.role)) {
+          return handleCORS(NextResponse.json({ error: 'Only Division Officer can submit APO for ED approval' }, { status: 403 }))
         }
       }
 
-      if (status === 'PENDING_HO_APPROVAL') {
-        if (user.role !== 'DM') {
-          return handleCORS(NextResponse.json({ error: 'Only Division Manager can forward APO to Head Office' }, { status: 403 }))
+      if (status === 'PENDING_MD_APPROVAL') {
+        if (!['ED', 'ADMIN'].includes(user.role)) {
+          return handleCORS(NextResponse.json({ error: 'Only Executive Director can forward APO to MD' }, { status: 403 }))
         }
       }
 
       if (status === 'SANCTIONED') {
-        if (user.role !== 'ADMIN') {
-          return handleCORS(NextResponse.json({ error: 'Only Head Office (Admin) can give final sanction to APO' }, { status: 403 }))
+        if (!['MD', 'ADMIN'].includes(user.role)) {
+          return handleCORS(NextResponse.json({ error: 'Only Managing Director can give final sanction to APO' }, { status: 403 }))
         }
       }
 
       if (status === 'REJECTED') {
-        // DM can reject from PENDING_DM_APPROVAL, ADMIN can reject from PENDING_HO_APPROVAL
-        if (apo.status === 'PENDING_DM_APPROVAL' && user.role !== 'DM') {
-          return handleCORS(NextResponse.json({ error: 'Only Division Manager can reject at DM approval stage' }, { status: 403 }))
+        // ED can reject from PENDING_ED_APPROVAL, MD can reject from PENDING_MD_APPROVAL
+        if (apo.status === 'PENDING_ED_APPROVAL' && !['ED', 'ADMIN'].includes(user.role)) {
+          return handleCORS(NextResponse.json({ error: 'Only ED can reject at ED approval stage' }, { status: 403 }))
         }
-        if (apo.status === 'PENDING_HO_APPROVAL' && user.role !== 'ADMIN') {
-          return handleCORS(NextResponse.json({ error: 'Only Head Office (Admin) can reject at HO approval stage' }, { status: 403 }))
+        if (apo.status === 'PENDING_MD_APPROVAL' && !['MD', 'ADMIN'].includes(user.role)) {
+          return handleCORS(NextResponse.json({ error: 'Only MD can reject at MD approval stage' }, { status: 403 }))
         }
       }
 
@@ -1899,13 +1900,13 @@ async function handleRoute(request, { params }) {
       }
       
       // Track who approved/rejected at each stage
-      if (status === 'PENDING_HO_APPROVAL') {
-        updateData.dm_approved_by = user.id
-        updateData.dm_approved_at = new Date()
+      if (status === 'PENDING_MD_APPROVAL') {
+        updateData.approved_by_ed = user.id
+        updateData.ed_approved_at = new Date()
       }
       if (status === 'SANCTIONED') {
-        updateData.ho_approved_by = user.id
-        updateData.ho_approved_at = new Date()
+        updateData.approved_by_md = user.id
+        updateData.md_approved_at = new Date()
         updateData.approved_by = user.id // Legacy field
       }
       if (status === 'REJECTED') {
@@ -1919,9 +1920,9 @@ async function handleRoute(request, { params }) {
       await db.collection('apo_headers').updateOne({ id: apoId }, { $set: updateData })
 
       const statusMessages = {
-        'PENDING_DM_APPROVAL': 'APO submitted to Division Manager for approval',
-        'PENDING_HO_APPROVAL': 'APO forwarded to Head Office for final sanction',
-        'SANCTIONED': 'APO sanctioned by Head Office',
+        'PENDING_ED_APPROVAL': 'APO submitted to Executive Director for approval',
+        'PENDING_MD_APPROVAL': 'APO approved by ED, forwarded to Managing Director',
+        'SANCTIONED': 'APO sanctioned by Managing Director',
         'REJECTED': 'APO rejected',
         'DRAFT': 'APO returned to draft for revision',
       }
