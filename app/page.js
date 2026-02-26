@@ -926,13 +926,13 @@ function PlantationsView({ user, setView, setSelectedPlantation }) {
               </DialogHeader>
               <div className="space-y-4">
                 {/* Basic Info */}
-                <div className="grid grid-cols-2 gap-4">
+                <div className="grid grid-cols-3 gap-4">
                   <div>
-                    <Label>Plantation Name</Label>
+                    <Label>Plantation Name <span className="text-red-500">*</span></Label>
                     <Input value={form.name} onChange={e => setForm(f => ({ ...f, name: e.target.value }))} placeholder="e.g., Varavanagalavi" />
                   </div>
                   <div>
-                    <Label>Species</Label>
+                    <Label>Species <span className="text-red-500">*</span></Label>
                     <Select value={form.species} onValueChange={v => setForm(f => ({ ...f, species: v }))}>
                       <SelectTrigger>
                         <SelectValue placeholder="Select Species" />
@@ -942,29 +942,37 @@ function PlantationsView({ user, setView, setSelectedPlantation }) {
                       </SelectContent>
                     </Select>
                   </div>
-                </div>
-
-                {/* Year, Area, Work Type */}
-                <div className="grid grid-cols-3 gap-4">
                   <div>
-                    <Label>Year of Planting</Label>
-                    <Input type="number" value={form.year_of_planting} onChange={handleYearChange} />
-                  </div>
-                  <div>
-                    <Label>Area (Hectares)</Label>
-                    <Input type="number" step="0.1" value={form.total_area_ha} onChange={e => setForm(f => ({ ...f, total_area_ha: e.target.value }))} />
-                  </div>
-                  <div>
-                    <Label>Work Type</Label>
-                    <Select value={form.work_type} onValueChange={v => setForm(f => ({ ...f, work_type: v }))}>
+                    <Label>Category <span className="text-red-500">*</span></Label>
+                    <Select value={form.plantation_category} onValueChange={v => setForm(f => ({ ...f, plantation_category: v }))}>
                       <SelectTrigger>
-                        <SelectValue />
+                        <SelectValue placeholder="Select Category" />
                       </SelectTrigger>
                       <SelectContent>
-                        <SelectItem value="FW">Fresh Work (FW)</SelectItem>
-                        <SelectItem value="M">Maintenance (M)</SelectItem>
+                        <SelectItem value="Rubber">Rubber</SelectItem>
+                        <SelectItem value="Non-Rubber">Non-Rubber</SelectItem>
                       </SelectContent>
                     </Select>
+                  </div>
+                </div>
+
+                {/* Timeline Years - NEW: Advance Work Year and Planted Year */}
+                <div className="p-3 bg-blue-50 rounded-lg border border-blue-200">
+                  <p className="text-sm text-blue-800 font-medium mb-2">Plantation Timeline (3 Phases)</p>
+                  <p className="text-xs text-blue-600 mb-3">Year 1: Advance Work → Year 2: Planting → Year 3+: Maintenance</p>
+                  <div className="grid grid-cols-3 gap-4">
+                    <div>
+                      <Label>Advance Work Year (Year 1)</Label>
+                      <Input type="number" value={form.advance_work_year} onChange={e => setForm(f => ({ ...f, advance_work_year: parseInt(e.target.value) }))} />
+                    </div>
+                    <div>
+                      <Label>Planted Year (Year 2) <span className="text-red-500">*</span></Label>
+                      <Input type="number" value={form.planted_year} onChange={e => setForm(f => ({ ...f, planted_year: parseInt(e.target.value) }))} />
+                    </div>
+                    <div>
+                      <Label>Area (Hectares) <span className="text-red-500">*</span></Label>
+                      <Input type="number" step="0.1" value={form.total_area_ha} onChange={e => setForm(f => ({ ...f, total_area_ha: e.target.value }))} />
+                    </div>
                   </div>
                 </div>
 
