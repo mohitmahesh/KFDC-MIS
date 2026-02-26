@@ -1087,48 +1087,94 @@ async function handleRoute(request, { params }) {
     }
 
     // =================== APO CRUD ===================
+    // APO Creation: DO role only (compiles from plantations, buildings, nurseries)
+    // Workflow: DO creates → ED approves → MD final approval
     if (route === '/apo' && method === 'POST') {
       const user = await getUser(request, db)
       if (!user) return handleCORS(NextResponse.json({ error: 'Unauthorized' }, { status: 401 }))
-      if (user.role !== 'RO') return handleCORS(NextResponse.json({ error: 'Only RO can create APOs' }, { status: 403 }))
+      
+      // Only DO (Division Officer) can create APOs
+      if (!['DO', 'DM', 'ADMIN'].includes(user.role)) {
+        return handleCORS(NextResponse.json({ error: 'Only Division Officers (DO) can create APOs' }, { status: 403 }))
+      }
 
       const body = await request.json()
-      const { plantation_id, financial_year, items, status, title } = body
+      const { financial_year, title, status, capex_items, revex_items, plantation_items, building_items, nursery_items } = body
 
       const apoId = uuidv4()
-      const apoItems = (items || []).map(item => ({
-        id: uuidv4(),
-        apo_id: apoId,
-        activity_id: item.activity_id,
-        activity_name: item.activity_name,
-        sanctioned_qty: parseFloat(item.sanctioned_qty),
-        sanctioned_rate: parseFloat(item.sanctioned_rate),
-        total_cost: parseFloat(item.sanctioned_qty) * parseFloat(item.sanctioned_rate),
-        unit: item.unit,
-      }))
+      
+      // Process all items with expense type classification
+      const processedItems = []
+      
+      // Process CapEx items (plantations age 1-7, building creation, all nurseries)
+      const allCapexItems = capex_items || []
+      allCapexItems.forEach(item => {
+        processedItems.push({
+          id: uuidv4(),
+          apo_id: apoId,
+          activity_id: item.activity_id,
+          activity_name: item.activity_name,
+          sanctioned_qty: parseFloat(item.sanctioned_qty),
+          sanctioned_rate: parseFloat(item.sanctioned_rate),
+          total_cost: parseFloat(item.sanctioned_qty) * parseFloat(item.sanctioned_rate),
+          unit: item.unit,
+          expense_type: 'CAPEX',
+          source_type: item.source_type || 'plantation', // plantation, building, nursery
+          source_id: item.source_id,
+          source_name: item.source_name,
+        })
+      })
 
-      const totalAmount = apoItems.reduce((sum, i) => sum + i.total_cost, 0)
+      // Process RevEx items (plantations age 8+, building maintenance)
+      const allRevexItems = revex_items || []
+      allRevexItems.forEach(item => {
+        processedItems.push({
+          id: uuidv4(),
+          apo_id: apoId,
+          activity_id: item.activity_id,
+          activity_name: item.activity_name,
+          sanctioned_qty: parseFloat(item.sanctioned_qty),
+          sanctioned_rate: parseFloat(item.sanctioned_rate),
+          total_cost: parseFloat(item.sanctioned_qty) * parseFloat(item.sanctioned_rate),
+          unit: item.unit,
+          expense_type: 'REVEX',
+          source_type: item.source_type || 'plantation',
+          source_id: item.source_id,
+          source_name: item.source_name,
+        })
+      })
+
+      // Calculate totals
+      const capexTotal = processedItems.filter(i => i.expense_type === 'CAPEX').reduce((sum, i) => sum + i.total_cost, 0)
+      const revexTotal = processedItems.filter(i => i.expense_type === 'REVEX').reduce((sum, i) => sum + i.total_cost, 0)
+      const totalAmount = capexTotal + revexTotal
 
       const apoHeader = {
         id: apoId,
-        plantation_id,
         financial_year,
-        title: title || 'APO',
+        title: title || 'Annual Plan of Operations',
         status: status || 'DRAFT',
         total_sanctioned_amount: totalAmount,
+        capex_total: capexTotal,
+        revex_total: revexTotal,
         created_by: user.id,
-        approved_by: null,
+        division_id: user.division_id,
+        // Approval workflow: DRAFT → PENDING_ED_APPROVAL → PENDING_MD_APPROVAL → SANCTIONED
+        approved_by_ed: null,
+        approved_by_md: null,
+        ed_approved_at: null,
+        md_approved_at: null,
         created_at: new Date(),
         updated_at: new Date(),
       }
 
       await db.collection('apo_headers').insertOne(apoHeader)
-      if (apoItems.length > 0) {
-        await db.collection('apo_items').insertMany(apoItems)
+      if (processedItems.length > 0) {
+        await db.collection('apo_items').insertMany(processedItems)
       }
 
       const { _id, ...result } = apoHeader
-      return handleCORS(NextResponse.json({ ...result, items: apoItems.map(({ _id, ...i }) => i) }, { status: 201 }))
+      return handleCORS(NextResponse.json({ ...result, items: processedItems.map(({ _id, ...i }) => i) }, { status: 201 }))
     }
 
     if (route === '/apo' && method === 'GET') {
@@ -1137,14 +1183,20 @@ async function handleRoute(request, { params }) {
 
       let filter = {}
       if (user.role === 'RO') {
-        filter = { created_by: user.id }
-      } else if (user.role === 'DM') {
-        // Get all ROs in this division
-        const divRanges = await db.collection('ranges').find({ division_id: user.division_id }).toArray()
-        const rangeIds = divRanges.map(r => r.id)
-        const divUsers = await db.collection('users').find({ range_id: { $in: rangeIds } }).toArray()
-        const userIds = divUsers.map(u => u.id)
-        filter = { created_by: { $in: userIds } }
+        // RO can only see APOs - but they don't create them anymore
+        const range = await db.collection('ranges').findOne({ id: user.range_id })
+        if (range) {
+          filter = { division_id: range.division_id }
+        }
+      } else if (['DO', 'DM'].includes(user.role)) {
+        // DO/DM sees APOs in their division
+        filter = { division_id: user.division_id }
+      } else if (user.role === 'ED') {
+        // ED sees APOs pending their approval or already approved
+        filter = { status: { $in: ['PENDING_ED_APPROVAL', 'PENDING_MD_APPROVAL', 'SANCTIONED', 'REJECTED'] } }
+      } else if (user.role === 'MD') {
+        // MD sees APOs pending their approval or already approved
+        filter = { status: { $in: ['PENDING_MD_APPROVAL', 'SANCTIONED', 'REJECTED'] } }
       }
       // ADMIN sees all
 
@@ -1155,21 +1207,114 @@ async function handleRoute(request, { params }) {
       const apos = await db.collection('apo_headers').find(filter).sort({ created_at: -1 }).toArray()
       
       // Enrich
-      const plantations = await db.collection('plantations').find({}).toArray()
       const users = await db.collection('users').find({}).toArray()
-      const pltMap = {}
+      const divisions = await db.collection('divisions').find({}).toArray()
       const userMap = {}
-      plantations.forEach(p => { pltMap[p.id] = p })
+      const divMap = {}
       users.forEach(u => { userMap[u.id] = u })
+      divisions.forEach(d => { divMap[d.id] = d })
 
       const enriched = apos.map(({ _id, ...a }) => ({
         ...a,
-        plantation_name: pltMap[a.plantation_id]?.name || 'Unknown',
-        species: pltMap[a.plantation_id]?.species,
+        division_name: divMap[a.division_id]?.name || 'Unknown',
         created_by_name: userMap[a.created_by]?.name || 'Unknown',
-        approved_by_name: a.approved_by ? userMap[a.approved_by]?.name : null,
+        ed_approved_by_name: a.approved_by_ed ? userMap[a.approved_by_ed]?.name : null,
+        md_approved_by_name: a.approved_by_md ? userMap[a.approved_by_md]?.name : null,
       }))
       return handleCORS(NextResponse.json(enriched))
+    }
+
+    // APO Detail with items
+    const apoDetailMatch = route.match(/^\/apo\/([^/]+)$/)
+    if (apoDetailMatch && method === 'GET') {
+      const user = await getUser(request, db)
+      if (!user) return handleCORS(NextResponse.json({ error: 'Unauthorized' }, { status: 401 }))
+      
+      const apoId = apoDetailMatch[1]
+      const apo = await db.collection('apo_headers').findOne({ id: apoId })
+      if (!apo) return handleCORS(NextResponse.json({ error: 'APO not found' }, { status: 404 }))
+
+      const items = await db.collection('apo_items').find({ apo_id: apoId }).toArray()
+      
+      // Separate CapEx and RevEx items
+      const capexItems = items.filter(i => i.expense_type === 'CAPEX').map(({ _id, ...i }) => i)
+      const revexItems = items.filter(i => i.expense_type === 'REVEX').map(({ _id, ...i }) => i)
+
+      const { _id, ...apoData } = apo
+      return handleCORS(NextResponse.json({
+        ...apoData,
+        items: items.map(({ _id, ...i }) => i),
+        capex_items: capexItems,
+        revex_items: revexItems,
+      }))
+    }
+
+    // APO Approval endpoints - ED and MD approval workflow
+    const apoApproveMatch = route.match(/^\/apo\/([^/]+)\/approve$/)
+    if (apoApproveMatch && method === 'PATCH') {
+      const user = await getUser(request, db)
+      if (!user) return handleCORS(NextResponse.json({ error: 'Unauthorized' }, { status: 401 }))
+      
+      const apoId = apoApproveMatch[1]
+      const apo = await db.collection('apo_headers').findOne({ id: apoId })
+      if (!apo) return handleCORS(NextResponse.json({ error: 'APO not found' }, { status: 404 }))
+
+      const body = await request.json()
+      const { action, remarks } = body // action: 'approve' or 'reject'
+
+      let updateData = {}
+
+      if (user.role === 'ED') {
+        if (apo.status !== 'PENDING_ED_APPROVAL') {
+          return handleCORS(NextResponse.json({ error: 'APO is not pending ED approval' }, { status: 400 }))
+        }
+        if (action === 'approve') {
+          updateData = {
+            status: 'PENDING_MD_APPROVAL',
+            approved_by_ed: user.id,
+            ed_approved_at: new Date(),
+            ed_remarks: remarks || null,
+            updated_at: new Date(),
+          }
+        } else {
+          updateData = {
+            status: 'REJECTED',
+            rejected_by: user.id,
+            rejected_at: new Date(),
+            rejection_remarks: remarks || null,
+            updated_at: new Date(),
+          }
+        }
+      } else if (user.role === 'MD') {
+        if (apo.status !== 'PENDING_MD_APPROVAL') {
+          return handleCORS(NextResponse.json({ error: 'APO is not pending MD approval' }, { status: 400 }))
+        }
+        if (action === 'approve') {
+          updateData = {
+            status: 'SANCTIONED',
+            approved_by_md: user.id,
+            md_approved_at: new Date(),
+            md_remarks: remarks || null,
+            updated_at: new Date(),
+          }
+        } else {
+          updateData = {
+            status: 'REJECTED',
+            rejected_by: user.id,
+            rejected_at: new Date(),
+            rejection_remarks: remarks || null,
+            updated_at: new Date(),
+          }
+        }
+      } else {
+        return handleCORS(NextResponse.json({ error: 'Only ED and MD can approve APOs' }, { status: 403 }))
+      }
+
+      await db.collection('apo_headers').updateOne({ id: apoId }, { $set: updateData })
+      
+      const updatedApo = await db.collection('apo_headers').findOne({ id: apoId })
+      const { _id, ...result } = updatedApo
+      return handleCORS(NextResponse.json(result))
     }
 
     // =================== WORKS ENDPOINTS ===================
